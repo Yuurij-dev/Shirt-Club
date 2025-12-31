@@ -22,6 +22,7 @@ const DropPage = () => {
 
     return (
         <div className="relative  w-full h-screen flex gap-5 flex-col items-center justify-center bg-cover bg-center bg-no-repeat "
+            style={{padding:"0 2%"}}
         >
 
             <Wave />

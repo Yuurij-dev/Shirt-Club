@@ -33,7 +33,7 @@
 }
 
 .section-wave .wave.wave2{
-    animation: animate2 15s linear infinite;
+    animation: animate2 10s linear infinite;
     z-index: 999;
     opacity: 0.5;
     animation-delay: -5s;
@@ -41,7 +41,7 @@
 }
 
 .section-wave .wave.wave3{
-    animation: animate 30s linear infinite;
+    animation: animate 25s linear infinite;
     z-index: 998;
     opacity: 0.2;
     animation-delay: -2s;
@@ -49,7 +49,7 @@
 }
 
 .section-wave .wave.wave4{
-    animation: animate2 30s linear infinite;
+    animation: animate2 25s linear infinite;
     z-index: 997;
     opacity: 0.7;
     animation-delay: -5s;
