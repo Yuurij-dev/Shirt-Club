@@ -21,13 +21,12 @@ const DropPage = () => {
 
 
     return (
-        <div className="relative  w-full h-screen flex gap-5 flex-col items-center justify-center bg-cover bg-center bg-no-repeat "
+        <div className=" relative  w-full h-screen flex gap-5 flex-col items-center justify-center bg-cover bg-center bg-no-repeat "
             style={{padding:"0 2%"}}
         >
 
             <Wave />
             <div className="logo">
-                {/* <h1 className="text-5xl font-bold">MY PAGE</h1> */}
 
                 <Image
                     src="/assets/logo4.png"
@@ -38,7 +37,7 @@ const DropPage = () => {
             </div>
         
 
-            <div className="w-full max-w-112.5 text-center flex flex-col gap-5">
+            <div className=" w-full max-w-112.5 text-center flex flex-col gap-5">
                 <h2 className="font-bold text-[18px] uppercase">DROP DE ANO NOVO DESCONTO EM BREVE!</h2>
 
                 <div className="countdown flex items-center justify-center">
@@ -63,7 +62,7 @@ const DropPage = () => {
 
             </div>
 
-            <p className="footer-message">Resgate seu acesso antecipado!</p>
+            <p className="footer-message z-5">Resgate seu acesso antecipado!</p>
         </div>
      );
 }
