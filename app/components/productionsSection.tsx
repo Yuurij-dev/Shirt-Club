@@ -7,9 +7,9 @@ const products = [
     image: "/products/flamengo-home.png",
   },
   {
-    name: "Camisa Milan Away 24/25",
+    name: "Real Madrid Home 24/25",
     price: "R$ 189,90",
-    image: "/products/milan-away.png",
+    image: "/products/real-madrid-home.png",
   },
   {
     name: "Camisa Milan Third 24/25",
