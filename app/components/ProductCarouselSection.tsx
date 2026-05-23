@@ -39,7 +39,7 @@ const bestSellers = [
 
 const retroProducts = [
   {
-    name: "Camisa Brasil Retrô 1994",
+    name: "Camisa Flamengo Retrô",
     price: "R$ 179,90",
     image: "/products/retro/flamengo-retro.png",
   },
@@ -70,7 +70,10 @@ const ProductCard = ({ product }: { product: Product }) => {
   return (
     <div
       className="
-        min-w-[210px]
+        min-w-[190px]
+
+        sm:min-w-[210px]
+
         overflow-hidden
         rounded-2xl
         bg-white
@@ -84,7 +87,10 @@ const ProductCard = ({ product }: { product: Product }) => {
       <div
         className="
           relative
-          h-[260px]
+          h-[230px]
+
+          sm:h-[260px]
+
           overflow-hidden
           rounded-2xl
           bg-zinc-100
@@ -104,11 +110,28 @@ const ProductCard = ({ product }: { product: Product }) => {
       </div>
 
       <div className="!p-4">
-        <h3 className="text-sm font-medium text-zinc-800">
+        <h3
+          className="
+            text-sm
+            font-medium
+            text-zinc-800
+
+            sm:text-base
+          "
+        >
           {product.name}
         </h3>
 
-        <p className="!mt-2 text-xl font-bold text-zinc-950">
+        <p
+          className="
+            !mt-2
+            text-lg
+            font-bold
+            text-zinc-950
+
+            sm:text-xl
+          "
+        >
           {product.price}
         </p>
       </div>
@@ -127,41 +150,63 @@ const ProductCarousel = ({
 
   const scrollLeft = () => {
     carouselRef.current?.scrollBy({
-      left: -240,
+      left: -260,
       behavior: "smooth",
     });
   };
 
   const scrollRight = () => {
     carouselRef.current?.scrollBy({
-      left: 240,
+      left: 260,
       behavior: "smooth",
     });
   };
 
   return (
     <div className="w-full overflow-hidden">
+      
       <div className="!mb-5 flex items-center justify-between">
-        <h2 className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
+        
+        <h2
+          className="
+            font-[family-name:var(--font-bebas)]
+            text-3xl
+            text-zinc-950
+
+            sm:text-4xl
+          "
+        >
           {title}
         </h2>
 
-        <a href="#" className="text-sm font-medium text-zinc-700 hover:underline">
+        <a
+          href="#"
+          className="
+            text-xs
+            font-medium
+            text-zinc-700
+            hover:underline
+
+            sm:text-sm
+          "
+        >
           Ver todos ›
         </a>
+
       </div>
 
       <div className="relative">
+
         <button
           onClick={scrollLeft}
           className="
             absolute
-            -left-3
+            -left-2
             top-1/2
             z-10
             flex
-            h-9
-            w-9
+            h-8
+            w-8
             -translate-y-1/2
             items-center
             justify-center
@@ -171,6 +216,9 @@ const ProductCarousel = ({
             transition-all
             duration-200
             hover:scale-110
+
+            sm:h-9
+            sm:w-9
           "
         >
           <ChevronLeft size={20} />
@@ -194,12 +242,12 @@ const ProductCarousel = ({
           onClick={scrollRight}
           className="
             absolute
-            -right-3
+            -right-2
             top-1/2
             z-10
             flex
-            h-9
-            w-9
+            h-8
+            w-8
             -translate-y-1/2
             items-center
             justify-center
@@ -209,10 +257,14 @@ const ProductCarousel = ({
             transition-all
             duration-200
             hover:scale-110
+
+            sm:h-9
+            sm:w-9
           "
         >
           <ChevronRight size={20} />
         </button>
+
       </div>
     </div>
   );
@@ -220,12 +272,29 @@ const ProductCarousel = ({
 
 const ProductCarouselSection = () => {
   return (
-    <section className="w-full bg-white !py-8">
+    <section className="w-full bg-white !px-4 !py-8 sm:!px-6 lg:!px-0">
       <div className="container !mx-auto">
-        <div className="grid grid-cols-2 gap-8">
-          <ProductCarousel title="MAIS VENDIDOS" products={bestSellers} />
-          <ProductCarousel title="RETRO" products={retroProducts} />
+
+        <div
+          className="
+            grid
+            grid-cols-1
+            gap-10
+
+            xl:grid-cols-2
+          "
+        >
+          <ProductCarousel
+            title="MAIS VENDIDOS"
+            products={bestSellers}
+          />
+
+          <ProductCarousel
+            title="RETRO"
+            products={retroProducts}
+          />
         </div>
+
       </div>
     </section>
   );
