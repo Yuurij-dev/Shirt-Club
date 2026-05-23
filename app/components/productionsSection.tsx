@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 const products = [
- {
+  {
     name: "Camisa Flamengo Home 24/25",
     price: "R$ 189,90",
     image: "/products/flamengo-home.png",
@@ -30,22 +30,54 @@ const products = [
 
 const ProductsSection = () => {
   return (
-    <section className="w-full bg-white !py-8">
+    <section className="w-full bg-white !px-4 !py-8 sm:!px-6 lg:!px-0">
       <div className="container !mx-auto">
+        
         <div className="!mb-6 !mt-6 flex items-center justify-between">
-          <h2 className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
+          
+          <h2
+            className="
+              font-[family-name:var(--font-bebas)]
+              text-3xl
+              text-zinc-950
+
+              sm:text-4xl
+            "
+          >
             LANÇAMENTOS
           </h2>
 
           <a
             href="#"
-            className="text-sm font-medium text-zinc-700 hover:underline"
+            className="
+              text-xs
+              font-medium
+              text-zinc-700
+              hover:underline
+
+              sm:text-sm
+            "
           >
             Ver todos ›
           </a>
+
         </div>
 
-        <div className="grid grid-cols-5 gap-6">
+        <div
+          className="
+            grid
+            grid-cols-1
+            gap-6
+
+            sm:grid-cols-2
+
+            md:grid-cols-3
+
+            lg:grid-cols-4
+
+            xl:grid-cols-5
+          "
+        >
           {products.map((product) => (
             <div
               key={product.name}
@@ -60,13 +92,16 @@ const ProductsSection = () => {
                 hover:shadow-xl
               "
             >
+              
               <div
                 className="
                   relative
-                  h-[360px]
+                  h-[320px]
                   overflow-hidden
                   rounded-2xl
                   bg-zinc-100
+
+                  sm:h-[360px]
                 "
               >
                 <Image
@@ -83,17 +118,38 @@ const ProductsSection = () => {
               </div>
 
               <div className="!p-4">
-                <h3 className="text-base font-medium text-zinc-800">
+                
+                <h3
+                  className="
+                    text-sm
+                    font-medium
+                    text-zinc-800
+
+                    sm:text-base
+                  "
+                >
                   {product.name}
                 </h3>
 
-                <p className="!mt-2 text-2xl font-bold text-zinc-950">
+                <p
+                  className="
+                    !mt-2
+                    text-xl
+                    font-bold
+                    text-zinc-950
+
+                    sm:text-2xl
+                  "
+                >
                   {product.price}
                 </p>
+
               </div>
+
             </div>
           ))}
         </div>
+
       </div>
     </section>
   );
