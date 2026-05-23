@@ -1,3 +1,4 @@
+import BannerMain from "./components/bannerMain";
 import Header from "./components/header";
 import OfertaHeader from "./components/ofertaHeader";
 
@@ -6,6 +7,7 @@ const Home = () => {
     <div>
       <OfertaHeader/>
       <Header />
+      <BannerMain/>
     </div>
   );
 }
