@@ -3,31 +3,54 @@ import bannerImage from "../assets/Banner.png";
 
 const BannerMain = () => {
   return (
-    <section className="w-full flex justify-center">
-      
-      <div className="relative w-full max-w-[1600px]">
-
+    <section className="flex w-full justify-center">
+      <div className="relative w-full max-w-[1600px] overflow-hidden">
+        
         <Image
           src={bannerImage}
           alt="Banner"
           priority
           className="
+            h-[320px]
             w-full
-            h-[650px]
             object-cover
             object-center
+
+            sm:h-[420px]
+            md:h-[520px]
+            lg:h-[650px]
           "
         />
 
-        {/* TEXTO */}
-        <div className="absolute left-16 top-1/2 -translate-y-1/2">
+        <div
+          className="
+            absolute
 
+            left-4
+            bottom-6
+
+            sm:left-6
+            sm:bottom-8
+
+            md:left-10
+            md:bottom-10
+
+            lg:left-16
+            lg:bottom-16
+          "
+        >
           <h1
             className="
               font-[family-name:var(--font-bebas)]
-              text-8xl
               leading-[0.9]
-              text-black
+
+              text-white
+              drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]
+
+              text-4xl
+              sm:text-5xl
+              md:text-6xl
+              lg:text-8xl
             "
           >
             MAIS QUE <br />
@@ -35,16 +58,29 @@ const BannerMain = () => {
             UMA HISTÓRIA.
           </h1>
 
-          <p className="mt-6 text-zinc-700 text-[1.1em]">
+          <p
+            className="
+              !mt-3
+              max-w-[260px]
+              text-sm
+
+              text-zinc-200
+              drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]
+
+              sm:text-base
+
+              lg:!mt-6
+              lg:max-w-[420px]
+              lg:text-[1.1em]
+            "
+          >
             Camisas dos maiores times do mundo
             <br />
             com qualidade premium.
           </p>
-
         </div>
 
       </div>
-
     </section>
   );
 };
