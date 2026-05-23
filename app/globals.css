@@ -14,6 +14,12 @@ body {
   font-family: var(--font-poppins);
 }
 
+.container{
+  width: 100%;
+  max-width: 1400px;
+
+  margin: 0 auto;
+}
 @theme inline {
   --font-bebas: var(--font-bebas);
   --font-poppins: var(--font-poppins);

@@ -1,53 +1,156 @@
-import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
-import { InputGroupAddon } from "@/components/ui/input-group";
 import { Heart, Search, ShoppingCart } from "lucide-react";
-import Image from "next/image";
 
 const Header = () => {
-    return ( 
-        <header className="w-full flex justify-between !p-5 items-center">
-            <div className="w-1/3">
-                <Image
-                    src="/assets/logo4.png"
-                    alt="Logo"
-                    width={150}
-                    height={150}
-                />
+  return (
+    <div className="container">
+      <header className="w-full h-20 flex justify-between items-center">
+
+        <div>
+          LOGO
+        </div>
+
+        <div className="flex items-center gap-10 justify-between h-full">
+
+          <ul className="flex gap-6 h-full items-center">
+
+            <li className="h-full flex items-center">
+              <a
+                href="#"
+                className="
+                  h-full
+                  flex
+                  items-center
+                  font-bold
+                  border-b-2
+                  border-transparent
+                  hover:border-black
+                  transition-all
+                  duration-400
+                "
+              >
+                INÍCIO
+              </a>
+            </li>
+
+            <li className="h-full flex items-center">
+              <a
+                href="#"
+                className="
+                  h-full
+                  flex
+                  items-center
+                  font-bold
+                  border-b-2
+                  border-transparent
+                  hover:border-black
+                  transition-all
+                  duration-400
+                "
+              >
+                TIMES
+              </a>
+            </li>
+
+            <li className="h-full flex items-center">
+              <a
+                href="#"
+                className="
+                  h-full
+                  flex
+                  items-center
+                  font-bold
+                  border-b-2
+                  border-transparent
+                  hover:border-black
+                  transition-all
+                  duration-400
+                "
+              >
+                LANÇAMENTOS
+              </a>
+            </li>
+
+            <li className="h-full flex items-center">
+              <a
+                href="#"
+                className="
+                  h-full
+                  flex
+                  items-center
+                  font-bold
+                  border-b-2
+                  border-transparent
+                  hover:border-black
+                  transition-all
+                  duration-400
+                "
+              >
+                RETRO
+              </a>
+            </li>
+
+            <li className="h-full flex items-center">
+              <a
+                href="#"
+                className="
+                  h-full
+                  flex
+                  items-center
+                  font-bold
+                  border-b-2
+                  border-transparent
+                  hover:border-black
+                  transition-all
+                  duration-400
+                "
+              >
+                PERSONALIZE
+              </a>
+            </li>
+
+            <li className="h-full flex items-center">
+              <a
+                href="#"
+                className="
+                  h-full
+                  flex
+                  items-center
+                  font-bold
+                  border-b-2
+                  border-transparent
+                  hover:border-black
+                  transition-all
+                  duration-400
+                "
+              >
+                SALE
+              </a>
+            </li>
+
+          </ul>
+        </div>
+
+        <div className="flex gap-5 items-center justify-end">
+          <div className="flex gap-5">
+
+            <div className="cursor-pointer">
+              <Search className="text-black" />
             </div>
 
-            <div className="w-1/3 flex items-center gap-10 justify-between ">
-                <ul className="flex gap-5 ">
-                    <li><a className="font-semibold" href="#">Ofertas</a></li>
-                    <li><a className="font-semibold" href="#">Lançamentos</a></li>
-                    <li><a className="font-semibold" href="#">Masculino</a></li>
-                    <li><a className="font-semibold" href="#">Feminino</a></li>
-                    <li><a className="font-semibold" href="#">Infantil</a></li>
-                    <li><a className="font-semibold" href="#">SNKRS</a></li>
-                </ul>
+            <div className="cursor-pointer">
+              <Heart />
             </div>
 
-            <div className="w-1/3 flex gap-5 items-center justify-end">
-                    <div className="w-[200px]">
-                        <InputGroup className="!pl-2 flex gap-2 bg-neutral-100 text-black rounded-xl ">
-                            <InputGroupInput className="bg-neutral-100 outline-none text-black rounded-xl" placeholder="Search..." />
-                            <InputGroupAddon>
-                            <Search className="bg-neutral-100 text-black"/>
-                            </InputGroupAddon>
-                        </InputGroup>
-                    </div>
+            <div className="cursor-pointer">
+              <ShoppingCart />
+            </div>
 
-                    <div className="flex gap-5">
-                        <div>
-                            <Heart />
-                        </div>
+          </div>
+        </div>
 
-                        <div>
-                            <ShoppingCart />
-                        </div>
-                    </div>
-                </div>
-        </header>
-     );
-}
- 
+      </header>
+    </div>
+  );
+};
+
 export default Header;
