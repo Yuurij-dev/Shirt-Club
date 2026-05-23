@@ -30,7 +30,7 @@ const products = [
 
 const ProductsSection = () => {
   return (
-    <section className="w-full bg-white py-8">
+    <section className="w-full bg-white !py-8">
       <div className="container mx-auto">
 
         <div className="mb-6 mt-6 flex items-center justify-between">
