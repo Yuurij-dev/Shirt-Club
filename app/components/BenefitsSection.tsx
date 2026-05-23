@@ -25,8 +25,8 @@ const benefits = [
 
 const BenefitsSection = () => {
   return (
-    <div className="container">
-      <section className="!py-5 w-full">
+    <div className="container border-y border-zinc-200 bg-white">
+      <section className="!py-10 w-full">
       
       <div className="container mx-auto">
 
@@ -42,10 +42,6 @@ const BenefitsSection = () => {
                 justify-center
                 gap-4
                 py-10
-                cursor-pointer
-                transition-all
-                duration-200
-                hover:bg-zinc-50
               "
             >
               
