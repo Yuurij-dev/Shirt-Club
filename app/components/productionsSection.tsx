@@ -2,9 +2,9 @@ import Image from "next/image";
 
 const products = [
   {
-    name: "Camisa Milan Home 24/25",
+    name: "Camisa Flamengo Home 24/25",
     price: "R$ 189,90",
-    image: "/products/milan-home12.png",
+    image: "/products/flamengo-home.png",
   },
   {
     name: "Camisa Milan Away 24/25",
@@ -31,10 +31,8 @@ const products = [
 const ProductsSection = () => {
   return (
     <section className="w-full bg-white !py-8">
-      <div className="container mx-auto">
-
-        <div className="mb-6 mt-6 flex items-center justify-between">
-          
+      <div className="container !mx-auto">
+        <div className="!mb-6 !mt-6 flex items-center justify-between">
           <h2 className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
             LANÇAMENTOS
           </h2>
@@ -45,65 +43,56 @@ const ProductsSection = () => {
           >
             Ver todos ›
           </a>
-
         </div>
 
-        <div className="grid grid-cols-5 gap-5">
-
+        <div className="grid grid-cols-5 gap-6">
           {products.map((product) => (
             <div
               key={product.name}
               className="
-                rounded-xl
-                bg-zinc-50
-                p-4
+                overflow-hidden
+                rounded-2xl
+                bg-white
+                shadow-sm
                 transition-all
-                duration-200
-                hover:shadow-md
+                duration-300
+                hover:-translate-y-1
+                hover:shadow-xl
               "
             >
-
               <div
                 className="
-                  mb-4
-                  flex
-                  h-[280px]
-                  items-center
-                  justify-center
+                  relative
+                  h-[360px]
                   overflow-hidden
-                  rounded-lg
-                  bg-white
+                  rounded-2xl
+                  bg-zinc-100
                 "
               >
-
                 <Image
                   src={product.image}
                   alt={product.name}
-                  width={300}
-                  height={300}
+                  fill
                   className="
-                    h-[240px]
-                    w-auto
-                    object-contain
+                    object-cover
                     transition-all
-                    duration-300
+                    duration-500
                     hover:scale-105
                   "
                 />
-
               </div>
 
-              <h3 className="text-sm font-medium text-zinc-800">
-                {product.name}
-              </h3>
+              <div className="!p-4">
+                <h3 className="text-base font-medium text-zinc-800">
+                  {product.name}
+                </h3>
 
-              <p className="mt-1 text-xl font-bold text-zinc-950">
-                {product.price}
-              </p>
-
+                <p className="!mt-2 text-2xl font-bold text-zinc-950">
+                  {product.price}
+                </p>
+              </div>
             </div>
           ))}
-
         </div>
       </div>
     </section>
