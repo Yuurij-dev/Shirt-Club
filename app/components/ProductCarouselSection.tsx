@@ -25,28 +25,38 @@ const bestSellers = [
     price: "R$ 189,90",
     image: "/products/barcelona-home.png",
   },
+  {
+    name: "Camisa Vasco Home 24/25",
+    price: "R$ 189,90",
+    image: "/products/vasco-home.png",
+  },
+  {
+    name: "Camisa Corinthians Home 24/25",
+    price: "R$ 189,90",
+    image: "/products/Corinthians-home.png",
+  },
 ];
 
 const retroProducts = [
   {
     name: "Camisa Brasil Retrô 1994",
     price: "R$ 179,90",
-    image: "/products/flamengo-home.png",
+    image: "/products/retro/flamengo-retro.png",
   },
   {
-    name: "Camisa Corinthians Retrô 2012",
+    name: "Camisa Barcelona Retrô 2015",
     price: "R$ 179,90",
-    image: "/products/corinthians-retro.png",
+    image: "/products/retro/barcelona-2015.png",
   },
   {
     name: "Camisa Milan Retrô 96/99",
     price: "R$ 189,90",
-    image: "/products/milan-retro.png",
+    image: "/products/retro/milan-retro.png",
   },
   {
     name: "Camisa Vasco Retrô 1997",
     price: "R$ 179,90",
-    image: "/products/vasco-retro.png",
+    image: "/products/retro/vasco-retro.png",
   },
 ];
 

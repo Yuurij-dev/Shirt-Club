@@ -1,30 +1,30 @@
 import Image from "next/image";
 
 const products = [
-  {
+ {
     name: "Camisa Flamengo Home 24/25",
     price: "R$ 189,90",
     image: "/products/flamengo-home.png",
   },
   {
-    name: "Real Madrid Home 24/25",
+    name: "Camisa Real Madrid Home 24/25",
     price: "R$ 189,90",
     image: "/products/real-madrid-home.png",
   },
   {
-    name: "Camisa Milan Third 24/25",
+    name: "Camisa Palmeiras Home 24/25",
     price: "R$ 189,90",
-    image: "/products/milan-third.png",
+    image: "/products/palmeiras-home.png",
   },
   {
-    name: "Camisa Milan Fourth 24/25",
+    name: "Camisa Vasco Home 24/25",
     price: "R$ 189,90",
-    image: "/products/milan-fourth.png",
+    image: "/products/vasco-home.png",
   },
   {
-    name: "Camisa Milan Retrô 99/00",
+    name: "Camisa Corinthians Home 24/25",
     price: "R$ 189,90",
-    image: "/products/milan-retro.png",
+    image: "/products/Corinthians-home.png",
   },
 ];
 
