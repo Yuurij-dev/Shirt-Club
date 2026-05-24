@@ -1,5 +1,6 @@
 import BannerMain from "./components/bannerMain";
 import BenefitsSection from "./components/BenefitsSection"
+import Footer from "./components/Footer";
 import Header from "./components/header";
 import InstagramSection from "./components/InstagramSection";
 import NewsletterSection from "./components/NewsletterSection";
@@ -24,6 +25,7 @@ const Home = () => {
       <StoreHighlights/>
       <NewsletterSection/>
       <InstagramSection/>
+      <Footer/>
     </div>
   );
 }
