@@ -1,6 +1,8 @@
 import BannerMain from "./components/bannerMain";
 import BenefitsSection from "./components/BenefitsSection"
 import Header from "./components/header";
+import InstagramSection from "./components/InstagramSection";
+import NewsletterSection from "./components/NewsletterSection";
 import OfertaHeader from "./components/ofertaHeader";
 import ProductCarouselSection from "./components/ProductCarouselSection";
 import ProductsSection from "./components/productionsSection";
@@ -20,6 +22,8 @@ const Home = () => {
       <TeamsSection/>
       <ProductCarouselSection/>
       <StoreHighlights/>
+      <NewsletterSection/>
+      <InstagramSection/>
     </div>
   );
 }
