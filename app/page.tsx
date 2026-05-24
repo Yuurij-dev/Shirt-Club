@@ -5,6 +5,7 @@ import OfertaHeader from "./components/ofertaHeader";
 import ProductCarouselSection from "./components/ProductCarouselSection";
 import ProductsSection from "./components/productionsSection";
 import PromoBanner from "./components/PromoBanner";
+import StoreHighlights from "./components/StoreHighlights";
 import TeamsSection from "./components/TeamsSection";
 
 const Home = () => {
@@ -18,6 +19,7 @@ const Home = () => {
       <PromoBanner/>
       <TeamsSection/>
       <ProductCarouselSection/>
+      <StoreHighlights/>
     </div>
   );
 }
