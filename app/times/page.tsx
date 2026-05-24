@@ -7,6 +7,10 @@ import Banner from "../components/Banner";
 import bannerTeams from "public/assets/bannerTeams.png";
 import PromoBanner from "../components/PromoBanner";
 import TeamsGrid from "./components/TeamsGrid";
+import StoreHighlights from "../components/StoreHighlights";
+import NewsletterSection from "../components/NewsletterSection";
+import InstagramSection from "../components/InstagramSection";
+import Footer from "../components/Footer";
 
 const Times = () => {
   return (
@@ -56,9 +60,13 @@ const Times = () => {
           {/* BANNER */}
           <PromoBanner/>
           <TeamsGrid/>
+          <StoreHighlights/>
+          <NewsletterSection/>
+          <InstagramSection/>
 
         </section>
       </main>
+      <Footer/>
     </div>
   );
 };
