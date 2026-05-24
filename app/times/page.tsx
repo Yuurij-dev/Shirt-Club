@@ -2,9 +2,7 @@ import Link from "next/link";
 
 import Header from "../components/header";
 import OfertaHeader from "../components/ofertaHeader";
-import Banner from "../components/Banner";
 
-import bannerTeams from "public/assets/bannerTeams.png";
 import PromoBanner from "../components/PromoBanner";
 import TeamsGrid from "./components/TeamsGrid";
 import StoreHighlights from "../components/StoreHighlights";

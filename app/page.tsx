@@ -17,15 +17,20 @@ const Home = () => {
     <div>
       <OfertaHeader/>
       <Header />
-      <Banner image={homeBanner} title={`MAIS QUE\nUMA CAMISA,\nUMA HISTÓRIA.`} description="Camisas dos maiores times do mundo com qualidade premium."/>
-      <BenefitsSection/>
-      <ProductsSection/>
-      <PromoBanner/>
-      <TeamsSection/>
-      <ProductCarouselSection/>
-      <StoreHighlights/>
-      <NewsletterSection/>
-      <InstagramSection/>
+      <main>
+        <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
+          <Banner image={homeBanner} title={`MAIS QUE\nUMA CAMISA,\nUMA HISTÓRIA.`} description="Camisas dos maiores times do mundo com qualidade premium."/>
+          <BenefitsSection/>
+          <ProductsSection/>
+          <PromoBanner/>
+          <TeamsSection/>
+          <ProductCarouselSection/>
+          <StoreHighlights/>
+          <NewsletterSection/>
+          <InstagramSection/>
+        </section>
+      </main>
+      
       <Footer/>
     </div>
   );

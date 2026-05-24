@@ -22,7 +22,7 @@ const Banner = ({
 
   imageFit = "cover",
 
-  height = "h-[320px] sm:h-[420px] md:h-[520px] lg:h-[650px]",
+  height = "h-[320px] sm:h-[420px] md:h-[520px] lg:h-[520px]",
 }: BannerProps) => {
   return (
     <section className="flex w-full justify-center">
