@@ -1,4 +1,5 @@
-import BannerMain from "./components/bannerMain";
+import Banner from "./components/Banner";
+import homeBanner from "public/assets/BannerHome.png"
 import BenefitsSection from "./components/BenefitsSection"
 import Footer from "./components/Footer";
 import Header from "./components/header";
@@ -16,7 +17,7 @@ const Home = () => {
     <div>
       <OfertaHeader/>
       <Header />
-      <BannerMain/>
+      <Banner image={homeBanner} title={`MAIS QUE\nUMA CAMISA,\nUMA HISTÓRIA.`} description="Camisas dos maiores times do mundo com qualidade premium."/>
       <BenefitsSection/>
       <ProductsSection/>
       <PromoBanner/>
