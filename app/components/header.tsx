@@ -45,7 +45,7 @@ const Header = () => {
   return (
     <div className="container !mx-auto">
       
-      <header className="relative flex h-20 w-full items-center justify-between">
+      <header className="relative flex h-20 w-full items-center justify-between border-y border-zinc-200">
 
         {/* LOGO */}
         <Link
