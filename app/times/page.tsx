@@ -3,12 +3,12 @@ import Link from "next/link";
 import Header from "../components/header";
 import OfertaHeader from "../components/ofertaHeader";
 
-import PromoBanner from "../components/PromoBanner";
 import TeamsGrid from "./components/TeamsGrid";
 import StoreHighlights from "../components/StoreHighlights";
 import NewsletterSection from "../components/NewsletterSection";
 import InstagramSection from "../components/InstagramSection";
 import Footer from "../components/Footer";
+import PromoBannerTimes from "./components/PromoBannerTimes";
 
 const Times = () => {
   return (
@@ -56,7 +56,7 @@ const Times = () => {
           </div>
 
           {/* BANNER */}
-          <PromoBanner/>
+          <PromoBannerTimes/>
           <TeamsGrid/>
           <StoreHighlights/>
           <NewsletterSection/>
