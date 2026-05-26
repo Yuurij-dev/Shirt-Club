@@ -11,9 +11,9 @@ import { toast } from "sonner";
 
 export type Product = {
   name: string;
-  category: string;
-  team: string;
-  price: number;
+  category?: string;
+  team?: string;
+  price: number | string;
   image: string;
 };
 
