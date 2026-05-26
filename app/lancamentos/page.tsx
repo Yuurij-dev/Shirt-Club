@@ -9,6 +9,7 @@ import ProductFilters from "./components/ProductFilters";
 import ProductGrid from "./components/ProductGrid";
 import StoreHighlights from "../components/StoreHighlights";
 import NewsletterSection from "../components/NewsletterSection";
+import OfertaHeader from "../components/ofertaHeader";
 
 const products = [
   {
@@ -60,25 +61,24 @@ const LancamentosPage = () => {
       return matchCategory && matchTeam && matchPrice;
     })
     .sort((a, b) => {
-      if (sortOrder === "menor-preco") {
-        return a.price - b.price;
-      }
-
-      if (sortOrder === "maior-preco") {
-        return b.price - a.price;
-      }
+      if (sortOrder === "menor-preco") return a.price - b.price;
+      if (sortOrder === "maior-preco") return b.price - a.price;
 
       return 0;
     });
 
   return (
     <div>
+        <OfertaHeader/>
       <Header />
 
       <main>
         <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
           <div className="!mb-4 flex items-center !gap-2 text-sm text-zinc-500">
-            <Link href="/" className="transition-all duration-200 hover:text-black">
+            <Link
+              href="/"
+              className="transition-all duration-200 hover:text-black"
+            >
               Início
             </Link>
 
@@ -94,7 +94,7 @@ const LancamentosPage = () => {
 
           <PromoBannerLancamentos />
 
-          <div className="grid grid-cols-[260px_1fr] !gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] !gap-8">
             <ProductFilters
               selectedTeams={selectedTeams}
               setSelectedTeams={setSelectedTeams}
@@ -110,8 +110,14 @@ const LancamentosPage = () => {
               setSortOrder={setSortOrder}
             />
           </div>
-          <StoreHighlights/>
-          <NewsletterSection/>
+
+          <div className="!mt-10">
+            <StoreHighlights />
+          </div>
+
+          <div className="!mt-10">
+            <NewsletterSection />
+          </div>
         </section>
       </main>
 

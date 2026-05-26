@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Bebas_Neue } from "next/font/google";
+import { Geist, Geist_Mono, Bebas_Neue, Poppins } from "next/font/google";
+import { Toaster } from "sonner";
+import { FavoritesProvider } from "./context/FavoritesContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,11 +14,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// NOVA FONTE
 export const bebas = Bebas_Neue({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-bebas",
+});
+
+const poppins = Poppins({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-poppins",
 });
 
 export const metadata: Metadata = {
@@ -36,10 +43,28 @@ export default function RootLayout({
           ${geistSans.variable}
           ${geistMono.variable}
           ${bebas.variable}
+          ${poppins.variable}
           antialiased
         `}
       >
-        {children}
+        <FavoritesProvider>
+          {children}
+
+          <Toaster
+            richColors
+            position="bottom-right"
+            expand
+            toastOptions={{
+              className: `
+                !w-[calc(100vw-32px)]
+                sm:!w-auto
+                !max-w-[420px]
+                !rounded-xl
+                !text-sm
+              `,
+            }}
+          />
+        </FavoritesProvider>
       </body>
     </html>
   );

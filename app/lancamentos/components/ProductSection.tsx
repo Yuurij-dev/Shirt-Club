@@ -54,20 +54,15 @@ const ProductSection = () => {
       return matchCategory && matchTeam && matchPrice;
     })
     .sort((a, b) => {
-      if (sortOrder === "menor-preco") {
-        return a.price - b.price;
-      }
-
-      if (sortOrder === "maior-preco") {
-        return b.price - a.price;
-      }
+      if (sortOrder === "menor-preco") return a.price - b.price;
+      if (sortOrder === "maior-preco") return b.price - a.price;
 
       return 0;
     });
 
   return (
-    <section className="container mx-auto !py-10">
-      <div className="grid grid-cols-[260px_1fr] !gap-8">
+    <section className="container !mx-auto !px-4 !py-10 sm:!px-6 lg:!px-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] !gap-8">
         <ProductFilters
           selectedTeams={selectedTeams}
           setSelectedTeams={setSelectedTeams}
