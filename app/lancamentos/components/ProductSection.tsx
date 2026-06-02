@@ -1,39 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { launchProducts } from "@/app/data/products";
 import ProductFilters from "./ProductFilters";
 import ProductGrid from "./ProductGrid";
 
-const products = [
-  {
-    name: "Camisa Real Madrid 24/25 Home",
-    category: "Camisas",
-    team: "Real Madrid",
-    price: 349.9,
-    image: "/products/real-madrid.png",
-  },
-  {
-    name: "Camisa Flamengo 24/25 Home",
-    category: "Camisas",
-    team: "Flamengo",
-    price: 329.9,
-    image: "/products/flamengo.png",
-  },
-  {
-    name: "Camisa Corinthians 24/25 Home",
-    category: "Camisas",
-    team: "Corinthians",
-    price: 329.9,
-    image: "/products/corinthians.png",
-  },
-  {
-    name: "Camisa Palmeiras 24/25 Home",
-    category: "Camisas",
-    team: "Palmeiras",
-    price: 329.9,
-    image: "/products/palmeiras.png",
-  },
-];
+const getPriceNumber = (price: string | number) => {
+  if (typeof price === "number") return price;
+
+  return Number(price.replace("R$ ", "").replace(".", "").replace(",", "."));
+};
 
 const ProductSection = () => {
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -41,7 +17,7 @@ const ProductSection = () => {
   const [maxPrice, setMaxPrice] = useState(599.9);
   const [sortOrder, setSortOrder] = useState("recentes");
 
-  const filteredProducts = products
+  const filteredProducts = launchProducts
     .filter((product) => {
       const matchCategory =
         selectedCategory === "Todas" || product.category === selectedCategory;
@@ -49,13 +25,18 @@ const ProductSection = () => {
       const matchTeam =
         selectedTeams.length === 0 || selectedTeams.includes(product.team);
 
-      const matchPrice = product.price <= maxPrice;
+      const matchPrice = getPriceNumber(product.price) <= maxPrice;
 
       return matchCategory && matchTeam && matchPrice;
     })
     .sort((a, b) => {
-      if (sortOrder === "menor-preco") return a.price - b.price;
-      if (sortOrder === "maior-preco") return b.price - a.price;
+      if (sortOrder === "menor-preco") {
+        return getPriceNumber(a.price) - getPriceNumber(b.price);
+      }
+
+      if (sortOrder === "maior-preco") {
+        return getPriceNumber(b.price) - getPriceNumber(a.price);
+      }
 
       return 0;
     });

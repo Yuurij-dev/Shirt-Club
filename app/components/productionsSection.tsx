@@ -1,32 +1,5 @@
 import ProductCard from "./productCard";
-
-const products = [
-  {
-    name: "Camisa Flamengo Home 24/25",
-    price: "R$ 189,90",
-    image: "/products/flamengo-home.png",
-  },
-  {
-    name: "Camisa Real Madrid Home 24/25",
-    price: "R$ 189,90",
-    image: "/products/real-madrid-home.png",
-  },
-  {
-    name: "Camisa Palmeiras Home 24/25",
-    price: "R$ 189,90",
-    image: "/products/palmeiras-home.png",
-  },
-  {
-    name: "Camisa Vasco Home 24/25",
-    price: "R$ 189,90",
-    image: "/products/vasco-home.png",
-  },
-  {
-    name: "Camisa Corinthians Home 24/25",
-    price: "R$ 189,90",
-    image: "/products/Corinthians-home.png",
-  },
-];
+import { homeProducts } from "../data/products";
 
 const ProductsSection = () => {
   return (
@@ -43,8 +16,8 @@ const ProductsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {products.map((product) => (
-            <ProductCard key={product.name} product={product} />
+          {homeProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </div>

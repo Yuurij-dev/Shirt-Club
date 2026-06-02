@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Heart, Menu, Search, ShoppingCart, X } from "lucide-react";
 import { useState } from "react";
+import { useCart } from "../context/CartContext";
 
 const links = [
   { name: "INÍCIO", href: "/" },
@@ -15,6 +16,7 @@ const links = [
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { totalItems } = useCart();
 
   return (
     <header className="w-full border-y border-zinc-200 bg-white">
@@ -51,8 +53,13 @@ const Header = () => {
               <Heart className="cursor-pointer" size={22} />
             </Link>
 
-            <Link href="/carrinho">
+            <Link href="/carrinho" className="relative">
               <ShoppingCart className="cursor-pointer" size={22} />
+              {totalItems > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-black !px-1 text-[10px] font-bold leading-none text-white">
+                  {totalItems}
+                </span>
+              )}
             </Link>
 
             <button
