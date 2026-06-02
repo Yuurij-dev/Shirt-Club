@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Check,
   CreditCard,
   Ruler,
   ShieldCheck,
@@ -24,15 +25,26 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
   const { addItem } = useCart();
   const [selectedSize, setSelectedSize] = useState("M");
   const [quantity, setQuantity] = useState(1);
+  const [cartButtonState, setCartButtonState] = useState<"idle" | "added">(
+    "idle"
+  );
   const price = getPriceNumber(product.price);
   const installment = price / 12;
 
   const handleAddToCart = () => {
+    if (cartButtonState !== "idle") return;
+
     addItem({
       product,
       quantity,
       size: selectedSize,
     });
+
+    setCartButtonState("added");
+
+    setTimeout(() => {
+      setCartButtonState("idle");
+    }, 1200);
   };
 
   const handleBuyNow = () => {
@@ -138,10 +150,35 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
         <button
           type="button"
           onClick={handleAddToCart}
-          className="flex h-14 items-center justify-center !gap-3 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+          className="group relative flex h-14 items-center justify-center overflow-hidden rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
         >
-          <ShoppingCart size={20} />
-          ADICIONAR AO CARRINHO
+          <span
+            className={`
+              absolute inset-0 flex items-center justify-center !gap-3 whitespace-nowrap transition-all duration-300
+              ${
+                cartButtonState === "added"
+                  ? "-translate-y-2 scale-95 opacity-0"
+                  : "translate-y-0 scale-100 opacity-100"
+              }
+            `}
+          >
+            <ShoppingCart size={20} />
+            ADICIONAR AO CARRINHO
+          </span>
+
+          <span
+            className={`
+              absolute inset-0 flex items-center justify-center !gap-3 whitespace-nowrap transition-all duration-300
+              ${
+                cartButtonState === "added"
+                  ? "translate-y-0 scale-100 opacity-100"
+                  : "translate-y-2 scale-95 opacity-0"
+              }
+            `}
+          >
+            <Check size={20} />
+            ADICIONADO
+          </span>
         </button>
 
         <button
