@@ -8,19 +8,14 @@ import {
 } from "react";
 
 import { toast } from "sonner";
+import type { Product } from "@/app/data/products";
 
-export type Product = {
-  name: string;
-  category?: string;
-  team?: string;
-  price: number | string;
-  image: string;
-};
+export type { Product };
 
 type FavoritesContextType = {
   favorites: Product[];
   toggleFavorite: (product: Product) => void;
-  isFavorite: (productName: string) => boolean;
+  isFavorite: (productId: string) => boolean;
 };
 
 const FavoritesContext = createContext({} as FavoritesContextType);
@@ -40,7 +35,15 @@ export const FavoritesProvider = ({
 
     if (savedFavorites) {
       setTimeout(() => {
-        setFavorites(JSON.parse(savedFavorites));
+        try {
+          const parsedFavorites = JSON.parse(savedFavorites) as Product[];
+
+          setFavorites(
+            parsedFavorites.filter((product) => Boolean(product.id))
+          );
+        } catch {
+          setFavorites([]);
+        }
       }, 0);
     }
   }, []);
@@ -54,20 +57,20 @@ export const FavoritesProvider = ({
   }, [favorites]);
 
   // VERIFICAR FAVORITO
-  const isFavorite = (productName: string) => {
+  const isFavorite = (productId: string) => {
     return favorites.some(
-      (product) => product.name === productName
+      (product) => product.id === productId
     );
   };
 
   // ADICIONAR / REMOVER FAVORITO
   const toggleFavorite = (product: Product) => {
-    const alreadyFavorite = isFavorite(product.name);
+    const alreadyFavorite = isFavorite(product.id);
 
     if (alreadyFavorite) {
       setFavorites((prev) =>
         prev.filter(
-          (item) => item.name !== product.name
+          (item) => item.id !== product.id
         )
       );
 

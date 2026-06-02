@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
-import type { Product } from "@/app/context/FavoritesContext";
+import type { Product } from "@/app/data/products";
 import ProductCard from "./productCard";
 
 type ProductCarouselProps = {
@@ -75,7 +75,7 @@ const ProductCarousel = ({
         <div ref={carouselRef} className="flex gap-4 overflow-x-hidden scroll-smooth">
           {carouselProducts.map((product, index) => (
             <ProductCard
-              key={`${product.name}-${index}`}
+              key={`${product.id}-${index}`}
               product={product}
               variant="carousel"
             />

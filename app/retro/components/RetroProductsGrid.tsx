@@ -1,9 +1,9 @@
 "use client";
 
-import { SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import ProductCard from "@/app/components/productCard";
-import { Product } from "@/app/context/FavoritesContext";
+import { getProductById, type Product } from "@/app/data/products";
 
 type Filter =
   | "Todos"
@@ -34,58 +34,50 @@ const filters: Filter[] = [
   "Copa do Mundo",
 ];
 
-const retroProducts: RetroProduct[] = [
+const retroProducts = [
   {
-    name: "Camisa Flamengo Retrô 1981",
+    id: "camisa-flamengo-retro-1981",
     competition: "Libertadores",
-    category: "Retrô",
-    team: "Flamengo",
-    price: "R$ 219,90",
-    image: "/products/retro/flamengo-1981.png",
     filters: ["1980", "Clubes", "Libertadores"],
     sales: 65,
   },
   {
-    name: "Camisa Brasil Retrô 1994",
+    id: "camisa-brasil-retro-1994",
     competition: "Copa do Mundo",
-    category: "Retrô",
-    team: "Brasil",
-    price: "R$ 239,90",
-    image: "/products/retro/brasil-1994.png",
     filters: ["1990", "Seleções", "Copa do Mundo"],
     sales: 82,
   },
   {
-    name: "Camisa Milan Retrô 2007",
+    id: "camisa-milan-retro-2007",
     competition: "Champions League",
-    category: "Retrô",
-    team: "Milan",
-    price: "R$ 229,90",
-    image: "/products/retro/milan-2007.png",
     filters: ["2000", "Clubes", "Champions"],
     sales: 74,
   },
   {
-    name: "Camisa Barcelona Retrô 2015",
+    id: "camisa-barcelona-retro-2015",
     competition: "Champions League",
-    category: "Retrô",
-    team: "Barcelona",
-    price: "R$ 229,90",
-    image: "/products/retro/barcelona-2015.png",
     filters: ["2000", "Clubes", "Champions"],
     sales: 70,
   },
-];
+]
+  .map((item) => {
+    const product = getProductById(item.id);
+
+    if (!product) return null;
+
+    return {
+      ...product,
+      competition: item.competition,
+      filters: item.filters as Exclude<Filter, "Todos">[],
+      sales: item.sales,
+    };
+  })
+  .filter((product): product is RetroProduct => Boolean(product));
 
 const getPriceNumber = (price: string | number) => {
   if (typeof price === "number") return price;
 
-  return Number(
-    price
-      .replace("R$ ", "")
-      .replace(".", "")
-      .replace(",", ".")
-  );
+  return Number(price.replace("R$ ", "").replace(".", "").replace(",", "."));
 };
 
 const RetroProductsGrid = () => {
@@ -131,22 +123,7 @@ const RetroProductsGrid = () => {
           <div className="flex flex-wrap items-center !gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="
-                flex
-                h-11
-                items-center
-                !gap-2
-                rounded-lg
-                border
-                border-zinc-200
-                bg-white
-                !px-4
-                text-sm
-                font-bold
-                transition-all
-                duration-200
-                hover:border-black
-              "
+              className="flex h-11 items-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold transition-all duration-200 hover:border-black"
             >
               <SlidersHorizontal size={18} />
               FILTRAR
@@ -160,14 +137,7 @@ const RetroProductsGrid = () => {
                     key={filter}
                     onClick={() => setSelectedFilter(filter)}
                     className={`
-                      h-11
-                      rounded-lg
-                      border
-                      !px-4
-                      text-sm
-                      font-medium
-                      transition-all
-                      duration-200
+                      h-11 rounded-lg border !px-4 text-sm font-medium transition-all duration-200
                       ${
                         selectedFilter === filter
                           ? "border-black bg-black text-white"
@@ -184,20 +154,8 @@ const RetroProductsGrid = () => {
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="
-              h-11
-              w-full
-              rounded-lg
-              border
-              border-zinc-200
-              bg-white
-              !px-4
-              text-sm
-              font-bold
-              outline-none
-              sm:w-auto
-            "
+            onChange={(event) => setSortBy(event.target.value)}
+            className="h-11 w-full rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold outline-none sm:w-auto"
           >
             <option value="mais-vendidos">ORDENAR: MAIS VENDIDOS</option>
             <option value="menos-vendidos">ORDENAR: MENOS VENDIDOS</option>
@@ -208,7 +166,7 @@ const RetroProductsGrid = () => {
 
         <div className="grid grid-cols-1 !gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filteredProducts.map((product) => (
-            <ProductCard key={product.name} product={product} />
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </div>
