@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Bebas_Neue, Poppins } from "next/font/google";
 import { Toaster } from "sonner";
 import BackToTopButton from "./components/BackToTopButton";
+import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import "./globals.css";
 
@@ -49,23 +50,25 @@ export default function RootLayout({
         `}
       >
         <FavoritesProvider>
-          {children}
-          <BackToTopButton />
+          <CartProvider>
+            {children}
+            <BackToTopButton />
 
-          <Toaster
-            richColors
-            position="bottom-right"
-            expand
-            toastOptions={{
-              className: `
-                !w-[calc(100vw-32px)]
-                sm:!w-auto
-                !max-w-[420px]
-                !rounded-xl
-                !text-sm
-              `,
-            }}
-          />
+            <Toaster
+              richColors
+              position="bottom-right"
+              expand
+              toastOptions={{
+                className: `
+                  !w-[calc(100vw-32px)]
+                  sm:!w-auto
+                  !max-w-[420px]
+                  !rounded-xl
+                  !text-sm
+                `,
+              }}
+            />
+          </CartProvider>
         </FavoritesProvider>
       </body>
     </html>

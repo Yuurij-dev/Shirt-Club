@@ -11,6 +11,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Product } from "@/app/data/products";
+import { useCart } from "@/app/context/CartContext";
+import { formatPrice, getPriceNumber } from "@/app/utils/price";
 
 type ProductBuyBoxProps = {
   product: Product;
@@ -18,29 +20,28 @@ type ProductBuyBoxProps = {
 
 const sizes = ["P", "M", "G", "GG", "XG"];
 
-const formatPrice = (price: string | number) => {
-  if (typeof price === "string") return price;
-
-  return `R$ ${price.toFixed(2).replace(".", ",")}`;
-};
-
-const getPriceNumber = (price: string | number) => {
-  if (typeof price === "number") return price;
-
-  return Number(price.replace("R$ ", "").replace(".", "").replace(",", "."));
-};
-
 const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
+  const { addItem } = useCart();
   const [selectedSize, setSelectedSize] = useState("M");
   const [quantity, setQuantity] = useState(1);
   const price = getPriceNumber(product.price);
   const installment = price / 12;
 
   const handleAddToCart = () => {
-    toast.success("Produto adicionado ao carrinho");
+    addItem({
+      product,
+      quantity,
+      size: selectedSize,
+    });
   };
 
   const handleBuyNow = () => {
+    addItem({
+      product,
+      quantity,
+      size: selectedSize,
+    });
+
     toast.success("Compra iniciada");
   };
 
