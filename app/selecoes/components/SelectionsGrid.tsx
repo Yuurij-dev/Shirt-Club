@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
-import { countries, teams, type Country } from "@/app/data/teams";
+import {
+  continents,
+  selections,
+  type Continent,
+} from "@/app/data/selections";
 
 const getInitials = (name: string) => {
   return name
@@ -15,16 +19,19 @@ const getInitials = (name: string) => {
     .toUpperCase();
 };
 
-const TeamsGrid = () => {
-  const [selectedCountry, setSelectedCountry] = useState<Country>("Todos");
+const SelectionsGrid = () => {
+  const [selectedContinent, setSelectedContinent] =
+    useState<Continent>("Todos");
   const [sortBy, setSortBy] = useState("mais-vendidos");
   const [showFilters, setShowFilters] = useState(false);
 
-  const filteredTeams = useMemo(() => {
+  const filteredSelections = useMemo(() => {
     let filtered =
-      selectedCountry === "Todos"
-        ? teams
-        : teams.filter((team) => team.country === selectedCountry);
+      selectedContinent === "Todos"
+        ? selections
+        : selections.filter(
+            (selection) => selection.continent === selectedContinent
+          );
 
     if (sortBy === "mais-vendidos") {
       filtered = [...filtered].sort((a, b) => b.products - a.products);
@@ -39,7 +46,7 @@ const TeamsGrid = () => {
     }
 
     return filtered;
-  }, [selectedCountry, sortBy]);
+  }, [selectedContinent, sortBy]);
 
   return (
     <section className="w-full bg-white !px-4 !py-8 sm:!px-6 lg:!px-0">
@@ -57,20 +64,20 @@ const TeamsGrid = () => {
 
             {showFilters && (
               <div className="flex flex-wrap items-center gap-2">
-                {countries.map((country) => (
+                {continents.map((continent) => (
                   <button
-                    key={country}
-                    onClick={() => setSelectedCountry(country)}
+                    key={continent}
+                    onClick={() => setSelectedContinent(continent)}
                     className={`
                       h-11 rounded-lg border !px-4 text-sm font-medium transition-all duration-200
                       ${
-                        selectedCountry === country
+                        selectedContinent === continent
                           ? "border-black bg-black text-white"
                           : "border-zinc-200 bg-white text-zinc-700 hover:border-black"
                       }
                     `}
                   >
-                    {country}
+                    {continent}
                   </button>
                 ))}
               </div>
@@ -89,32 +96,32 @@ const TeamsGrid = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-          {filteredTeams.map((team) => (
+          {filteredSelections.map((selection) => (
             <Link
-              href={`/times/${team.slug}`}
-              key={team.slug}
+              href={`/selecoes/${selection.slug}`}
+              key={selection.slug}
               className="group flex min-h-[210px] flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white !p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="relative flex h-[90px] w-[90px] items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 font-[family-name:var(--font-bebas)] text-4xl text-zinc-950 transition-all duration-300 group-hover:scale-110">
-                {team.image ? (
+                {selection.image ? (
                   <Image
-                    src={team.image}
-                    alt={team.name}
+                    src={selection.image}
+                    alt={selection.name}
                     fill
                     sizes="90px"
                     className="object-contain !p-3"
                   />
                 ) : (
-                  getInitials(team.name)
+                  getInitials(selection.name)
                 )}
               </div>
 
               <h3 className="!mt-4 text-base font-bold text-zinc-950">
-                {team.name}
+                {selection.name}
               </h3>
 
               <p className="!mt-1 text-sm text-zinc-500">
-                {team.products} produtos
+                {selection.products} produtos
               </p>
             </Link>
           ))}
@@ -124,4 +131,4 @@ const TeamsGrid = () => {
   );
 };
 
-export default TeamsGrid;
+export default SelectionsGrid;
