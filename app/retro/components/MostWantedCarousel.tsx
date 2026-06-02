@@ -1,14 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
-
-type Product = {
-  name: string;
-  price: string;
-  image: string;
-};
+import ProductCard from "@/app/components/productCard";
+import type { Product } from "@/app/context/FavoritesContext";
 
 const products: Product[] = [
   {
@@ -95,30 +90,11 @@ const MostWantedCarousel = () => {
             className="flex gap-4 overflow-x-hidden scroll-smooth"
           >
             {carouselProducts.map((product, index) => (
-              <a
-                href="#"
+              <ProductCard
                 key={`${product.name}-${index}`}
-                className="group min-w-[190px] overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:min-w-[210px]"
-              >
-                <div className="relative h-[150px] bg-zinc-50">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-contain !p-3 transition-all duration-500 group-hover:scale-105"
-                  />
-                </div>
-
-                <div className="!p-4">
-                  <h3 className="text-sm font-medium text-zinc-800">
-                    {product.name}
-                  </h3>
-
-                  <p className="!mt-1 text-base font-bold text-zinc-950">
-                    {product.price}
-                  </p>
-                </div>
-              </a>
+                product={product}
+                variant="carousel"
+              />
             ))}
           </div>
 

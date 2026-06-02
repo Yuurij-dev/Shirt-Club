@@ -1,8 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
+import ProductCard from "./productCard";
+import type { Product } from "../context/FavoritesContext";
 
 const bestSellers = [
   {
@@ -59,85 +60,6 @@ const retroProducts = [
     image: "/products/retro/vasco-retro.png",
   },
 ];
-
-type Product = {
-  name: string;
-  price: string;
-  image: string;
-};
-
-const ProductCard = ({ product }: { product: Product }) => {
-  return (
-    <div
-      className="
-        min-w-[190px]
-
-        sm:min-w-[210px]
-
-        overflow-hidden
-        rounded-2xl
-        bg-white
-        shadow-sm
-        transition-all
-        duration-300
-        hover:-translate-y-1
-        hover:shadow-xl
-      "
-    >
-      <div
-        className="
-          relative
-          h-[230px]
-
-          sm:h-[260px]
-
-          overflow-hidden
-          rounded-2xl
-          bg-zinc-100
-        "
-      >
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          className="
-            object-cover
-            transition-all
-            duration-500
-            hover:scale-105
-          "
-        />
-      </div>
-
-      <div className="!p-4">
-        <h3
-          className="
-            text-sm
-            font-medium
-            text-zinc-800
-
-            sm:text-base
-          "
-        >
-          {product.name}
-        </h3>
-
-        <p
-          className="
-            !mt-2
-            text-lg
-            font-bold
-            text-zinc-950
-
-            sm:text-xl
-          "
-        >
-          {product.price}
-        </p>
-      </div>
-    </div>
-  );
-};
 
 const ProductCarousel = ({
   title,
@@ -234,7 +156,11 @@ const ProductCarousel = ({
           "
         >
           {products.map((product) => (
-            <ProductCard key={product.name} product={product} />
+            <ProductCard
+              key={product.name}
+              product={product}
+              variant="carousel"
+            />
           ))}
         </div>
 
