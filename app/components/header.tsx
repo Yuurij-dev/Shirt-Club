@@ -8,10 +8,10 @@ import { useCart } from "../context/CartContext";
 const links = [
   { name: "INÍCIO", href: "/" },
   { name: "TIMES", href: "/times" },
+  { name: "SELEÇÕES", href: "/selecoes" },
   { name: "LANÇAMENTOS", href: "/lancamentos" },
   { name: "RETRO", href: "/retro" },
   { name: "PERSONALIZE", href: "/personalize" },
-  { name: "SALE", href: "/sale" },
 ];
 
 const Header = () => {
