@@ -1,107 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
-
-type Continent =
-  | "Todos"
-  | "América do Sul"
-  | "Europa"
-  | "América do Norte"
-  | "África"
-  | "Ásia";
-
-type Selection = {
-  name: string;
-  continent: Exclude<Continent, "Todos">;
-  products: number;
-  image?: string;
-};
-
-const continents: Continent[] = [
-  "Todos",
-  "América do Sul",
-  "Europa",
-  "América do Norte",
-  "África",
-  "Ásia",
-];
-
-const selections: Selection[] = [
-  {
-    name: "Brasil",
-    continent: "América do Sul",
-    products: 36,
-    image: "/selecoes/brasil.svg",
-  },
-  {
-    name: "Argentina",
-    continent: "América do Sul",
-    products: 32,
-    image: "/selecoes/argentina.svg",
-  },
-  {
-    name: "França",
-    continent: "Europa",
-    products: 30,
-    image: "/selecoes/franca.svg",
-  },
-  {
-    name: "Portugal",
-    continent: "Europa",
-    products: 28,
-    image: "/selecoes/portugal.svg",
-  },
-  {
-    name: "Espanha",
-    continent: "Europa",
-    products: 27,
-    image: "/selecoes/espanha.svg",
-  },
-  {
-    name: "Alemanha",
-    continent: "Europa",
-    products: 25,
-    image: "/selecoes/alemanha.svg",
-  },
-  {
-    name: "Itália",
-    continent: "Europa",
-    products: 24,
-    image: "/selecoes/italia.svg",
-  },
-  {
-    name: "Inglaterra",
-    continent: "Europa",
-    products: 24,
-    image: "/selecoes/inglaterra.svg",
-  },
-  {
-    name: "Uruguai",
-    continent: "América do Sul",
-    products: 20,
-    image: "/selecoes/uruguai.svg",
-  },
-  {
-    name: "México",
-    continent: "América do Norte",
-    products: 18,
-    image: "/selecoes/mexico.svg",
-  },
-  {
-    name: "Japão",
-    continent: "Ásia",
-    products: 16,
-    image: "/selecoes/japao.svg",
-  },
-  {
-    name: "Nigéria",
-    continent: "África",
-    products: 14,
-    image: "/selecoes/nigeria.svg",
-  },
-];
+import {
+  continents,
+  selections,
+  type Continent,
+} from "@/app/data/selections";
 
 const getInitials = (name: string) => {
   return name
@@ -190,9 +97,9 @@ const SelectionsGrid = () => {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
           {filteredSelections.map((selection) => (
-            <a
-              href="#"
-              key={selection.name}
+            <Link
+              href={`/selecoes/${selection.slug}`}
+              key={selection.slug}
               className="group flex min-h-[210px] flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white !p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="relative flex h-[90px] w-[90px] items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 font-[family-name:var(--font-bebas)] text-4xl text-zinc-950 transition-all duration-300 group-hover:scale-110">
@@ -216,7 +123,7 @@ const SelectionsGrid = () => {
               <p className="!mt-1 text-sm text-zinc-500">
                 {selection.products} produtos
               </p>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
