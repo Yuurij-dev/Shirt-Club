@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Heart, Menu, Search, ShoppingCart, X } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
+import { useFavorites } from "../context/FavoritesContext";
 import SearchDialog from "./SearchDialog";
 
 const links = [
@@ -19,6 +20,7 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { totalItems } = useCart();
+  const { totalFavorites } = useFavorites();
 
   return (
     <>
@@ -56,8 +58,13 @@ const Header = () => {
                 <Search className="cursor-pointer text-black" size={22} />
               </button>
 
-              <Link href="/favoritos">
+              <Link href="/favoritos" className="relative">
                 <Heart className="cursor-pointer" size={22} />
+                {totalFavorites > 0 && (
+                  <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-black !px-1 text-[10px] font-bold leading-none text-white">
+                    {totalFavorites}
+                  </span>
+                )}
               </Link>
 
               <Link href="/carrinho" className="relative">
