@@ -33,6 +33,15 @@ type ViaCepResponse = {
   uf?: string;
 };
 
+type CheckoutApiResponse = {
+  order?: {
+    id: string;
+  };
+  checkoutUrl?: string | null;
+  mode?: "mercado_pago" | "development";
+  errors?: string[];
+};
+
 const initialFormData: CheckoutFormData = {
   name: "",
   email: "",
@@ -124,6 +133,8 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
     Partial<Record<keyof CheckoutFormData, boolean>>
   >({});
   const [isFetchingCep, setIsFetchingCep] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState("");
   const [cepLookupError, setCepLookupError] = useState("");
 
   const fieldErrors = useMemo(() => {
@@ -260,7 +271,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
     return invalidFields.length === 0;
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!validateForm()) {
@@ -268,30 +279,54 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
       return;
     }
 
-    const orderDraft = {
-      id: `SC-${Date.now()}`,
-      customer: {
-        ...formData,
-        whatsappDigits: onlyDigits(formData.whatsapp),
-        cepDigits: onlyDigits(formData.cep),
-      },
-      items: items.map((item) => ({
-        productId: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity,
-        size: item.size,
-        customization: item.customization,
-      })),
-      status: "Pendente",
-      subtotal,
-      total: subtotal,
-      createdAt: new Date().toISOString(),
-    };
+    setIsSubmitting(true);
 
-    localStorage.setItem("@shirtclub:checkout-draft", JSON.stringify(orderDraft));
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: {
+            ...formData,
+            whatsappDigits: onlyDigits(formData.whatsapp),
+            cepDigits: onlyDigits(formData.cep),
+          },
+          items: items.map((item) => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            size: item.size,
+            customization: item.customization,
+          })),
+        }),
+      });
 
-    toast.success("Dados salvos. Checkout Mercado Pago em breve.");
+      const checkout = (await response.json()) as CheckoutApiResponse;
+
+      if (!response.ok) {
+        toast.error(checkout.errors?.[0] || "Erro ao iniciar checkout");
+        return;
+      }
+
+      localStorage.setItem("@shirtclub:last-order", JSON.stringify(checkout));
+
+      if (checkout.checkoutUrl) {
+        setCheckoutUrl(checkout.checkoutUrl);
+        window.location.assign(checkout.checkoutUrl);
+        return;
+      }
+
+      toast.success(
+        checkout.mode === "development"
+          ? "Pedido criado em modo desenvolvimento"
+          : "Pedido criado"
+      );
+    } catch {
+      toast.error("Nao foi possivel iniciar o checkout");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -471,12 +506,23 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
 
       <button
         type="submit"
-        disabled={isFetchingCep}
+        disabled={isFetchingCep || isSubmitting}
         className="flex h-14 items-center justify-center !gap-3 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
       >
-        <CreditCard size={20} />
-        CONTINUAR PARA PAGAMENTO - {formatPrice(subtotal)}
+        {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <CreditCard size={20} />}
+        {isSubmitting
+          ? "INICIANDO CHECKOUT..."
+          : `CONTINUAR PARA PAGAMENTO - ${formatPrice(subtotal)}`}
       </button>
+
+      {checkoutUrl && (
+        <a
+          href={checkoutUrl}
+          className="text-center text-sm font-bold text-zinc-950 underline"
+        >
+          Abrir checkout do Mercado Pago
+        </a>
+      )}
 
       <div className="flex items-center justify-center !gap-2 text-xs text-zinc-500">
         <Lock size={14} />
