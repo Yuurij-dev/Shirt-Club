@@ -6,11 +6,11 @@ import Header from "@/app/components/header";
 import NewsletterSection from "@/app/components/NewsletterSection";
 import OfertaHeader from "@/app/components/ofertaHeader";
 import StoreHighlights from "@/app/components/StoreHighlights";
-import { products } from "@/app/data/products";
 import {
   getSelectionBySlug,
   selections,
 } from "@/app/data/selections";
+import { getProductsByOwner } from "@/app/utils/inventory";
 
 type SelectionPageProps = {
   params: Promise<{
@@ -48,9 +48,7 @@ const SelectionPage = async ({ params }: SelectionPageProps) => {
     notFound();
   }
 
-  const selectionProducts = products.filter(
-    (product) => product.team === (selection.productTeam || selection.name)
-  );
+  const selectionProducts = getProductsByOwner(selection);
 
   return (
     <div>

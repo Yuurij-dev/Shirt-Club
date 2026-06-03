@@ -6,8 +6,8 @@ import Header from "@/app/components/header";
 import NewsletterSection from "@/app/components/NewsletterSection";
 import OfertaHeader from "@/app/components/ofertaHeader";
 import StoreHighlights from "@/app/components/StoreHighlights";
-import { products } from "@/app/data/products";
 import { getTeamBySlug, teams } from "@/app/data/teams";
+import { getProductsByOwner } from "@/app/utils/inventory";
 
 type TeamPageProps = {
   params: Promise<{
@@ -45,9 +45,7 @@ const TeamPage = async ({ params }: TeamPageProps) => {
     notFound();
   }
 
-  const teamProducts = products.filter(
-    (product) => product.team === (team.productTeam || team.name)
-  );
+  const teamProducts = getProductsByOwner(team);
 
   return (
     <div>
