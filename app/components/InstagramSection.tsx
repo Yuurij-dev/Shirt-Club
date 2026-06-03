@@ -9,17 +9,21 @@ const posts = [
   "/instagram/post-6.png",
 ];
 
+const instagramUrl = "https://www.instagram.com/shirt_club_brasil/";
+
 const InstagramSection = () => {
   return (
     <section className="w-full bg-white !px-4 !py-8 sm:!px-6 lg:!px-0">
       <div className="container !mx-auto">
         <div className="!mb-5 flex items-center justify-between">
           <h2 className="font-[family-name:var(--font-bebas)] text-3xl text-zinc-950 sm:text-4xl">
-            @SHIRTCLUB
+            @SHIRT_CLUB_BRASIL
           </h2>
 
           <a
-            href="#"
+            href={instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-xs font-medium text-zinc-700 hover:underline sm:text-sm"
           >
             Ver no Instagram ›
@@ -29,7 +33,9 @@ const InstagramSection = () => {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {posts.map((post, index) => (
             <a
-              href="#"
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               key={index}
               className="group relative h-[150px] overflow-hidden rounded-lg bg-zinc-100 sm:h-[170px] lg:h-[160px]"
             >
