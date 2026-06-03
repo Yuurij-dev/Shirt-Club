@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Lock, ShieldCheck, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { formatPrice } from "@/app/utils/price";
@@ -11,10 +12,6 @@ type CartSummaryProps = {
 
 const CartSummary = ({ subtotal, totalItems }: CartSummaryProps) => {
   const installment = subtotal / 12;
-
-  const handleCheckout = () => {
-    toast.success("Finalização iniciada");
-  };
 
   const handleCoupon = () => {
     toast.info("Cupom aplicado em breve");
@@ -51,23 +48,21 @@ const CartSummary = ({ subtotal, totalItems }: CartSummaryProps) => {
         </p>
 
         <div className="!mt-6 grid grid-cols-1 !gap-3">
-          <button
-            type="button"
-            onClick={handleCheckout}
+          <Link
+            href="/checkout"
             className="flex h-13 items-center justify-center !gap-3 rounded-lg bg-black !px-4 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
           >
             <Lock size={18} />
             FINALIZAR COMPRA
-          </button>
+          </Link>
 
-          <button
-            type="button"
-            onClick={handleCheckout}
+          <Link
+            href="/checkout"
             className="flex h-13 items-center justify-center !gap-3 rounded-lg border border-black bg-white !px-4 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50"
           >
             <Zap size={18} />
             COMPRAR COM 1 CLIQUE
-          </button>
+          </Link>
         </div>
 
         <div className="!mt-6 flex items-center justify-center !gap-3 text-center">
@@ -102,3 +97,4 @@ const CartSummary = ({ subtotal, totalItems }: CartSummaryProps) => {
 };
 
 export default CartSummary;
+
