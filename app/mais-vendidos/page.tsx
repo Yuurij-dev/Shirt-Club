@@ -1,26 +1,20 @@
 import Link from "next/link";
 import Footer from "../components/Footer";
 import Header from "../components/header";
-import InstagramSection from "../components/InstagramSection";
 import NewsletterSection from "../components/NewsletterSection";
-import PromoBannerTimes from "../times/components/PromoBannerTimes";
+import ProductCard from "../components/productCard";
 import StoreHighlights from "../components/StoreHighlights";
-import SelectionsGrid from "./components/SelectionsGrid";
+import { bestSellerProducts } from "../data/products";
 
-export const metadata = {
-  title: "Seleções | Shirt Club",
-  description: "Camisas das principais seleções do mundo.",
-};
-
-const SelecoesPage = () => {
+const BestSellersPage = () => {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
 
       <main className="flex-1">
         <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
-          <div className="!mb-6">
-            <div className="!mb-4 flex items-center gap-2 text-sm text-zinc-500">
+          <div className="!mb-8">
+            <div className="!mb-4 flex items-center !gap-2 text-sm text-zinc-500">
               <Link
                 href="/"
                 className="transition-all duration-200 hover:text-black"
@@ -31,28 +25,35 @@ const SelecoesPage = () => {
               <span>›</span>
 
               <Link
-                href="/selecoes"
+                href="/mais-vendidos"
                 className="transition-all duration-200 hover:text-black"
               >
-                Seleções
+                Mais vendidos
               </Link>
             </div>
 
             <h1 className="font-[family-name:var(--font-bebas)] text-5xl leading-none text-zinc-950">
-              SELEÇÕES
+              MAIS VENDIDOS
             </h1>
 
-            <p className="!mt-5 max-w-[420px] text-base text-zinc-700">
-              Encontre camisas das maiores seleções do mundo. Qualidade premium
-              para vestir sua paixão pelo futebol.
+            <p className="!mt-3 max-w-[520px] text-sm leading-6 text-zinc-600">
+              As camisas preferidas da galera, reunidas em um só lugar.
             </p>
           </div>
 
-          <PromoBannerTimes />
-          <SelectionsGrid />
-          <StoreHighlights />
-          <NewsletterSection />
-          <InstagramSection />
+          <div className="grid grid-cols-1 !gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {bestSellerProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+
+          <div className="!mt-10">
+            <StoreHighlights />
+          </div>
+
+          <div className="!mt-10">
+            <NewsletterSection />
+          </div>
         </section>
       </main>
 
@@ -61,4 +62,4 @@ const SelecoesPage = () => {
   );
 };
 
-export default SelecoesPage;
+export default BestSellersPage;

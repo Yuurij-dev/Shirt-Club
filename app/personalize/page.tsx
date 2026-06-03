@@ -4,9 +4,9 @@ import PageInDevelopment from "../components/PageInDevelopment";
 
 const PersonalizePage = () => {
     return ( 
-        <div>
+        <div className="flex min-h-screen flex-col">
             <Header/>
-            <main>
+            <main className="flex-1">
                 <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
                     <PageInDevelopment/>
                 </section>

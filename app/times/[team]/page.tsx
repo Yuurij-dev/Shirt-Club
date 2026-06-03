@@ -4,10 +4,9 @@ import EntityProductsSection from "@/app/components/EntityProductsSection";
 import Footer from "@/app/components/Footer";
 import Header from "@/app/components/header";
 import NewsletterSection from "@/app/components/NewsletterSection";
-import OfertaHeader from "@/app/components/ofertaHeader";
 import StoreHighlights from "@/app/components/StoreHighlights";
-import { products } from "@/app/data/products";
 import { getTeamBySlug, teams } from "@/app/data/teams";
+import { getProductsByOwner } from "@/app/utils/inventory";
 
 type TeamPageProps = {
   params: Promise<{
@@ -45,16 +44,13 @@ const TeamPage = async ({ params }: TeamPageProps) => {
     notFound();
   }
 
-  const teamProducts = products.filter(
-    (product) => product.team === (team.productTeam || team.name)
-  );
+  const teamProducts = getProductsByOwner(team);
 
   return (
-    <div>
-      <OfertaHeader />
+    <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
+      <main className="container !mx-auto flex-1 !px-4 !py-8 sm:!px-6 lg:!px-0">
         <nav className="!mb-6 flex flex-wrap items-center !gap-2 text-sm text-zinc-500">
           <Link href="/" className="transition-all duration-200 hover:text-black">
             Início

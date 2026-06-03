@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ProductCard from "./productCard";
 import { homeProducts } from "../data/products";
 
@@ -10,9 +11,9 @@ const ProductsSection = () => {
             LANÇAMENTOS
           </h2>
 
-          <a href="#" className="text-xs font-medium text-zinc-700 hover:underline sm:text-sm">
+          <Link href="/lancamentos" className="text-xs font-medium text-zinc-700 hover:underline sm:text-sm">
             Ver todos ›
-          </a>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

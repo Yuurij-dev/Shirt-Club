@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { countries, teams, type Country } from "@/app/data/teams";
+import { getProductCountByOwner } from "@/app/utils/inventory";
 
 const getInitials = (name: string) => {
   return name
@@ -27,11 +28,15 @@ const TeamsGrid = () => {
         : teams.filter((team) => team.country === selectedCountry);
 
     if (sortBy === "mais-vendidos") {
-      filtered = [...filtered].sort((a, b) => b.products - a.products);
+      filtered = [...filtered].sort(
+        (a, b) => getProductCountByOwner(b) - getProductCountByOwner(a)
+      );
     }
 
     if (sortBy === "menos-vendidos") {
-      filtered = [...filtered].sort((a, b) => a.products - b.products);
+      filtered = [...filtered].sort(
+        (a, b) => getProductCountByOwner(a) - getProductCountByOwner(b)
+      );
     }
 
     if (sortBy === "az") {
@@ -114,7 +119,7 @@ const TeamsGrid = () => {
               </h3>
 
               <p className="!mt-1 text-sm text-zinc-500">
-                {team.products} produtos
+                {getProductCountByOwner(team)} produtos
               </p>
             </Link>
           ))}

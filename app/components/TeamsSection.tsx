@@ -1,28 +1,35 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const teams = [
   {
     name: "REAL MADRID",
+    slug: "real-madrid",
     image: "/teams/real-madrid.svg",
   },
   {
     name: "BARCELONA",
+    slug: "barcelona",
     image: "/teams/barcelona.svg",
   },
   {
     name: "FLAMENGO",
+    slug: "flamengo",
     image: "/teams/flamengo.svg",
   },
   {
     name: "VASCO",
+    slug: "vasco",
     image: "/teams/vasco.svg",
   },
   {
     name: "CORINTHIANS",
+    slug: "corinthians",
     image: "/teams/corinthians.svg",
   },
   {
     name: "PALMEIRAS",
+    slug: "palmeiras",
     image: "/teams/palmeiras.svg",
   },
 ];
@@ -46,8 +53,8 @@ const TeamsSection = () => {
             TIMES
           </h2>
 
-          <a
-            href="#"
+          <Link
+            href="/times"
             className="
               text-xs
               font-medium
@@ -58,7 +65,7 @@ const TeamsSection = () => {
             "
           >
             Ver todos ›
-          </a>
+          </Link>
 
         </div>
 
@@ -76,8 +83,8 @@ const TeamsSection = () => {
           "
         >
           {teams.map((team) => (
-            <a
-              href="#"
+            <Link
+              href={`/times/${team.slug}`}
               key={team.name}
               className="
                 group
@@ -134,7 +141,7 @@ const TeamsSection = () => {
               >
                 {team.name}
               </h3>
-            </a>
+            </Link>
           ))}
         </div>
 

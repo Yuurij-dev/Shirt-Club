@@ -10,10 +10,10 @@ const FavoritosPage = () => {
   const { favorites } = useFavorites();
 
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main className="container !mx-auto !px-4 !py-10 sm:!px-6 lg:!px-0">
+      <main className="container !mx-auto flex-1 !px-4 !py-10 sm:!px-6 lg:!px-0">
         <h1 className="font-[family-name:var(--font-bebas)] text-4xl sm:text-5xl !mb-8">
           MEUS FAVORITOS
         </h1>

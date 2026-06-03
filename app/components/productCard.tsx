@@ -6,6 +6,7 @@ import { Heart } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import type { Product } from "@/app/data/products";
 import { useFavorites } from "@/app/context/FavoritesContext";
+import { SkeletonBlock } from "./Skeleton";
 
 type ProductCardProps = {
   product: Product;
@@ -20,6 +21,7 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const { toggleFavorite, isFavorite } = useFavorites();
   const [displayedImage, setDisplayedImage] = useState(product.image);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const active = isFavorite(product.id);
   const isCarousel = variant === "carousel";
@@ -69,6 +71,10 @@ const ProductCard = ({
         )}
 
         <Link href={productHref} className="block h-full w-full">
+          {!imageLoaded && (
+            <SkeletonBlock className="absolute inset-0 z-[1] h-full w-full rounded-2xl" />
+          )}
+
           <Image
             src={displayedImage}
             alt={product.name}
@@ -78,7 +84,11 @@ const ProductCard = ({
                 ? "(min-width: 640px) 210px, 190px"
                 : "(min-width: 1280px) 20vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
             }
-            onError={() => setDisplayedImage("/assets/bg.png")}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              setImageLoaded(false);
+              setDisplayedImage("/assets/bg.png");
+            }}
             className="
               object-cover
               transition-all

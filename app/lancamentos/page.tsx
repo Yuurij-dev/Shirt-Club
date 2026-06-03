@@ -9,7 +9,6 @@ import ProductFilters from "./components/ProductFilters";
 import ProductGrid from "./components/ProductGrid";
 import StoreHighlights from "../components/StoreHighlights";
 import NewsletterSection from "../components/NewsletterSection";
-import OfertaHeader from "../components/ofertaHeader";
 import { launchProducts } from "../data/products";
 
 const getPriceNumber = (price: string | number) => {
@@ -44,11 +43,10 @@ const LancamentosPage = () => {
     });
 
   return (
-    <div>
-        <OfertaHeader/>
+    <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main>
+      <main className="flex-1">
         <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
           <div className="!mb-4 flex items-center !gap-2 text-sm text-zinc-500">
             <Link
@@ -87,11 +85,11 @@ const LancamentosPage = () => {
             />
           </div>
 
-          <div className="!mt-10">
+          <div className="!mt-2">
             <StoreHighlights />
           </div>
 
-          <div className="!mt-10">
+          <div className="!mt-2">
             <NewsletterSection />
           </div>
         </section>

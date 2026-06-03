@@ -23,6 +23,7 @@ type AddItemInput = {
   quantity?: number;
   size?: string;
   customization?: string;
+  silent?: boolean;
 };
 
 type CartContextType = {
@@ -79,6 +80,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     quantity = 1,
     size = "M",
     customization = "Sem personalização",
+    silent = false,
   }: AddItemInput) => {
     setItems((currentItems) => {
       const itemAlreadyInCart = currentItems.some(
@@ -110,7 +112,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       });
     });
 
-    toast.success("Produto adicionado ao carrinho");
+    if (!silent) {
+      toast.success("Produto adicionado ao carrinho");
+    }
   };
 
   const removeItem = (productId: string, size: string) => {

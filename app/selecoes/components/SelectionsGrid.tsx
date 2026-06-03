@@ -9,6 +9,7 @@ import {
   selections,
   type Continent,
 } from "@/app/data/selections";
+import { getProductCountByOwner } from "@/app/utils/inventory";
 
 const getInitials = (name: string) => {
   return name
@@ -34,11 +35,15 @@ const SelectionsGrid = () => {
           );
 
     if (sortBy === "mais-vendidos") {
-      filtered = [...filtered].sort((a, b) => b.products - a.products);
+      filtered = [...filtered].sort(
+        (a, b) => getProductCountByOwner(b) - getProductCountByOwner(a)
+      );
     }
 
     if (sortBy === "menos-vendidos") {
-      filtered = [...filtered].sort((a, b) => a.products - b.products);
+      filtered = [...filtered].sort(
+        (a, b) => getProductCountByOwner(a) - getProductCountByOwner(b)
+      );
     }
 
     if (sortBy === "az") {
@@ -121,7 +126,7 @@ const SelectionsGrid = () => {
               </h3>
 
               <p className="!mt-1 text-sm text-zinc-500">
-                {selection.products} produtos
+                {getProductCountByOwner(selection)} produtos
               </p>
             </Link>
           ))}

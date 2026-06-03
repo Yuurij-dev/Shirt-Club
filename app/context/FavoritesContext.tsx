@@ -14,6 +14,7 @@ export type { Product };
 
 type FavoritesContextType = {
   favorites: Product[];
+  totalFavorites: number;
   toggleFavorite: (product: Product) => void;
   isFavorite: (productId: string) => boolean;
 };
@@ -86,6 +87,7 @@ export const FavoritesProvider = ({
     <FavoritesContext.Provider
       value={{
         favorites,
+        totalFavorites: favorites.length,
         toggleFavorite,
         isFavorite,
       }}

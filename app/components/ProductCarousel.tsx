@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useRef } from "react";
 import type { Product } from "@/app/data/products";
 import ProductCard from "./productCard";
@@ -9,6 +10,7 @@ type ProductCarouselProps = {
   title: string;
   products: Product[];
   showViewAll?: boolean;
+  viewAllHref?: string;
 };
 
 const CARD_SCROLL_WIDTH = 230;
@@ -17,6 +19,7 @@ const ProductCarousel = ({
   title,
   products,
   showViewAll = true,
+  viewAllHref = "/",
 }: ProductCarouselProps) => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const carouselProducts = [...products, ...products];
@@ -55,12 +58,12 @@ const ProductCarousel = ({
         </h2>
 
         {showViewAll && (
-          <a
-            href="#"
+          <Link
+            href={viewAllHref}
             className="text-xs font-medium text-zinc-700 hover:underline sm:text-sm"
           >
             Ver todos &rsaquo;
-          </a>
+          </Link>
         )}
       </div>
 

@@ -9,8 +9,8 @@ import {
   Truck,
   Zap,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 import type { Product } from "@/app/data/products";
 import { useCart } from "@/app/context/CartContext";
 import { formatPrice, getPriceNumber } from "@/app/utils/price";
@@ -22,6 +22,7 @@ type ProductBuyBoxProps = {
 const sizes = ["P", "M", "G", "GG", "XG"];
 
 const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
+  const router = useRouter();
   const { addItem } = useCart();
   const [selectedSize, setSelectedSize] = useState("M");
   const [quantity, setQuantity] = useState(1);
@@ -52,9 +53,10 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
       product,
       quantity,
       size: selectedSize,
+      silent: true,
     });
 
-    toast.success("Compra iniciada");
+    router.push("/checkout");
   };
 
   return (

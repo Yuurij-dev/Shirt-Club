@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Footer from "@/app/components/Footer";
 import Header from "@/app/components/header";
-import OfertaHeader from "@/app/components/ofertaHeader";
 import { getProductById, products } from "@/app/data/products";
 import ProductBuyBox from "./components/ProductBuyBox";
 import ProductGallery from "./components/ProductGallery";
@@ -45,11 +44,10 @@ const ProductPage = async ({ params }: ProductPageProps) => {
   }
 
   return (
-    <div>
-      <OfertaHeader />
+    <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
+      <main className="container !mx-auto flex-1 !px-4 !py-8 sm:!px-6 lg:!px-0">
         <nav className="!mb-6 flex flex-wrap items-center !gap-2 text-sm text-zinc-500">
           <Link href="/" className="transition-all duration-200 hover:text-black">
             Início

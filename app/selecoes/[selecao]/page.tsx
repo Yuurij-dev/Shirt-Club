@@ -4,13 +4,12 @@ import EntityProductsSection from "@/app/components/EntityProductsSection";
 import Footer from "@/app/components/Footer";
 import Header from "@/app/components/header";
 import NewsletterSection from "@/app/components/NewsletterSection";
-import OfertaHeader from "@/app/components/ofertaHeader";
 import StoreHighlights from "@/app/components/StoreHighlights";
-import { products } from "@/app/data/products";
 import {
   getSelectionBySlug,
   selections,
 } from "@/app/data/selections";
+import { getProductsByOwner } from "@/app/utils/inventory";
 
 type SelectionPageProps = {
   params: Promise<{
@@ -48,16 +47,13 @@ const SelectionPage = async ({ params }: SelectionPageProps) => {
     notFound();
   }
 
-  const selectionProducts = products.filter(
-    (product) => product.team === (selection.productTeam || selection.name)
-  );
+  const selectionProducts = getProductsByOwner(selection);
 
   return (
-    <div>
-      <OfertaHeader />
+    <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
+      <main className="container !mx-auto flex-1 !px-4 !py-8 sm:!px-6 lg:!px-0">
         <nav className="!mb-6 flex flex-wrap items-center !gap-2 text-sm text-zinc-500">
           <Link href="/" className="transition-all duration-200 hover:text-black">
             Início

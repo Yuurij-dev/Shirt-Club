@@ -1,16 +1,14 @@
 import Link from "next/link";
 import Footer from "../components/Footer";
 import Header from "../components/header";
-import NewsletterSection from "../components/NewsletterSection";
-import StoreHighlights from "../components/StoreHighlights";
-import CartContent from "./components/CartContent";
+import CheckoutContent from "./components/CheckoutContent";
 
 export const metadata = {
-  title: "Carrinho | Shirt Club",
-  description: "Confira os produtos adicionados ao carrinho.",
+  title: "Checkout | Shirt Club",
+  description: "Preencha seus dados para finalizar o pedido.",
 };
 
-const CartPage = () => {
+const CheckoutPage = () => {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -21,18 +19,17 @@ const CartPage = () => {
             Início
           </Link>
           <span>›</span>
-          <span className="text-zinc-900">Carrinho</span>
+          <Link
+            href="/carrinho"
+            className="transition-all duration-200 hover:text-black"
+          >
+            Carrinho
+          </Link>
+          <span>›</span>
+          <span className="text-zinc-900">Checkout</span>
         </nav>
 
-        <CartContent />
-
-        <div className="!mt-8">
-          <StoreHighlights />
-        </div>
-
-        <div className="!mt-4">
-          <NewsletterSection />
-        </div>
+        <CheckoutContent />
       </main>
 
       <Footer />
@@ -40,4 +37,4 @@ const CartPage = () => {
   );
 };
 
-export default CartPage;
+export default CheckoutPage;
