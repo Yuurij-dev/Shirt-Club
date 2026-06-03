@@ -15,11 +15,11 @@ export const metadata = {
 
 const SelecoesPage = () => {
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
       <OfertaHeader />
       <Header />
 
-      <main>
+      <main className="flex-1">
         <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
           <div className="!mb-6">
             <div className="!mb-4 flex items-center gap-2 text-sm text-zinc-500">

@@ -45,11 +45,11 @@ const ProductPage = async ({ params }: ProductPageProps) => {
   }
 
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
       <OfertaHeader />
       <Header />
 
-      <main className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
+      <main className="container !mx-auto flex-1 !px-4 !py-8 sm:!px-6 lg:!px-0">
         <nav className="!mb-6 flex flex-wrap items-center !gap-2 text-sm text-zinc-500">
           <Link href="/" className="transition-all duration-200 hover:text-black">
             Início
