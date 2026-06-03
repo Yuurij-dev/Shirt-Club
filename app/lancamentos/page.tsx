@@ -9,7 +9,6 @@ import ProductFilters from "./components/ProductFilters";
 import ProductGrid from "./components/ProductGrid";
 import StoreHighlights from "../components/StoreHighlights";
 import NewsletterSection from "../components/NewsletterSection";
-import OfertaHeader from "../components/ofertaHeader";
 import { launchProducts } from "../data/products";
 
 const getPriceNumber = (price: string | number) => {
@@ -45,7 +44,6 @@ const LancamentosPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
-        <OfertaHeader/>
       <Header />
 
       <main className="flex-1">

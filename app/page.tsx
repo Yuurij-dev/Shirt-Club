@@ -5,7 +5,6 @@ import Footer from "./components/Footer";
 import Header from "./components/header";
 import InstagramSection from "./components/InstagramSection";
 import NewsletterSection from "./components/NewsletterSection";
-import OfertaHeader from "./components/ofertaHeader";
 import ProductCarouselSection from "./components/ProductCarouselSection";
 import ProductsSection from "./components/productionsSection";
 import PromoBanner from "./components/PromoBanner";
@@ -15,7 +14,6 @@ import TeamsSection from "./components/TeamsSection";
 const Home = () => {
   return (
     <div className="flex min-h-screen flex-col">
-      <OfertaHeader/>
       <Header />
       <main className="flex-1">
         <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">

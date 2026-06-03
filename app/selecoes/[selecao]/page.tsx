@@ -4,7 +4,6 @@ import EntityProductsSection from "@/app/components/EntityProductsSection";
 import Footer from "@/app/components/Footer";
 import Header from "@/app/components/header";
 import NewsletterSection from "@/app/components/NewsletterSection";
-import OfertaHeader from "@/app/components/ofertaHeader";
 import StoreHighlights from "@/app/components/StoreHighlights";
 import {
   getSelectionBySlug,
@@ -52,7 +51,6 @@ const SelectionPage = async ({ params }: SelectionPageProps) => {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <OfertaHeader />
       <Header />
 
       <main className="container !mx-auto flex-1 !px-4 !py-8 sm:!px-6 lg:!px-0">

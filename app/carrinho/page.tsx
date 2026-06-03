@@ -2,7 +2,6 @@ import Link from "next/link";
 import Footer from "../components/Footer";
 import Header from "../components/header";
 import NewsletterSection from "../components/NewsletterSection";
-import OfertaHeader from "../components/ofertaHeader";
 import StoreHighlights from "../components/StoreHighlights";
 import CartContent from "./components/CartContent";
 
@@ -14,7 +13,6 @@ export const metadata = {
 const CartPage = () => {
   return (
     <div className="flex min-h-screen flex-col">
-      <OfertaHeader />
       <Header />
 
       <main className="container !mx-auto flex-1 !px-4 !py-8 sm:!px-6 lg:!px-0">

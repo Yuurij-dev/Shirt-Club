@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import Header from "../components/header";
-import OfertaHeader from "../components/ofertaHeader";
 
 import TeamsGrid from "./components/TeamsGrid";
 import StoreHighlights from "../components/StoreHighlights";
@@ -13,7 +12,6 @@ import PromoBannerTimes from "./components/PromoBannerTimes";
 const Times = () => {
   return (
     <div className="flex min-h-screen flex-col">
-      <OfertaHeader />
       <Header />
 
       <main className="flex-1">

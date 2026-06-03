@@ -3,7 +3,6 @@ import Footer from "../components/Footer";
 import Header from "../components/header";
 import InstagramSection from "../components/InstagramSection";
 import NewsletterSection from "../components/NewsletterSection";
-import OfertaHeader from "../components/ofertaHeader";
 import PromoBannerTimes from "../times/components/PromoBannerTimes";
 import StoreHighlights from "../components/StoreHighlights";
 import SelectionsGrid from "./components/SelectionsGrid";
@@ -16,7 +15,6 @@ export const metadata = {
 const SelecoesPage = () => {
   return (
     <div className="flex min-h-screen flex-col">
-      <OfertaHeader />
       <Header />
 
       <main className="flex-1">
