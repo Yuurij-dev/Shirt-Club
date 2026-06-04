@@ -45,18 +45,18 @@ const institutionalLinks: FooterLink[] = [
 ];
 
 const categoryLinks: FooterLink[] = [
-  { label: "Nacionais", href: "/selecoes" },
-  { label: "Internacionais", href: "/times" },
-  { label: "Retrô", href: "/retro" },
+  { label: "Times", href: "/times" },
+  { label: "Seleções", href: "/selecoes" },
   { label: "Lançamentos", href: "/lancamentos" },
-  { label: "Promoções", href: "/sale" },
+  { label: "Retro", href: "/retro" },
+  { label: "Personalize", href: "/personalize" },
 ];
 
 const helpLinks: FooterLink[] = [
-  { label: "Perguntas frequentes", href: "#" },
-  { label: "Formas de pagamento", href: "#" },
-  { label: "Prazos e entregas", href: "#" },
-  { label: "Rastreamento", href: "#" },
+  { label: "Perguntas frequentes", href: "/perguntas-frequentes" },
+  { label: "Formas de pagamento", href: "/formas-de-pagamento" },
+  { label: "Prazos e entregas", href: "/prazos-e-entregas" },
+  { label: "Rastreamento", href: "/rastreamento" },
   { label: "Trocas e devoluções", href: "/trocas-e-devolucoes" },
 ];
 

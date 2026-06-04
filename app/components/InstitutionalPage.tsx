@@ -3,14 +3,18 @@ import type { InstitutionalPageContent } from "../data/institutionalPages";
 
 type InstitutionalPageProps = {
   page: InstitutionalPageContent;
+  eyebrow?: string;
 };
 
-const InstitutionalPage = ({ page }: InstitutionalPageProps) => {
+const InstitutionalPage = ({
+  page,
+  eyebrow = "Institucional",
+}: InstitutionalPageProps) => {
   return (
     <section className="container !mx-auto !px-4 !py-10 sm:!px-6 lg:!px-0 lg:!py-14">
       <div className="max-w-3xl">
         <span className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
-          Institucional
+          {eyebrow}
         </span>
 
         <h1 className="!mt-3 font-[family-name:var(--font-bebas)] text-5xl leading-none sm:text-6xl">
