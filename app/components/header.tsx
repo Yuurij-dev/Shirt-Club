@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, Menu, Search, ShoppingCart, X } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
@@ -29,9 +30,17 @@ const Header = () => {
           <div className="relative flex h-20 w-full items-center justify-between">
             <Link
               href="/"
-              className="font-[family-name:var(--font-bebas)] text-3xl leading-none"
+              aria-label="Ir para a pagina inicial"
+              className="relative block h-16 w-[118px] shrink-0 sm:h-[72px] sm:w-[132px] lg:h-[76px] lg:w-[150px]"
             >
-              LOGO
+              <Image
+                src="/assets/logo.png"
+                alt="Shirt Club"
+                fill
+                priority
+                sizes="(min-width: 1024px) 150px, (min-width: 640px) 132px, 118px"
+                className="object-contain object-left"
+              />
             </Link>
 
             <nav className="hidden h-full items-center lg:flex">

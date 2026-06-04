@@ -152,7 +152,7 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
         <button
           type="button"
           onClick={handleAddToCart}
-          className="group relative flex h-14 items-center justify-center overflow-hidden rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+          className="group relative flex h-14 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
         >
           <span
             className={`
@@ -186,7 +186,7 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
         <button
           type="button"
           onClick={handleBuyNow}
-          className="flex h-14 items-center justify-center !gap-3 rounded-lg border border-black bg-white !px-5 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50"
+          className="flex h-14 cursor-pointer items-center justify-center !gap-3 rounded-lg border border-black bg-white !px-5 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50"
         >
           <Zap size={20} />
           COMPRAR AGORA
