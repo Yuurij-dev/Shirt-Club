@@ -81,7 +81,7 @@ const PixPaymentContent = () => {
 
     const interval = window.setInterval(() => {
       void checkOrderStatus();
-    }, 4000);
+    }, 1500);
 
     return () => {
       window.clearInterval(interval);

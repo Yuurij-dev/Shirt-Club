@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { listOrders } from "@/app/lib/orderStore";
+import { getAsaasPayment, isAsaasPaymentPaid } from "@/app/lib/asaas";
+import { listOrders, updateOrderStatus } from "@/app/lib/orderStore";
 
 type OrderStatusRouteContext = {
   params: Promise<{
@@ -16,6 +17,25 @@ export const GET = async (_request: Request, context: OrderStatusRouteContext) =
 
   if (!order) {
     return NextResponse.json({ error: "Pedido nao encontrado" }, { status: 404 });
+  }
+
+  if (order.status === "unpaid" && order.paymentId?.startsWith("pay_")) {
+    const asaasPayment = await getAsaasPayment(order.paymentId);
+
+    if (asaasPayment && isAsaasPaymentPaid(asaasPayment.status)) {
+      await updateOrderStatus({
+        orderId: order.id,
+        status: "paid",
+        paymentId: asaasPayment.id,
+      });
+
+      return NextResponse.json({
+        id: order.id,
+        status: "paid",
+        paymentId: asaasPayment.id,
+        updatedAt: new Date().toISOString(),
+      });
+    }
   }
 
   return NextResponse.json({
