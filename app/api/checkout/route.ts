@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { products } from "@/app/data/products";
+import {
+  createAsaasCustomer,
+  createAsaasPixPayment,
+  getAsaasPixQrCode,
+} from "@/app/lib/asaas";
 import { createOrder, getOrderStoreMode } from "@/app/lib/orderStore";
 import { getPriceNumber } from "@/app/utils/price";
 
 type CheckoutCustomer = {
   name?: string;
+  cpf?: string;
+  cpfDigits?: string;
   email?: string;
   whatsapp?: string;
   whatsappDigits?: string;
@@ -38,23 +45,6 @@ type MercadoPagoPreferenceResponse = {
   sandbox_init_point?: string;
 };
 
-type MercadoPagoPixOrderResponse = {
-  id: number;
-  status?: string;
-  point_of_interaction?: {
-    transaction_data?: {
-      ticket_url?: string;
-      qr_code?: string;
-      qr_code_base64?: string;
-    };
-  };
-  message?: string;
-  cause?: Array<{
-    description?: string;
-    code?: string;
-  }>;
-};
-
 const onlyDigits = (value = "") => value.replace(/\D/g, "");
 
 const isMercadoPagoTestMode = () => {
@@ -72,6 +62,8 @@ const getRequiredCustomerErrors = (customer: CheckoutCustomer) => {
   const errors: string[] = [];
 
   if (!customer.name?.trim()) errors.push("Nome obrigatorio");
+  const cpfDigits = customer.cpfDigits || onlyDigits(customer.cpf);
+  if (cpfDigits.length !== 11) errors.push("CPF invalido");
   if (!isValidEmail(customer.email)) errors.push("E-mail invalido");
 
   const whatsappDigits = customer.whatsappDigits || onlyDigits(customer.whatsapp);
@@ -190,69 +182,6 @@ const createMercadoPagoPreference = async ({
   return preference;
 };
 
-const createMercadoPagoPixOrder = async ({
-  request,
-  orderId,
-  customer,
-  orderItems,
-  total,
-}: {
-  request: Request;
-  orderId: string;
-  customer: Required<Pick<CheckoutCustomer, "email">> & CheckoutCustomer;
-  orderItems: Array<{
-    title: string;
-    quantity: number;
-  }>;
-  total: number;
-}) => {
-  const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-
-  if (!accessToken) return null;
-
-  const baseUrl = getBaseUrl(request);
-  const publicHttpsUrl = isPublicHttpsUrl(baseUrl);
-  const description = orderItems
-    .map((item) => `${item.quantity}x ${item.title}`)
-    .join(", ")
-    .slice(0, 250);
-  const pixPayload: Record<string, unknown> = {
-    transaction_amount: Number(total.toFixed(2)),
-    description: description || "Pedido Shirt Club",
-    payment_method_id: "pix",
-    external_reference: orderId,
-    payer: {
-      email: customer.email,
-      first_name: customer.name?.split(" ")[0],
-      last_name: customer.name?.split(" ").slice(1).join(" ") || undefined,
-    },
-  };
-
-  if (publicHttpsUrl) {
-    pixPayload.notification_url = `${baseUrl}/api/webhook/mercadopago`;
-  }
-
-  const response = await fetch("https://api.mercadopago.com/v1/payments", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      "X-Idempotency-Key": `${orderId}-${crypto.randomUUID()}`,
-    },
-    body: JSON.stringify(pixPayload),
-  });
-
-  const pixOrder = (await response.json()) as MercadoPagoPixOrderResponse;
-
-  if (!response.ok) {
-    const cause = pixOrder.cause?.[0]?.description;
-
-    throw new Error(cause || pixOrder.message || "Erro ao criar pagamento Pix");
-  }
-
-  return pixOrder;
-};
-
 export const POST = async (request: Request) => {
   try {
     const body = (await request.json()) as CheckoutRequestBody;
@@ -314,35 +243,48 @@ export const POST = async (request: Request) => {
     };
 
     if (paymentMethod === "pix") {
-      const pixOrder = await createMercadoPagoPixOrder({
-        request,
-        orderId,
-        customer: customer as Required<Pick<CheckoutCustomer, "email">> &
-          CheckoutCustomer,
-        orderItems,
-        total,
+      const description = orderItems
+        .map((item) => `${item.quantity}x ${item.title}`)
+        .join(", ")
+        .slice(0, 250);
+      const asaasCustomer = await createAsaasCustomer({
+        name: customer.name || "",
+        email: customer.email || "",
+        cpfCnpj: customer.cpfDigits || onlyDigits(customer.cpf),
+        mobilePhone: customer.whatsappDigits || onlyDigits(customer.whatsapp),
+        postalCode: customer.cepDigits || onlyDigits(customer.cep),
+        address: customer.street || "",
+        addressNumber: customer.number || "",
+        complement: customer.complement || undefined,
+        province: customer.neighborhood || "",
+        externalReference: orderId,
       });
-      const pixData = pixOrder?.point_of_interaction?.transaction_data;
+      const asaasPayment = await createAsaasPixPayment({
+        customerId: asaasCustomer.id,
+        orderId,
+        value: total,
+        description: description || "Pedido Shirt Club",
+      });
+      const pixData = await getAsaasPixQrCode(asaasPayment.id);
 
       await createOrder({
         ...order,
         preferenceId: null,
-        paymentId: pixOrder?.id ? String(pixOrder.id) : null,
+        paymentId: asaasPayment.id,
       });
 
       return NextResponse.json({
         order,
-        checkoutUrl: pixData?.ticket_url || null,
-        preferenceId: pixOrder?.id || null,
-        paymentId: pixOrder?.id || null,
-        pix: pixData
-          ? {
-              ticketUrl: pixData.ticket_url || null,
-              qrCode: pixData.qr_code || null,
-              qrCodeBase64: pixData.qr_code_base64 || null,
-            }
-          : null,
-        mode: pixOrder ? "pix" : "development",
+        checkoutUrl: null,
+        preferenceId: null,
+        paymentId: asaasPayment.id,
+        pix: {
+          ticketUrl: null,
+          qrCode: pixData.payload || null,
+          qrCodeBase64: pixData.encodedImage || null,
+          expirationDate: pixData.expirationDate || null,
+        },
+        mode: "pix",
         orderStore: getOrderStoreMode(),
       });
     }

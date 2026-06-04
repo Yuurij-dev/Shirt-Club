@@ -1,10 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { FormEvent, useMemo, useState } from "react";
 import {
-  Check,
-  Copy,
   CreditCard,
   Loader2,
   Lock,
@@ -23,6 +20,7 @@ type CustomerDataFormProps = {
 
 type CheckoutFormData = {
   name: string;
+  cpf: string;
   email: string;
   whatsapp: string;
   cep: string;
@@ -53,6 +51,7 @@ type CheckoutApiResponse = {
     ticketUrl?: string | null;
     qrCode?: string | null;
     qrCodeBase64?: string | null;
+    expirationDate?: string | null;
   } | null;
   errors?: string[];
 };
@@ -61,6 +60,7 @@ type PaymentMethod = "pix" | "mercado_pago";
 
 const initialFormData: CheckoutFormData = {
   name: "",
+  cpf: "",
   email: "",
   whatsapp: "",
   cep: "",
@@ -75,6 +75,7 @@ const initialFormData: CheckoutFormData = {
 
 const requiredFields: Array<keyof CheckoutFormData> = [
   "name",
+  "cpf",
   "email",
   "whatsapp",
   "cep",
@@ -109,8 +110,44 @@ const formatCep = (value: string) => {
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 };
 
+const formatCpf = (value: string) => {
+  const digits = onlyDigits(value).slice(0, 11);
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  }
+
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+};
+
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+};
+
+const isValidCpf = (value: string) => {
+  const cpf = onlyDigits(value);
+
+  if (cpf.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+  const calculateDigit = (digits: string, factor: number) => {
+    const total = digits.split("").reduce((sum, digit) => {
+      const result = sum + Number(digit) * factor;
+      factor -= 1;
+
+      return result;
+    }, 0);
+    const rest = (total * 10) % 11;
+
+    return rest === 10 ? 0 : rest;
+  };
+
+  const firstDigit = calculateDigit(cpf.slice(0, 9), 10);
+  const secondDigit = calculateDigit(cpf.slice(0, 10), 11);
+
+  return firstDigit === Number(cpf[9]) && secondDigit === Number(cpf[10]);
 };
 
 const getFieldError = (
@@ -123,6 +160,10 @@ const getFieldError = (
 
   if (field === "email" && value.trim() && !isValidEmail(value)) {
     return "Digite um e-mail valido";
+  }
+
+  if (field === "cpf" && value.trim() && !isValidCpf(value)) {
+    return "Digite um CPF valido";
   }
 
   if (field === "whatsapp" && value.trim()) {
@@ -151,11 +192,8 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
   >({});
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState("");
   const [cepLookupError, setCepLookupError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
-  const [pixPayment, setPixPayment] = useState<CheckoutApiResponse["pix"]>(null);
-  const [copiedPixCode, setCopiedPixCode] = useState(false);
 
   const fieldErrors = useMemo(() => {
     return Object.keys(formData).reduce((errors, key) => {
@@ -215,6 +253,10 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
 
   const handleWhatsappChange = (value: string) => {
     handleChange("whatsapp", formatWhatsapp(value));
+  };
+
+  const handleCpfChange = (value: string) => {
+    handleChange("cpf", formatCpf(value));
   };
 
   const fetchAddressByCep = async (cep: string) => {
@@ -300,8 +342,6 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
     }
 
     setIsSubmitting(true);
-    setPixPayment(null);
-    setCheckoutUrl("");
 
     try {
       const response = await fetch("/api/checkout", {
@@ -314,6 +354,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
             ...formData,
             whatsappDigits: onlyDigits(formData.whatsapp),
             cepDigits: onlyDigits(formData.cep),
+            cpfDigits: onlyDigits(formData.cpf),
           },
           paymentMethod,
           items: items.map((item) => ({
@@ -335,14 +376,15 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
       localStorage.setItem("@shirtclub:last-order", JSON.stringify(checkout));
 
       if (paymentMethod === "pix" && checkout.pix) {
-        setPixPayment(checkout.pix);
-        setCheckoutUrl(checkout.pix.ticketUrl || checkout.checkoutUrl || "");
+        localStorage.setItem("@shirtclub:last-pix", JSON.stringify(checkout));
         toast.success("Pix gerado com sucesso");
+        window.location.assign(
+          `/checkout/pix?orderId=${checkout.order?.id || ""}`
+        );
         return;
       }
 
       if (checkout.checkoutUrl) {
-        setCheckoutUrl(checkout.checkoutUrl);
         window.location.assign(checkout.checkoutUrl);
         return;
       }
@@ -356,22 +398,6 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
       toast.error("Nao foi possivel iniciar o checkout");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const copyPixCode = async () => {
-    if (!pixPayment?.qrCode) return;
-
-    try {
-      await navigator.clipboard.writeText(pixPayment.qrCode);
-      setCopiedPixCode(true);
-      toast.success("Codigo Pix copiado");
-
-      window.setTimeout(() => {
-        setCopiedPixCode(false);
-      }, 1800);
-    } catch {
-      toast.error("Nao foi possivel copiar o codigo Pix");
     }
   };
 
@@ -396,6 +422,19 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
               placeholder="Digite seu nome"
             />
             {renderError("name")}
+          </label>
+
+          <label className="flex flex-col !gap-2">
+            <span className={labelClass}>CPF</span>
+            <input
+              inputMode="numeric"
+              value={formData.cpf}
+              onBlur={() => markFieldAsTouched("cpf")}
+              onChange={(event) => handleCpfChange(event.target.value)}
+              className={getInputClass("cpf")}
+              placeholder="000.000.000-00"
+            />
+            {renderError("cpf")}
           </label>
 
           <label className="flex flex-col !gap-2">
@@ -631,63 +670,6 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
             ? `GERAR PIX - ${formatPrice(subtotal)}`
             : `CONTINUAR PARA PAGAMENTO - ${formatPrice(subtotal)}`}
       </button>
-
-      {pixPayment && (
-        <section className="rounded-xl border border-zinc-200 bg-white !p-5">
-          <div className="flex flex-col items-center text-center">
-            <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
-              PIX GERADO
-            </h2>
-            <p className="!mt-2 max-w-md text-sm text-zinc-500">
-              Escaneie o QR Code no app do seu banco ou copie o codigo Pix.
-            </p>
-
-            {pixPayment.qrCodeBase64 && (
-              <Image
-                src={`data:image/jpeg;base64,${pixPayment.qrCodeBase64}`}
-                alt="QR Code Pix"
-                width={224}
-                height={224}
-                unoptimized
-                className="!mt-5 h-56 w-56 rounded-lg border border-zinc-200 bg-white !p-3"
-              />
-            )}
-
-            {pixPayment.qrCode && (
-              <div className="!mt-5 w-full">
-                <label className="flex flex-col !gap-2 text-left">
-                  <span className={labelClass}>Pix copia e cola</span>
-                  <textarea
-                    readOnly
-                    value={pixPayment.qrCode}
-                    className="min-h-[96px] w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 !p-3 text-xs text-zinc-700 outline-none"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  onClick={copyPixCode}
-                  className="!mt-3 flex h-12 w-full cursor-pointer items-center justify-center !gap-2 rounded-lg border border-black bg-white !px-4 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50"
-                >
-                  {copiedPixCode ? <Check size={18} /> : <Copy size={18} />}
-                  {copiedPixCode ? "CODIGO COPIADO" : "COPIAR CODIGO PIX"}
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {checkoutUrl && (
-        <a
-          href={checkoutUrl}
-          className="text-center text-sm font-bold text-zinc-950 underline"
-        >
-          {paymentMethod === "pix"
-            ? "Abrir instrucoes do Pix"
-            : "Abrir checkout do Mercado Pago"}
-        </a>
-      )}
 
       <div className="flex items-center justify-center !gap-2 text-xs text-zinc-500">
         <Lock size={14} />

@@ -21,7 +21,7 @@ export const products: Product[] = [
     team: "Flamengo",
     brand: "Adidas",
     season: "Home 24/25",
-    price: "R$ 189,90",
+    price: "R$ 0,01",
     image: "/products/flamengo-home.png",
     images: [
       "/products/flamengo-home.png",
