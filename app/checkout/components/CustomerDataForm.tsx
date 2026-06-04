@@ -507,7 +507,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
       <button
         type="submit"
         disabled={isFetchingCep || isSubmitting}
-        className="flex h-14 items-center justify-center !gap-3 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className="flex h-14 cursor-pointer items-center justify-center !gap-3 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
       >
         {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <CreditCard size={20} />}
         {isSubmitting

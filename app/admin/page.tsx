@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   CircleDollarSign,
   Clock,
@@ -17,8 +17,14 @@ type AdminOrder = {
     name?: string;
     email?: string;
     whatsapp?: string;
+    cep?: string;
+    street?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
     city?: string;
     state?: string;
+    notes?: string;
   };
   items: Array<{
     title?: string;
@@ -37,6 +43,27 @@ type OrdersResponse = {
   paid: AdminOrder[];
 };
 
+const reconcileOrderPayment = async (order: AdminOrder) => {
+  const response = await fetch("/api/admin/orders/reconcile", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      orderId: order.id,
+      preferenceId: order.preferenceId,
+    }),
+  });
+
+  if (response.status === 404) return false;
+
+  if (!response.ok) {
+    throw new Error("Nao foi possivel verificar o pagamento");
+  }
+
+  return true;
+};
+
 const AdminPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -48,25 +75,68 @@ const AdminPage = () => {
     paid: [],
   });
 
-  const fetchOrders = async () => {
+  const loadOrders = useCallback(async () => {
+    const response = await fetch("/api/admin/orders");
+
+    if (!response.ok) {
+      setIsAuthenticated(false);
+      return null;
+    }
+
+    const data = (await response.json()) as OrdersResponse;
+    setOrders(data);
+
+    return data;
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
     setIsLoadingOrders(true);
 
     try {
-      const response = await fetch("/api/admin/orders");
-
-      if (!response.ok) {
-        setIsAuthenticated(false);
-        return;
-      }
-
-      const data = (await response.json()) as OrdersResponse;
-      setOrders(data);
+      await loadOrders();
     } catch {
       toast.error("Nao foi possivel buscar os pedidos");
     } finally {
       setIsLoadingOrders(false);
     }
-  };
+  }, [loadOrders]);
+
+  const refreshAndReconcileOrders = useCallback(async () => {
+    setIsLoadingOrders(true);
+
+    try {
+      const results = await Promise.allSettled(
+        orders.unpaid.map((order) => reconcileOrderPayment(order))
+      );
+
+      const updatedCount = results.filter((result) => {
+        return result.status === "fulfilled" && result.value;
+      }).length;
+      const failedCount = results.filter((result) => {
+        return result.status === "rejected";
+      }).length;
+
+      await loadOrders();
+
+      if (updatedCount > 0) {
+        toast.success(
+          `${updatedCount} pedido${updatedCount > 1 ? "s" : ""} atualizado${
+            updatedCount > 1 ? "s" : ""
+          } para pago`
+        );
+      } else if (orders.unpaid.length > 0) {
+        toast.info("Nenhum pagamento aprovado encontrado ainda");
+      }
+
+      if (failedCount > 0) {
+        toast.error("Alguns pedidos nao puderam ser verificados");
+      }
+    } catch {
+      toast.error("Nao foi possivel atualizar os pedidos");
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  }, [loadOrders, orders.unpaid]);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -85,7 +155,7 @@ const AdminPage = () => {
     };
 
     void checkSession();
-  }, []);
+  }, [fetchOrders]);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -185,8 +255,9 @@ const AdminPage = () => {
           <div className="flex !gap-3">
             <button
               type="button"
-              onClick={fetchOrders}
-              className="inline-flex h-11 items-center justify-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold transition-all duration-200 hover:border-black"
+              onClick={refreshAndReconcileOrders}
+              disabled={isLoadingOrders}
+              className="inline-flex h-11 items-center justify-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshCw
                 size={18}
@@ -281,23 +352,29 @@ const OrderCard = ({
 }) => {
   const createdAt = new Date(order.createdAt).toLocaleString("pt-BR");
   const [isReconciling, setIsReconciling] = useState(false);
+  const addressLine = [
+    order.customer?.street,
+    order.customer?.number,
+    order.customer?.complement,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const cityLine = [
+    order.customer?.neighborhood,
+    order.customer?.city &&
+      order.customer?.state &&
+      `${order.customer.city} / ${order.customer.state}`,
+  ]
+    .filter(Boolean)
+    .join(" - ");
 
   const reconcilePayment = async () => {
     setIsReconciling(true);
 
     try {
-      const response = await fetch("/api/admin/orders/reconcile", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          orderId: order.id,
-          preferenceId: order.preferenceId,
-        }),
-      });
+      const wasUpdated = await reconcileOrderPayment(order);
 
-      if (!response.ok) {
+      if (!wasUpdated) {
         toast.info("Nenhum pagamento aprovado encontrado ainda");
         return;
       }
@@ -338,6 +415,30 @@ const OrderCard = ({
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="!mt-4 rounded-lg border border-zinc-100 bg-white !p-3">
+        <p className="text-xs font-bold uppercase text-zinc-500">Endereco</p>
+        <div className="!mt-2 flex flex-col !gap-1 text-xs text-zinc-600">
+          <span>
+            <strong className="text-zinc-700">CEP:</strong>{" "}
+            {order.customer?.cep || "-"}
+          </span>
+          <span>
+            <strong className="text-zinc-700">Rua:</strong>{" "}
+            {addressLine || "-"}
+          </span>
+          <span>
+            <strong className="text-zinc-700">Bairro/Cidade:</strong>{" "}
+            {cityLine || "-"}
+          </span>
+          {order.customer?.notes && (
+            <span>
+              <strong className="text-zinc-700">Observacoes:</strong>{" "}
+              {order.customer.notes}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="!mt-4 grid grid-cols-1 !gap-2 text-xs text-zinc-500 sm:grid-cols-2">
