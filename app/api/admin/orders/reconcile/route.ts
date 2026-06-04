@@ -5,6 +5,7 @@ import {
   updateOrderStatusByPreferenceId,
 } from "@/app/lib/orderStore";
 import {
+  getMercadoPagoOrder,
   getMercadoPagoPayment,
   searchMercadoPagoPaymentsByExternalReference,
 } from "@/app/lib/mercadoPago";
@@ -31,6 +32,41 @@ export const POST = async (request: Request) => {
     return payment?.status === "approved";
   });
 
+  if (approvedPayment?.external_reference) {
+    await updateOrderStatus({
+      orderId: approvedPayment.external_reference,
+      status: "paid",
+      paymentId: String(approvedPayment.id),
+    });
+
+    return NextResponse.json({
+      updated: true,
+      paymentId: approvedPayment.id,
+    });
+  }
+
+  const mercadoPagoOrder = body.preferenceId
+    ? await getMercadoPagoOrder(body.preferenceId)
+    : null;
+  const approvedOrderPayment = mercadoPagoOrder?.transactions?.payments?.find(
+    (payment) => {
+      return payment.status === "approved";
+    }
+  );
+
+  if (approvedOrderPayment && mercadoPagoOrder?.external_reference) {
+    await updateOrderStatus({
+      orderId: mercadoPagoOrder.external_reference,
+      status: "paid",
+      paymentId: String(approvedOrderPayment.id),
+    });
+
+    return NextResponse.json({
+      updated: true,
+      paymentId: approvedOrderPayment.id,
+    });
+  }
+
   if (!approvedPayment) {
     return NextResponse.json(
       {
@@ -41,13 +77,7 @@ export const POST = async (request: Request) => {
     );
   }
 
-  if (approvedPayment.external_reference) {
-    await updateOrderStatus({
-      orderId: approvedPayment.external_reference,
-      status: "paid",
-      paymentId: String(approvedPayment.id),
-    });
-  } else if (body.preferenceId) {
+  if (body.preferenceId) {
     await updateOrderStatusByPreferenceId({
       preferenceId: body.preferenceId,
       status: "paid",

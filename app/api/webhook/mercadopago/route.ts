@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { updateOrderStatus } from "@/app/lib/orderStore";
-import { getMercadoPagoPayment } from "@/app/lib/mercadoPago";
+import {
+  getMercadoPagoOrder,
+  getMercadoPagoPayment,
+} from "@/app/lib/mercadoPago";
 
 const getPaymentId = (request: Request, payload: unknown) => {
   const searchParams = new URL(request.url).searchParams;
@@ -36,12 +39,28 @@ export const POST = async (request: Request) => {
     });
   }
 
+  const mercadoPagoOrder =
+    !payment && paymentId ? await getMercadoPagoOrder(paymentId) : null;
+  const approvedOrderPayment = mercadoPagoOrder?.transactions?.payments?.find(
+    (currentPayment) => {
+      return currentPayment.status === "approved";
+    }
+  );
+
+  if (mercadoPagoOrder?.external_reference && approvedOrderPayment) {
+    await updateOrderStatus({
+      orderId: mercadoPagoOrder.external_reference,
+      status: "paid",
+      paymentId: String(approvedOrderPayment.id),
+    });
+  }
+
   console.log("Mercado Pago webhook", {
     type: searchParams.get("type"),
     dataId: searchParams.get("data.id"),
     paymentId,
     paymentStatus: payment?.status,
-    orderId: payment?.external_reference,
+    orderId: payment?.external_reference || mercadoPagoOrder?.external_reference,
     payload,
   });
 

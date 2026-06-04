@@ -1,7 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useMemo, useState } from "react";
-import { CreditCard, Loader2, Lock, MapPin, User } from "lucide-react";
+import {
+  Check,
+  Copy,
+  CreditCard,
+  Loader2,
+  Lock,
+  MapPin,
+  QrCode,
+  User,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { CartItem } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/utils/price";
@@ -38,9 +48,16 @@ type CheckoutApiResponse = {
     id: string;
   };
   checkoutUrl?: string | null;
-  mode?: "mercado_pago" | "development";
+  mode?: "mercado_pago" | "pix" | "development";
+  pix?: {
+    ticketUrl?: string | null;
+    qrCode?: string | null;
+    qrCodeBase64?: string | null;
+  } | null;
   errors?: string[];
 };
+
+type PaymentMethod = "pix" | "mercado_pago";
 
 const initialFormData: CheckoutFormData = {
   name: "",
@@ -136,6 +153,9 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState("");
   const [cepLookupError, setCepLookupError] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
+  const [pixPayment, setPixPayment] = useState<CheckoutApiResponse["pix"]>(null);
+  const [copiedPixCode, setCopiedPixCode] = useState(false);
 
   const fieldErrors = useMemo(() => {
     return Object.keys(formData).reduce((errors, key) => {
@@ -280,6 +300,8 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
     }
 
     setIsSubmitting(true);
+    setPixPayment(null);
+    setCheckoutUrl("");
 
     try {
       const response = await fetch("/api/checkout", {
@@ -293,6 +315,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
             whatsappDigits: onlyDigits(formData.whatsapp),
             cepDigits: onlyDigits(formData.cep),
           },
+          paymentMethod,
           items: items.map((item) => ({
             productId: item.product.id,
             quantity: item.quantity,
@@ -311,6 +334,13 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
 
       localStorage.setItem("@shirtclub:last-order", JSON.stringify(checkout));
 
+      if (paymentMethod === "pix" && checkout.pix) {
+        setPixPayment(checkout.pix);
+        setCheckoutUrl(checkout.pix.ticketUrl || checkout.checkoutUrl || "");
+        toast.success("Pix gerado com sucesso");
+        return;
+      }
+
       if (checkout.checkoutUrl) {
         setCheckoutUrl(checkout.checkoutUrl);
         window.location.assign(checkout.checkoutUrl);
@@ -326,6 +356,22 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
       toast.error("Nao foi possivel iniciar o checkout");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const copyPixCode = async () => {
+    if (!pixPayment?.qrCode) return;
+
+    try {
+      await navigator.clipboard.writeText(pixPayment.qrCode);
+      setCopiedPixCode(true);
+      toast.success("Codigo Pix copiado");
+
+      window.setTimeout(() => {
+        setCopiedPixCode(false);
+      }, 1800);
+    } catch {
+      toast.error("Nao foi possivel copiar o codigo Pix");
     }
   };
 
@@ -504,23 +550,142 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
         </label>
       </section>
 
+      <section className="rounded-xl border border-zinc-200 bg-white !p-5">
+        <div className="flex items-center !gap-3">
+          <CreditCard size={22} />
+          <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
+            PAGAMENTO
+          </h2>
+        </div>
+
+        <div className="!mt-5 grid grid-cols-1 !gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("pix")}
+            className={`
+              flex cursor-pointer items-center !gap-3 rounded-lg border !p-4 text-left transition-all duration-200
+              ${
+                paymentMethod === "pix"
+                  ? "border-black bg-black text-white"
+                  : "border-zinc-200 bg-white text-zinc-950 hover:border-black"
+              }
+            `}
+          >
+            <QrCode size={24} />
+            <span>
+              <strong className="block text-sm">Pix</strong>
+              <small
+                className={
+                  paymentMethod === "pix" ? "text-zinc-300" : "text-zinc-500"
+                }
+              >
+                QR Code e copia e cola
+              </small>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("mercado_pago")}
+            className={`
+              flex cursor-pointer items-center !gap-3 rounded-lg border !p-4 text-left transition-all duration-200
+              ${
+                paymentMethod === "mercado_pago"
+                  ? "border-black bg-black text-white"
+                  : "border-zinc-200 bg-white text-zinc-950 hover:border-black"
+              }
+            `}
+          >
+            <CreditCard size={24} />
+            <span>
+              <strong className="block text-sm">Cartao e outros</strong>
+              <small
+                className={
+                  paymentMethod === "mercado_pago"
+                    ? "text-zinc-300"
+                    : "text-zinc-500"
+                }
+              >
+                Redireciona para Mercado Pago
+              </small>
+            </span>
+          </button>
+        </div>
+      </section>
+
       <button
         type="submit"
         disabled={isFetchingCep || isSubmitting}
         className="flex h-14 cursor-pointer items-center justify-center !gap-3 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
       >
-        {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <CreditCard size={20} />}
+        {isSubmitting ? (
+          <Loader2 size={20} className="animate-spin" />
+        ) : paymentMethod === "pix" ? (
+          <QrCode size={20} />
+        ) : (
+          <CreditCard size={20} />
+        )}
         {isSubmitting
           ? "INICIANDO CHECKOUT..."
-          : `CONTINUAR PARA PAGAMENTO - ${formatPrice(subtotal)}`}
+          : paymentMethod === "pix"
+            ? `GERAR PIX - ${formatPrice(subtotal)}`
+            : `CONTINUAR PARA PAGAMENTO - ${formatPrice(subtotal)}`}
       </button>
+
+      {pixPayment && (
+        <section className="rounded-xl border border-zinc-200 bg-white !p-5">
+          <div className="flex flex-col items-center text-center">
+            <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
+              PIX GERADO
+            </h2>
+            <p className="!mt-2 max-w-md text-sm text-zinc-500">
+              Escaneie o QR Code no app do seu banco ou copie o codigo Pix.
+            </p>
+
+            {pixPayment.qrCodeBase64 && (
+              <Image
+                src={`data:image/jpeg;base64,${pixPayment.qrCodeBase64}`}
+                alt="QR Code Pix"
+                width={224}
+                height={224}
+                unoptimized
+                className="!mt-5 h-56 w-56 rounded-lg border border-zinc-200 bg-white !p-3"
+              />
+            )}
+
+            {pixPayment.qrCode && (
+              <div className="!mt-5 w-full">
+                <label className="flex flex-col !gap-2 text-left">
+                  <span className={labelClass}>Pix copia e cola</span>
+                  <textarea
+                    readOnly
+                    value={pixPayment.qrCode}
+                    className="min-h-[96px] w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 !p-3 text-xs text-zinc-700 outline-none"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={copyPixCode}
+                  className="!mt-3 flex h-12 w-full cursor-pointer items-center justify-center !gap-2 rounded-lg border border-black bg-white !px-4 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50"
+                >
+                  {copiedPixCode ? <Check size={18} /> : <Copy size={18} />}
+                  {copiedPixCode ? "CODIGO COPIADO" : "COPIAR CODIGO PIX"}
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {checkoutUrl && (
         <a
           href={checkoutUrl}
           className="text-center text-sm font-bold text-zinc-950 underline"
         >
-          Abrir checkout do Mercado Pago
+          {paymentMethod === "pix"
+            ? "Abrir instrucoes do Pix"
+            : "Abrir checkout do Mercado Pago"}
         </a>
       )}
 

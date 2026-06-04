@@ -52,6 +52,7 @@ const reconcileOrderPayment = async (order: AdminOrder) => {
     body: JSON.stringify({
       orderId: order.id,
       preferenceId: order.preferenceId,
+      paymentId: order.paymentId,
     }),
   });
 

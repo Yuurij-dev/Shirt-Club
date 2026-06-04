@@ -29,12 +29,30 @@ type CheckoutItemInput = {
 type CheckoutRequestBody = {
   customer?: CheckoutCustomer;
   items?: CheckoutItemInput[];
+  paymentMethod?: "mercado_pago" | "pix";
 };
 
 type MercadoPagoPreferenceResponse = {
   id: string;
   init_point?: string;
   sandbox_init_point?: string;
+};
+
+type MercadoPagoPixOrderResponse = {
+  id: number;
+  status?: string;
+  point_of_interaction?: {
+    transaction_data?: {
+      ticket_url?: string;
+      qr_code?: string;
+      qr_code_base64?: string;
+    };
+  };
+  message?: string;
+  cause?: Array<{
+    description?: string;
+    code?: string;
+  }>;
 };
 
 const onlyDigits = (value = "") => value.replace(/\D/g, "");
@@ -172,11 +190,75 @@ const createMercadoPagoPreference = async ({
   return preference;
 };
 
+const createMercadoPagoPixOrder = async ({
+  request,
+  orderId,
+  customer,
+  orderItems,
+  total,
+}: {
+  request: Request;
+  orderId: string;
+  customer: Required<Pick<CheckoutCustomer, "email">> & CheckoutCustomer;
+  orderItems: Array<{
+    title: string;
+    quantity: number;
+  }>;
+  total: number;
+}) => {
+  const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+
+  if (!accessToken) return null;
+
+  const baseUrl = getBaseUrl(request);
+  const publicHttpsUrl = isPublicHttpsUrl(baseUrl);
+  const description = orderItems
+    .map((item) => `${item.quantity}x ${item.title}`)
+    .join(", ")
+    .slice(0, 250);
+  const pixPayload: Record<string, unknown> = {
+    transaction_amount: Number(total.toFixed(2)),
+    description: description || "Pedido Shirt Club",
+    payment_method_id: "pix",
+    external_reference: orderId,
+    payer: {
+      email: customer.email,
+      first_name: customer.name?.split(" ")[0],
+      last_name: customer.name?.split(" ").slice(1).join(" ") || undefined,
+    },
+  };
+
+  if (publicHttpsUrl) {
+    pixPayload.notification_url = `${baseUrl}/api/webhook/mercadopago`;
+  }
+
+  const response = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": `${orderId}-${crypto.randomUUID()}`,
+    },
+    body: JSON.stringify(pixPayload),
+  });
+
+  const pixOrder = (await response.json()) as MercadoPagoPixOrderResponse;
+
+  if (!response.ok) {
+    const cause = pixOrder.cause?.[0]?.description;
+
+    throw new Error(cause || pixOrder.message || "Erro ao criar pagamento Pix");
+  }
+
+  return pixOrder;
+};
+
 export const POST = async (request: Request) => {
   try {
     const body = (await request.json()) as CheckoutRequestBody;
     const customer = body.customer || {};
     const items = body.items || [];
+    const paymentMethod = body.paymentMethod || "mercado_pago";
 
     const customerErrors = getRequiredCustomerErrors(customer);
     if (customerErrors.length > 0) {
@@ -230,6 +312,40 @@ export const POST = async (request: Request) => {
       createdAt: now,
       updatedAt: now,
     };
+
+    if (paymentMethod === "pix") {
+      const pixOrder = await createMercadoPagoPixOrder({
+        request,
+        orderId,
+        customer: customer as Required<Pick<CheckoutCustomer, "email">> &
+          CheckoutCustomer,
+        orderItems,
+        total,
+      });
+      const pixData = pixOrder?.point_of_interaction?.transaction_data;
+
+      await createOrder({
+        ...order,
+        preferenceId: null,
+        paymentId: pixOrder?.id ? String(pixOrder.id) : null,
+      });
+
+      return NextResponse.json({
+        order,
+        checkoutUrl: pixData?.ticket_url || null,
+        preferenceId: pixOrder?.id || null,
+        paymentId: pixOrder?.id || null,
+        pix: pixData
+          ? {
+              ticketUrl: pixData.ticket_url || null,
+              qrCode: pixData.qr_code || null,
+              qrCodeBase64: pixData.qr_code_base64 || null,
+            }
+          : null,
+        mode: pixOrder ? "pix" : "development",
+        orderStore: getOrderStoreMode(),
+      });
+    }
 
     const preference = await createMercadoPagoPreference({
       request,
