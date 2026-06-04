@@ -48,10 +48,8 @@ const BenefitsSection = () => {
               justify-between
               gap-3
 
-              sm:flex-wrap
               sm:overflow-visible
               sm:justify-center
-              sm:gap-y-8
             "
           >
             {benefits.map((item) => {
@@ -68,10 +66,8 @@ const BenefitsSection = () => {
                     justify-center
                     gap-2
 
-                    sm:w-1/3
+                    sm:w-1/5
                     sm:gap-3
-
-                    lg:w-1/5
                   "
                 >
                   <Icon
@@ -82,11 +78,11 @@ const BenefitsSection = () => {
                       w-6
                       text-zinc-700
 
-                      sm:h-8
-                      sm:w-8
+                      sm:h-7
+                      sm:w-7
 
-                      lg:h-9
-                      lg:w-9
+                      lg:h-8
+                      lg:w-8
                     "
                   />
 
