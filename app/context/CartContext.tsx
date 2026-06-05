@@ -9,6 +9,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import type { Product } from "@/app/data/products";
+import type { Coupon } from "@/app/data/coupons";
 import { getPriceNumber } from "@/app/utils/price";
 
 export type CartItem = {
@@ -28,20 +29,41 @@ type AddItemInput = {
 
 type CartContextType = {
   items: CartItem[];
+  appliedCoupon: AppliedCoupon | null;
   totalItems: number;
   subtotal: number;
+  discount: number;
+  total: number;
   addItem: (item: AddItemInput) => void;
   removeItem: (productId: string, size: string) => void;
   updateQuantity: (productId: string, size: string, quantity: number) => void;
+  applyCoupon: (code: string) => Promise<boolean>;
+  removeCoupon: () => void;
   clearCart: () => void;
 };
 
 const CartContext = createContext({} as CartContextType);
 
 const storageKey = "@shirtclub:cart";
+const couponStorageKey = "@shirtclub:coupon";
+
+type AppliedCoupon = {
+  coupon: Coupon;
+  discount: number;
+  total: number;
+};
+
+type CouponValidationResponse = {
+  valid: boolean;
+  coupon?: Coupon;
+  discount?: number;
+  total?: number;
+  error?: string;
+};
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [hasLoadedCart, setHasLoadedCart] = useState(false);
 
   useEffect(() => {
@@ -64,6 +86,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       } catch {
         setItems([]);
       } finally {
+        const savedCoupon = localStorage.getItem(couponStorageKey);
+
+        if (savedCoupon) {
+          try {
+            setAppliedCoupon(JSON.parse(savedCoupon) as AppliedCoupon);
+          } catch {
+            localStorage.removeItem(couponStorageKey);
+          }
+        }
+
         setHasLoadedCart(true);
       }
     }, 0);
@@ -74,6 +106,17 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     localStorage.setItem(storageKey, JSON.stringify(items));
   }, [hasLoadedCart, items]);
+
+  useEffect(() => {
+    if (!hasLoadedCart) return;
+
+    if (!appliedCoupon) {
+      localStorage.removeItem(couponStorageKey);
+      return;
+    }
+
+    localStorage.setItem(couponStorageKey, JSON.stringify(appliedCoupon));
+  }, [appliedCoupon, hasLoadedCart]);
 
   const addItem = ({
     product,
@@ -149,6 +192,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const clearCart = () => {
     setItems([]);
+    setAppliedCoupon(null);
   };
 
   const totalItems = useMemo(() => {
@@ -162,15 +206,97 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     );
   }, [items]);
 
+  const discount = appliedCoupon?.discount || 0;
+  const total = Math.max(0, subtotal - discount);
+  const appliedCouponCode = appliedCoupon?.coupon.code;
+
+  useEffect(() => {
+    if (!hasLoadedCart || !appliedCouponCode) return;
+
+    let shouldIgnore = false;
+
+    const refreshCoupon = async () => {
+      const response = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: appliedCouponCode,
+          subtotal,
+        }),
+      });
+      const result = (await response.json()) as CouponValidationResponse;
+
+      if (shouldIgnore) return;
+
+      if (!response.ok || !result.valid || !result.coupon) {
+        setAppliedCoupon(null);
+        return;
+      }
+
+      setAppliedCoupon({
+        coupon: result.coupon,
+        discount: result.discount || 0,
+        total: result.total || Math.max(0, subtotal - (result.discount || 0)),
+      });
+    };
+
+    void refreshCoupon();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [appliedCouponCode, hasLoadedCart, subtotal]);
+
+  const applyCoupon = async (code: string) => {
+    const response = await fetch("/api/coupons/validate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code,
+        subtotal,
+      }),
+    });
+
+    const result = (await response.json()) as CouponValidationResponse;
+
+    if (!response.ok || !result.valid || !result.coupon) {
+      toast.error(result.error || "Cupom inválido");
+      return false;
+    }
+
+    setAppliedCoupon({
+      coupon: result.coupon,
+      discount: result.discount || 0,
+      total: result.total || Math.max(0, subtotal - (result.discount || 0)),
+    });
+    toast.success("Cupom aplicado com sucesso");
+
+    return true;
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    toast.info("Cupom removido");
+  };
+
   return (
     <CartContext.Provider
       value={{
         items,
+        appliedCoupon,
         totalItems,
         subtotal,
+        discount,
+        total,
         addItem,
         removeItem,
         updateQuantity,
+        applyCoupon,
+        removeCoupon,
         clearCart,
       }}
     >

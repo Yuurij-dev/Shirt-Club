@@ -3,9 +3,11 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   CircleDollarSign,
+  Copy,
   Clock3,
   Gift,
   LayoutDashboard,
@@ -18,10 +20,13 @@ import {
   SlidersHorizontal,
   Star,
   Store,
+  TicketPercent,
+  Trash2,
   Users,
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import { Coupon, CouponType, getCouponStatus } from "../data/coupons";
 import { formatPrice } from "../utils/price";
 
 type AdminOrder = {
@@ -66,6 +71,11 @@ type AdminSection =
   | "settings";
 
 type OrderFilter = "all" | "paid" | "unpaid";
+type CouponFilter = "all" | "active" | "scheduled" | "expired";
+
+type CouponsResponse = {
+  coupons: Coupon[];
+};
 
 const reconcileOrderPayment = async (order: AdminOrder) => {
   const response = await fetch("/api/admin/orders/reconcile", {
@@ -124,10 +134,13 @@ const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const [activeSection, setActiveSection] = useState<AdminSection>("orders");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
+  const [couponFilter, setCouponFilter] = useState<CouponFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [orders, setOrders] = useState<OrdersResponse>({
     unpaid: [],
     paid: [],
@@ -158,6 +171,32 @@ const AdminPage = () => {
       setIsLoadingOrders(false);
     }
   }, [loadOrders]);
+
+  const loadCoupons = useCallback(async () => {
+    const response = await fetch("/api/admin/coupons");
+
+    if (!response.ok) {
+      setIsAuthenticated(false);
+      return null;
+    }
+
+    const data = (await response.json()) as CouponsResponse;
+    setCoupons(data.coupons);
+
+    return data.coupons;
+  }, []);
+
+  const fetchCoupons = useCallback(async () => {
+    setIsLoadingCoupons(true);
+
+    try {
+      await loadCoupons();
+    } catch {
+      toast.error("Não foi possível buscar os cupons");
+    } finally {
+      setIsLoadingCoupons(false);
+    }
+  }, [loadCoupons]);
 
   const refreshAndReconcileOrders = useCallback(async () => {
     setIsLoadingOrders(true);
@@ -205,7 +244,7 @@ const AdminPage = () => {
         setIsAuthenticated(data.authenticated);
 
         if (data.authenticated) {
-          await fetchOrders();
+          await Promise.all([fetchOrders(), fetchCoupons()]);
         }
       } finally {
         setIsLoadingSession(false);
@@ -213,7 +252,7 @@ const AdminPage = () => {
     };
 
     void checkSession();
-  }, [fetchOrders]);
+  }, [fetchCoupons, fetchOrders]);
 
   const allOrders = useMemo(() => {
     return [...orders.unpaid, ...orders.paid].sort((first, second) => {
@@ -265,6 +304,20 @@ const AdminPage = () => {
     return allOrders.find((order) => order.id === selectedOrderId) || null;
   }, [allOrders, selectedOrderId]);
 
+  const visibleCoupons = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return coupons.filter((coupon) => {
+      const status = getCouponStatus(coupon);
+      const matchesStatus = couponFilter === "all" || status === couponFilter;
+      const searchableText = [coupon.code, coupon.type, status]
+        .join(" ")
+        .toLowerCase();
+
+      return matchesStatus && searchableText.includes(normalizedSearch);
+    });
+  }, [couponFilter, coupons, searchTerm]);
+
   const paidTotal = orders.paid.reduce((total, order) => total + order.total, 0);
   const pendingTotal = orders.unpaid.reduce(
     (total, order) => total + order.total,
@@ -294,7 +347,7 @@ const AdminPage = () => {
     }
 
     setIsAuthenticated(true);
-    await fetchOrders();
+    await Promise.all([fetchOrders(), fetchCoupons()]);
   };
 
   const handleLogout = async () => {
@@ -304,6 +357,7 @@ const AdminPage = () => {
 
     setIsAuthenticated(false);
     setOrders({ unpaid: [], paid: [] });
+    setCoupons([]);
   };
 
   if (isLoadingSession) {
@@ -377,6 +431,7 @@ const AdminPage = () => {
 
         <section className="min-w-0">
           <AdminTopbar
+            activeSection={activeSection}
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
             isLoadingOrders={isLoadingOrders}
@@ -415,7 +470,21 @@ const AdminPage = () => {
               />
             )}
 
-            {activeSection !== "orders" && activeSection !== "dashboard" && (
+            {activeSection === "coupons" && (
+              <CouponsPanel
+                coupons={coupons}
+                visibleCoupons={visibleCoupons}
+                couponFilter={couponFilter}
+                searchTerm={searchTerm}
+                isLoadingCoupons={isLoadingCoupons}
+                onFilterChange={setCouponFilter}
+                onRefresh={fetchCoupons}
+              />
+            )}
+
+            {activeSection !== "orders" &&
+              activeSection !== "dashboard" &&
+              activeSection !== "coupons" && (
               <ComingSoonPanel section={activeSection} />
             )}
           </div>
@@ -539,18 +608,23 @@ const AdminSidebar = ({
 };
 
 const AdminTopbar = ({
+  activeSection,
   searchTerm,
   onSearchTermChange,
   isLoadingOrders,
   onRefresh,
   onLogout,
 }: {
+  activeSection: AdminSection;
   searchTerm: string;
   onSearchTermChange: (value: string) => void;
   isLoadingOrders: boolean;
   onRefresh: () => Promise<void>;
   onLogout: () => Promise<void>;
 }) => {
+  const placeholder =
+    activeSection === "coupons" ? "Buscar cupons..." : "Buscar pedidos...";
+
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
       <div className="flex min-h-16 flex-col !gap-3 !px-4 !py-3 sm:flex-row sm:items-center sm:justify-between sm:!px-6">
@@ -562,7 +636,7 @@ const AdminTopbar = ({
           <input
             value={searchTerm}
             onChange={(event) => onSearchTermChange(event.target.value)}
-            placeholder="Buscar pedidos..."
+            placeholder={placeholder}
             className="h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 !pl-10 !pr-4 text-sm outline-none transition-all duration-200 focus:border-black focus:bg-white"
           />
         </div>
@@ -635,7 +709,7 @@ const OrdersPanel = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 !gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 !gap-3 xl:grid-cols-4">
         <MetricCard
           title="Total de pedidos"
           value={String(allOrders.length)}
@@ -707,7 +781,9 @@ const OrdersPanel = ({
           />
         </section>
 
-        <OrderDetailPanel order={selectedOrder} onRefresh={onRefresh} />
+        <div className="hidden xl:block">
+          <OrderDetailPanel order={selectedOrder} onRefresh={onRefresh} />
+        </div>
       </div>
     </>
   );
@@ -733,19 +809,19 @@ const MetricCard = ({
   }[tone];
 
   return (
-    <article className="rounded-xl border border-zinc-200 bg-white !p-4 shadow-sm">
+    <article className="rounded-xl border border-zinc-200 bg-white !p-3 shadow-sm sm:!p-4">
       <div className="flex items-start justify-between !gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-bold text-zinc-500">{title}</p>
-          <strong className="!mt-2 block text-2xl text-zinc-950">
+          <strong className="!mt-2 block break-words text-xl text-zinc-950 sm:text-2xl">
             {value}
           </strong>
           <span className="!mt-1 block text-xs text-zinc-500">{helper}</span>
         </div>
         <span
-          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${toneClass}`}
+          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full sm:h-10 sm:w-10 ${toneClass}`}
         >
-          <Icon size={18} />
+          <Icon size={17} />
         </span>
       </div>
     </article>
@@ -888,13 +964,30 @@ const OrderRow = ({
           <p className="text-xs text-zinc-500">{order.customer?.email}</p>
         </div>
 
-        <span className="text-xs text-zinc-500">{getOrderDate(order)}</span>
+        <div className="grid grid-cols-2 !gap-3 rounded-lg bg-zinc-50 !p-3 lg:contents lg:bg-transparent lg:!p-0">
+          <div className="lg:contents">
+            <span className="block text-[10px] font-bold uppercase text-zinc-400 lg:hidden">
+              Data
+            </span>
+            <span className="text-xs text-zinc-500">{getOrderDate(order)}</span>
+          </div>
 
-        <OrderStatusBadge status={order.status} />
+          <div className="lg:contents">
+            <span className="block text-[10px] font-bold uppercase text-zinc-400 lg:hidden">
+              Status
+            </span>
+            <OrderStatusBadge status={order.status} />
+          </div>
 
-        <strong className="text-left text-sm text-zinc-950 lg:text-right">
-          {formatPrice(order.total)}
-        </strong>
+          <div className="col-span-2 lg:contents">
+            <span className="block text-[10px] font-bold uppercase text-zinc-400 lg:hidden">
+              Total
+            </span>
+            <strong className="text-left text-sm text-zinc-950 lg:text-right">
+              {formatPrice(order.total)}
+            </strong>
+          </div>
+        </div>
       </button>
 
       {isExpanded && (
@@ -1155,6 +1248,787 @@ const OrderPaymentButton = ({
   );
 };
 
+const CouponsPanel = ({
+  coupons,
+  visibleCoupons,
+  couponFilter,
+  searchTerm,
+  isLoadingCoupons,
+  onFilterChange,
+  onRefresh,
+}: {
+  coupons: Coupon[];
+  visibleCoupons: Coupon[];
+  couponFilter: CouponFilter;
+  searchTerm: string;
+  isLoadingCoupons: boolean;
+  onFilterChange: (filter: CouponFilter) => void;
+  onRefresh: () => Promise<void>;
+}) => {
+  const [isCreatingCoupon, setIsCreatingCoupon] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null);
+  const [isDeletingCoupon, setIsDeletingCoupon] = useState(false);
+  const activeCoupons = coupons.filter((coupon) => {
+    return getCouponStatus(coupon) === "active";
+  });
+  const scheduledCoupons = coupons.filter((coupon) => {
+    return getCouponStatus(coupon) === "scheduled";
+  });
+  const expiredCoupons = coupons.filter((coupon) => {
+    return getCouponStatus(coupon) === "expired";
+  });
+  const totalUsage = coupons.reduce((total, coupon) => {
+    return total + coupon.usedCount;
+  }, 0);
+
+  const deleteCoupon = async () => {
+    if (!couponToDelete) return;
+
+    setIsDeletingCoupon(true);
+
+    try {
+      const response = await fetch("/api/admin/coupons", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: couponToDelete.id }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        toast.error(data.error || "Não foi possível remover o cupom");
+        return;
+      }
+
+      toast.success("Cupom removido");
+      setCouponToDelete(null);
+      await onRefresh();
+    } finally {
+      setIsDeletingCoupon(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
+            Cupons
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Crie e gerencie cupons de desconto da sua loja.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEditingCoupon(null);
+            setIsCreatingCoupon((current) => !current);
+          }}
+          className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+        >
+          <Gift size={17} />
+          NOVO CUPOM
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 !gap-3 xl:grid-cols-5">
+        <MetricCard
+          title="Total de cupons"
+          value={String(coupons.length)}
+          helper="Cupons criados"
+          icon={TicketPercent}
+        />
+        <MetricCard
+          title="Cupons ativos"
+          value={String(activeCoupons.length)}
+          helper="Disponíveis no site"
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <MetricCard
+          title="Agendados"
+          value={String(scheduledCoupons.length)}
+          helper="Entram depois"
+          icon={CalendarDays}
+          tone="warning"
+        />
+        <MetricCard
+          title="Expirados"
+          value={String(expiredCoupons.length)}
+          helper="Fora de uso"
+          icon={Clock3}
+        />
+        <MetricCard
+          title="Usos"
+          value={String(totalUsage)}
+          helper="Total de aplicações"
+          icon={BarChart3}
+        />
+      </div>
+
+      {(isCreatingCoupon || editingCoupon) && (
+        <CouponCreateForm
+          coupon={editingCoupon}
+          onCancel={() => {
+            setIsCreatingCoupon(false);
+            setEditingCoupon(null);
+          }}
+          onSaved={async () => {
+            setIsCreatingCoupon(false);
+            setEditingCoupon(null);
+            await onRefresh();
+          }}
+        />
+      )}
+
+      <section className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex flex-col !gap-4 border-b border-zinc-100 !p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap !gap-2">
+            <CouponFilterButton
+              label="Todos"
+              count={coupons.length}
+              active={couponFilter === "all"}
+              onClick={() => onFilterChange("all")}
+            />
+            <CouponFilterButton
+              label="Ativos"
+              count={activeCoupons.length}
+              active={couponFilter === "active"}
+              onClick={() => onFilterChange("active")}
+            />
+            <CouponFilterButton
+              label="Agendados"
+              count={scheduledCoupons.length}
+              active={couponFilter === "scheduled"}
+              onClick={() => onFilterChange("scheduled")}
+            />
+            <CouponFilterButton
+              label="Expirados"
+              count={expiredCoupons.length}
+              active={couponFilter === "expired"}
+              onClick={() => onFilterChange("expired")}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoadingCoupons}
+            className="inline-flex h-10 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 !px-3 text-xs font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              size={16}
+              className={isLoadingCoupons ? "animate-spin" : ""}
+            />
+            ATUALIZAR
+          </button>
+        </div>
+
+        <CouponsTable
+          coupons={visibleCoupons}
+          searchTerm={searchTerm}
+          onEdit={(coupon) => {
+            setIsCreatingCoupon(false);
+            setEditingCoupon(coupon);
+          }}
+          onDelete={setCouponToDelete}
+        />
+      </section>
+
+      {couponToDelete && (
+        <DeleteCouponModal
+          coupon={couponToDelete}
+          isDeleting={isDeletingCoupon}
+          onCancel={() => setCouponToDelete(null)}
+          onConfirm={deleteCoupon}
+        />
+      )}
+    </>
+  );
+};
+
+const CouponFilterButton = ({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold transition-all duration-200 ${
+        active
+          ? "bg-black text-white"
+          : "bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950"
+      }`}
+    >
+      {label} <span className="opacity-70">{count}</span>
+    </button>
+  );
+};
+
+const CouponCreateForm = ({
+  coupon,
+  onSaved,
+  onCancel,
+}: {
+  coupon?: Coupon | null;
+  onSaved: () => Promise<void>;
+  onCancel: () => void;
+}) => {
+  const [code, setCode] = useState(coupon?.code || "");
+  const [type, setType] = useState<CouponType>(coupon?.type || "percentage");
+  const [value, setValue] = useState(String(coupon?.value ?? 10));
+  const [minSubtotal, setMinSubtotal] = useState(
+    String(coupon?.minSubtotal ?? 0)
+  );
+  const [maxDiscount, setMaxDiscount] = useState(
+    coupon?.maxDiscount === undefined ? "" : String(coupon.maxDiscount)
+  );
+  const [startsAt, setStartsAt] = useState(
+    coupon?.startsAt || new Date().toISOString().slice(0, 10)
+  );
+  const [expiresAt, setExpiresAt] = useState(
+    coupon?.expiresAt || "2026-12-31"
+  );
+  const [usageLimit, setUsageLimit] = useState(
+    String(coupon?.usageLimit ?? 100)
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEditing = Boolean(coupon);
+
+  useEffect(() => {
+    setCode(coupon?.code || "");
+    setType(coupon?.type || "percentage");
+    setValue(String(coupon?.value ?? 10));
+    setMinSubtotal(String(coupon?.minSubtotal ?? 0));
+    setMaxDiscount(
+      coupon?.maxDiscount === undefined ? "" : String(coupon.maxDiscount)
+    );
+    setStartsAt(coupon?.startsAt || new Date().toISOString().slice(0, 10));
+    setExpiresAt(coupon?.expiresAt || "2026-12-31");
+    setUsageLimit(String(coupon?.usageLimit ?? 100));
+  }, [coupon]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/admin/coupons", {
+        method: isEditing ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: coupon?.id,
+          code,
+          type,
+          value: Number(value),
+          minSubtotal: Number(minSubtotal),
+          maxDiscount: maxDiscount ? Number(maxDiscount) : undefined,
+          startsAt,
+          expiresAt,
+          usageLimit: Number(usageLimit),
+          usagePerCustomer: 1,
+        }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        toast.error(data.error || "Não foi possível salvar o cupom");
+        return;
+      }
+
+      toast.success(isEditing ? "Cupom atualizado" : "Cupom criado com sucesso");
+      await onSaved();
+      setCode("");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm"
+    >
+      <div className="!mb-4 flex items-center justify-between !gap-4">
+        <div>
+          <h2 className="font-[family-name:var(--font-bebas)] text-3xl text-zinc-950">
+            {isEditing ? "Editar cupom" : "Novo cupom"}
+          </h2>
+          <p className="text-xs text-zinc-500">
+            {isEditing
+              ? "Atualize as regras desse desconto."
+              : "Crie um desconto para usar no carrinho e checkout."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-10 cursor-pointer rounded-lg border border-zinc-200 !px-3 text-xs font-bold transition-all duration-200 hover:border-black"
+        >
+          CANCELAR
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 !gap-4 md:grid-cols-6">
+        <label className="flex flex-col !gap-2 md:col-span-2">
+          <span className="text-xs font-bold uppercase text-zinc-500">
+            Código
+          </span>
+          <input
+            value={code}
+            onChange={(event) => setCode(event.target.value.toUpperCase())}
+            className="h-11 rounded-lg border border-zinc-200 !px-3 text-sm font-bold outline-none focus:border-black"
+            placeholder="EX: CAMISA10"
+          />
+        </label>
+
+        <label className="flex flex-col !gap-2">
+          <span className="text-xs font-bold uppercase text-zinc-500">Tipo</span>
+          <select
+            value={type}
+            onChange={(event) => setType(event.target.value as CouponType)}
+            className="h-11 rounded-lg border border-zinc-200 !px-3 text-sm outline-none focus:border-black"
+          >
+            <option value="percentage">Percentual</option>
+            <option value="fixed">Valor fixo</option>
+            <option value="free_shipping">Frete grátis</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col !gap-2">
+          <span className="text-xs font-bold uppercase text-zinc-500">
+            Desconto
+          </span>
+          <input
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            inputMode="decimal"
+            className="h-11 rounded-lg border border-zinc-200 !px-3 text-sm outline-none focus:border-black"
+          />
+        </label>
+
+        <label className="flex flex-col !gap-2">
+          <span className="text-xs font-bold uppercase text-zinc-500">
+            Compra mínima
+          </span>
+          <input
+            value={minSubtotal}
+            onChange={(event) => setMinSubtotal(event.target.value)}
+            inputMode="decimal"
+            className="h-11 rounded-lg border border-zinc-200 !px-3 text-sm outline-none focus:border-black"
+          />
+        </label>
+
+        <label className="flex flex-col !gap-2">
+          <span className="text-xs font-bold uppercase text-zinc-500">
+            Limite
+          </span>
+          <input
+            value={usageLimit}
+            onChange={(event) => setUsageLimit(event.target.value)}
+            inputMode="numeric"
+            className="h-11 rounded-lg border border-zinc-200 !px-3 text-sm outline-none focus:border-black"
+          />
+        </label>
+
+        <label className="flex flex-col !gap-2 md:col-span-2">
+          <span className="text-xs font-bold uppercase text-zinc-500">
+            Desconto máximo
+          </span>
+          <input
+            value={maxDiscount}
+            onChange={(event) => setMaxDiscount(event.target.value)}
+            inputMode="decimal"
+            className="h-11 rounded-lg border border-zinc-200 !px-3 text-sm outline-none focus:border-black"
+            placeholder="Opcional"
+          />
+        </label>
+
+        <label className="flex flex-col !gap-2">
+          <span className="text-xs font-bold uppercase text-zinc-500">
+            Início
+          </span>
+          <input
+            type="date"
+            value={startsAt}
+            onChange={(event) => setStartsAt(event.target.value)}
+            className="h-11 rounded-lg border border-zinc-200 !px-3 text-sm outline-none focus:border-black"
+          />
+        </label>
+
+        <label className="flex flex-col !gap-2">
+          <span className="text-xs font-bold uppercase text-zinc-500">
+            Expira em
+          </span>
+          <input
+            type="date"
+            value={expiresAt}
+            onChange={(event) => setExpiresAt(event.target.value)}
+            className="h-11 rounded-lg border border-zinc-200 !px-3 text-sm outline-none focus:border-black"
+          />
+        </label>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="h-11 cursor-pointer self-end rounded-lg bg-black !px-4 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+        >
+          {isSubmitting
+            ? "SALVANDO..."
+            : isEditing
+              ? "SALVAR ALTERAÇÕES"
+              : "CRIAR CUPOM"}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+const CouponsTable = ({
+  coupons,
+  searchTerm,
+  onEdit,
+  onDelete,
+}: {
+  coupons: Coupon[];
+  searchTerm: string;
+  onEdit: (coupon: Coupon) => void;
+  onDelete: (coupon: Coupon) => void;
+}) => {
+  if (coupons.length === 0) {
+    return (
+      <div className="!p-10 text-center">
+        <TicketPercent className="mx-auto text-zinc-400" size={36} />
+        <p className="!mt-3 text-sm font-bold text-zinc-700">
+          Nenhum cupom encontrado.
+        </p>
+        {searchTerm && (
+          <p className="!mt-1 text-xs text-zinc-500">
+            Tente buscar por outro código ou status.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="divide-y divide-zinc-100 md:hidden">
+        {coupons.map((coupon) => (
+          <CouponMobileCard
+            key={coupon.id}
+            coupon={coupon}
+            onEdit={() => onEdit(coupon)}
+            onDelete={() => onDelete(coupon)}
+          />
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block">
+        <div className="min-w-[940px]">
+        <div className="grid grid-cols-[1.2fr_1fr_1fr_1.2fr_1fr_1fr_0.8fr] border-b border-zinc-100 !px-4 !py-3 text-xs font-bold uppercase text-zinc-500">
+          <span>Cupom</span>
+          <span>Tipo</span>
+          <span>Desconto</span>
+          <span>Validade</span>
+          <span>Usos</span>
+          <span>Status</span>
+          <span className="text-right">Ações</span>
+        </div>
+
+        <div className="divide-y divide-zinc-100">
+          {coupons.map((coupon) => (
+            <CouponRow
+              key={coupon.id}
+              coupon={coupon}
+              onEdit={() => onEdit(coupon)}
+              onDelete={() => onDelete(coupon)}
+            />
+          ))}
+        </div>
+      </div>
+      </div>
+    </>
+  );
+};
+
+const CouponMobileCard = ({
+  coupon,
+  onEdit,
+  onDelete,
+}: {
+  coupon: Coupon;
+  onEdit: () => void;
+  onDelete: () => void;
+}) => {
+  const status = getCouponStatus(coupon);
+
+  const copyCoupon = async () => {
+    await navigator.clipboard.writeText(coupon.code);
+    toast.success("Cupom copiado");
+  };
+
+  return (
+    <article className="!p-4">
+      <div className="flex items-start justify-between !gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center !gap-2">
+            <span className="rounded-md border border-zinc-200 bg-white !px-2.5 !py-1 text-xs font-bold">
+              {coupon.code}
+            </span>
+            <button
+              type="button"
+              onClick={copyCoupon}
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-zinc-200 transition-all duration-200 hover:border-black"
+              aria-label={"Copiar cupom " + coupon.code}
+            >
+              <Copy size={14} />
+            </button>
+          </div>
+
+          <div className="!mt-3 flex flex-wrap items-center !gap-2">
+            <CouponTypeBadge type={coupon.type} />
+            <CouponStatusBadge status={status} />
+          </div>
+        </div>
+
+        <div className="flex shrink-0 !gap-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-zinc-200 text-zinc-500 transition-all duration-200 hover:border-black hover:text-black"
+            aria-label="Editar cupom"
+          >
+            <SlidersHorizontal size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-red-100 text-red-500 transition-all duration-200 hover:border-red-500"
+            aria-label="Excluir cupom"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      </div>
+
+      <div className="!mt-4 grid grid-cols-2 !gap-3 rounded-lg bg-zinc-50 !p-3 text-xs text-zinc-500">
+        <div>
+          <span className="font-bold uppercase">Desconto</span>
+          <p className="!mt-1 text-sm font-bold text-zinc-950">
+            {getCouponDiscountLabel(coupon)}
+          </p>
+          <p>Mín. {formatPrice(coupon.minSubtotal)}</p>
+        </div>
+
+        <div>
+          <span className="font-bold uppercase">Usos</span>
+          <p className="!mt-1 text-sm font-bold text-zinc-950">
+            {coupon.usedCount}
+          </p>
+          <p>de {coupon.usageLimit}</p>
+        </div>
+
+        <div className="col-span-2">
+          <span className="font-bold uppercase">Validade</span>
+          <p className="!mt-1 text-sm text-zinc-700">
+            De {formatDate(coupon.startsAt)} até {formatDate(coupon.expiresAt)}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+};
+
+const CouponRow = ({
+  coupon,
+  onEdit,
+  onDelete,
+}: {
+  coupon: Coupon;
+  onEdit: () => void;
+  onDelete: () => void;
+}) => {
+  const status = getCouponStatus(coupon);
+
+  const copyCoupon = async () => {
+    await navigator.clipboard.writeText(coupon.code);
+    toast.success("Cupom copiado");
+  };
+
+  return (
+    <div className="grid grid-cols-[1.2fr_1fr_1fr_1.2fr_1fr_1fr_0.8fr] items-center !gap-3 !px-4 !py-4 text-sm">
+      <div className="flex items-center !gap-2">
+        <span className="rounded-md border border-zinc-200 bg-white !px-2.5 !py-1 text-xs font-bold">
+          {coupon.code}
+        </span>
+        <button
+          type="button"
+          onClick={copyCoupon}
+          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-zinc-200 transition-all duration-200 hover:border-black"
+          aria-label={"Copiar cupom " + coupon.code}
+        >
+          <Copy size={14} />
+        </button>
+      </div>
+
+      <CouponTypeBadge type={coupon.type} />
+
+      <div>
+        <p className="font-bold text-zinc-950">{getCouponDiscountLabel(coupon)}</p>
+        <p className="text-xs text-zinc-500">
+          Mín. {formatPrice(coupon.minSubtotal)}
+        </p>
+      </div>
+
+      <div className="text-xs text-zinc-600">
+        <p>De {formatDate(coupon.startsAt)}</p>
+        <p>Até {formatDate(coupon.expiresAt)}</p>
+      </div>
+
+      <div>
+        <p className="font-bold text-zinc-950">{coupon.usedCount}</p>
+        <p className="text-xs text-zinc-500">de {coupon.usageLimit}</p>
+      </div>
+
+      <CouponStatusBadge status={status} />
+
+      <div className="flex justify-end !gap-2">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-zinc-200 text-zinc-500 transition-all duration-200 hover:border-black hover:text-black"
+          aria-label="Editar cupom"
+        >
+          <SlidersHorizontal size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-red-100 text-red-500 transition-all duration-200 hover:border-red-500"
+          aria-label="Excluir cupom"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const DeleteCouponModal = ({
+  coupon,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: {
+  coupon: Coupon;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 !p-4">
+      <section className="w-full max-w-md rounded-xl border border-zinc-200 bg-white !p-5 shadow-2xl">
+        <div className="flex items-start !gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <Trash2 size={20} />
+          </span>
+          <div>
+            <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
+              Remover cupom
+            </h2>
+            <p className="!mt-2 text-sm leading-relaxed text-zinc-600">
+              Tem certeza que deseja remover o cupom{" "}
+              <strong className="text-zinc-950">{coupon.code}</strong>? Essa
+              ação não pode ser desfeita.
+            </p>
+          </div>
+        </div>
+
+        <div className="!mt-6 flex flex-col-reverse !gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="h-11 cursor-pointer rounded-lg border border-zinc-200 !px-5 text-sm font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            CANCELAR
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-red-600 !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDeleting && <RefreshCw size={16} className="animate-spin" />}
+            REMOVER CUPOM
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const CouponTypeBadge = ({ type }: { type: CouponType }) => {
+  const labels: Record<CouponType, string> = {
+    percentage: "Percentual",
+    fixed: "Valor fixo",
+    free_shipping: "Frete grátis",
+  };
+
+  return (
+    <span className="w-fit rounded-full bg-emerald-50 !px-2.5 !py-1 text-xs font-bold text-emerald-700">
+      {labels[type]}
+    </span>
+  );
+};
+
+const CouponStatusBadge = ({ status }: { status: CouponFilter }) => {
+  const config = {
+    all: "bg-zinc-100 text-zinc-700",
+    active: "bg-emerald-50 text-emerald-700",
+    scheduled: "bg-amber-50 text-amber-700",
+    expired: "bg-red-50 text-red-700",
+  }[status];
+  const labels = {
+    all: "Todos",
+    active: "Ativo",
+    scheduled: "Agendado",
+    expired: "Expirado",
+  };
+
+  return (
+    <span className={`w-fit rounded-full !px-2.5 !py-1 text-xs font-bold ${config}`}>
+      {labels[status]}
+    </span>
+  );
+};
+
+const getCouponDiscountLabel = (coupon: Coupon) => {
+  if (coupon.type === "percentage") return `${coupon.value}% OFF`;
+  if (coupon.type === "fixed") return `${formatPrice(coupon.value)} OFF`;
+
+  return "Frete grátis";
+};
+
+const formatDate = (date: string) => {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("pt-BR");
+};
+
 const DashboardPanel = ({
   totalOrders,
   paidOrders,
@@ -1183,7 +2057,7 @@ const DashboardPanel = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 !gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 !gap-3 xl:grid-cols-4">
         <MetricCard
           title="Total de pedidos"
           value={String(totalOrders)}

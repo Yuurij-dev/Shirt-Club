@@ -15,7 +15,9 @@ import { formatPrice } from "@/app/utils/price";
 
 type CustomerDataFormProps = {
   items: CartItem[];
-  subtotal: number;
+  discount: number;
+  total: number;
+  couponCode: string | null;
 };
 
 type CheckoutFormData = {
@@ -185,7 +187,12 @@ const getFieldError = (
   return "";
 };
 
-const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
+const CustomerDataForm = ({
+  items,
+  discount,
+  total,
+  couponCode,
+}: CustomerDataFormProps) => {
   const [formData, setFormData] = useState(initialFormData);
   const [touchedFields, setTouchedFields] = useState<
     Partial<Record<keyof CheckoutFormData, boolean>>
@@ -357,6 +364,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
             cpfDigits: onlyDigits(formData.cpf),
           },
           paymentMethod,
+          couponCode,
           items: items.map((item) => ({
             productId: item.product.id,
             quantity: item.quantity,
@@ -667,13 +675,15 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
         {isSubmitting
           ? "INICIANDO CHECKOUT..."
           : paymentMethod === "pix"
-            ? `GERAR PIX - ${formatPrice(subtotal)}`
-            : `CONTINUAR PARA PAGAMENTO - ${formatPrice(subtotal)}`}
+            ? `GERAR PIX - ${formatPrice(total)}`
+            : `CONTINUAR PARA PAGAMENTO - ${formatPrice(total)}`}
       </button>
 
       <div className="flex items-center justify-center !gap-2 text-xs text-zinc-500">
         <Lock size={14} />
-        Seus dados serao usados apenas para processar este pedido.
+        {discount > 0 && couponCode
+          ? `Cupom ${couponCode} aplicado no pedido.`
+          : "Seus dados serão usados apenas para processar este pedido."}
       </div>
     </form>
   );

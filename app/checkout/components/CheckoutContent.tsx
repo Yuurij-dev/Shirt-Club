@@ -7,7 +7,7 @@ import CheckoutOrderSummary from "./CheckoutOrderSummary";
 import CustomerDataForm from "./CustomerDataForm";
 
 const CheckoutContent = () => {
-  const { items, subtotal, totalItems } = useCart();
+  const { items, subtotal, discount, total, totalItems, appliedCoupon } = useCart();
 
   if (items.length === 0) {
     return (
@@ -51,10 +51,18 @@ const CheckoutContent = () => {
       </div>
 
       <section className="!mt-6 grid grid-cols-1 !gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <CustomerDataForm items={items} subtotal={subtotal} />
+        <CustomerDataForm
+          items={items}
+          discount={discount}
+          total={total}
+          couponCode={appliedCoupon?.coupon.code || null}
+        />
         <CheckoutOrderSummary
           items={items}
           subtotal={subtotal}
+          discount={discount}
+          total={total}
+          couponCode={appliedCoupon?.coupon.code || null}
           totalItems={totalItems}
         />
       </section>

@@ -5,6 +5,7 @@ import {
   createAsaasPixPayment,
   getAsaasPixQrCode,
 } from "@/app/lib/asaas";
+import { validateCoupon } from "@/app/lib/couponStore";
 import { createOrder, getOrderStoreMode } from "@/app/lib/orderStore";
 import { getPriceNumber } from "@/app/utils/price";
 
@@ -36,6 +37,7 @@ type CheckoutItemInput = {
 type CheckoutRequestBody = {
   customer?: CheckoutCustomer;
   items?: CheckoutItemInput[];
+  couponCode?: string | null;
   paymentMethod?: "mercado_pago" | "pix";
 };
 
@@ -119,8 +121,9 @@ const createMercadoPagoPreference = async ({
   orderItems: Array<{
     id: string;
     title: string;
-    unitPrice: number;
     quantity: number;
+    unit_price: number;
+    currency_id: "BRL";
   }>;
 }) => {
   const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
@@ -131,13 +134,7 @@ const createMercadoPagoPreference = async ({
   const publicHttpsUrl = isPublicHttpsUrl(baseUrl);
   const preferencePayload: Record<string, unknown> = {
     external_reference: orderId,
-    items: orderItems.map((item) => ({
-      id: item.id,
-      title: item.title,
-      quantity: item.quantity,
-      unit_price: item.unitPrice,
-      currency_id: "BRL",
-    })),
+    items: orderItems,
     payer: {
       name: customer.name,
       email: customer.email,
@@ -187,6 +184,7 @@ export const POST = async (request: Request) => {
     const body = (await request.json()) as CheckoutRequestBody;
     const customer = body.customer || {};
     const items = body.items || [];
+    const couponCode = body.couponCode?.trim() || "";
     const paymentMethod = body.paymentMethod || "mercado_pago";
 
     const customerErrors = getRequiredCustomerErrors(customer);
@@ -225,9 +223,40 @@ export const POST = async (request: Request) => {
       };
     });
 
-    const total = orderItems.reduce((sum, item) => {
+    const subtotal = orderItems.reduce((sum, item) => {
       return sum + item.unitPrice * item.quantity;
     }, 0);
+    const couponValidation = couponCode
+      ? await validateCoupon({ code: couponCode, subtotal })
+      : null;
+
+    if (couponValidation && !couponValidation.valid) {
+      return NextResponse.json(
+        { errors: [couponValidation.error || "Cupom inválido"] },
+        { status: 400 }
+      );
+    }
+
+    const discount = couponValidation?.discount || 0;
+    const total = Math.max(0, subtotal - discount);
+    const paymentItems =
+      discount > 0
+        ? [
+            {
+              id: "shirt-club-order",
+              title: `Pedido Shirt Club - cupom ${couponValidation?.coupon?.code}`,
+              quantity: 1,
+              unit_price: total,
+              currency_id: "BRL" as const,
+            },
+          ]
+        : orderItems.map((item) => ({
+            id: item.id,
+            title: item.title,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            currency_id: "BRL" as const,
+          }));
 
     const orderId = `SC-${Date.now()}`;
 
@@ -236,6 +265,13 @@ export const POST = async (request: Request) => {
       id: orderId,
       customer,
       items: orderItems,
+      coupon: couponValidation?.coupon
+        ? {
+            code: couponValidation.coupon.code,
+            discount,
+            subtotal,
+          }
+        : null,
       status: "unpaid" as const,
       total,
       createdAt: now,
@@ -294,7 +330,7 @@ export const POST = async (request: Request) => {
       orderId,
       customer: customer as Required<Pick<CheckoutCustomer, "name" | "email">> &
         CheckoutCustomer,
-      orderItems,
+      orderItems: paymentItems,
     });
 
     await createOrder({

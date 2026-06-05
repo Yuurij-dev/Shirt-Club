@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { useCart } from "@/app/context/CartContext";
+import CartCouponCard from "./CartCouponCard";
 import CartProductRow from "./CartProductRow";
 import CartRecommendations from "./CartRecommendations";
 import CartSummary from "./CartSummary";
@@ -76,6 +77,7 @@ const CartContent = () => {
           </div>
 
           <FreeShippingProgress subtotal={subtotal} />
+          <CartCouponCard />
         </div>
 
         <CartSummary subtotal={subtotal} totalItems={totalItems} />

@@ -8,15 +8,21 @@ import { formatPrice, getPriceNumber } from "@/app/utils/price";
 type CheckoutOrderSummaryProps = {
   items: CartItem[];
   subtotal: number;
+  discount: number;
+  total: number;
+  couponCode: string | null;
   totalItems: number;
 };
 
 const CheckoutOrderSummary = ({
   items,
   subtotal,
+  discount,
+  total,
+  couponCode,
   totalItems,
 }: CheckoutOrderSummaryProps) => {
-  const installment = subtotal / 12;
+  const installment = total / 12;
 
   return (
     <aside className="lg:sticky lg:top-6">
@@ -78,11 +84,18 @@ const CheckoutOrderSummary = ({
           <span>Calculado depois</span>
         </div>
 
+        {discount > 0 && couponCode && (
+          <div className="!mt-3 flex items-center justify-between text-sm text-emerald-700">
+            <span>Cupom {couponCode}</span>
+            <span>- {formatPrice(discount)}</span>
+          </div>
+        )}
+
         <div className="!my-5 h-px bg-zinc-200" />
 
         <div className="flex items-center justify-between">
           <span className="font-bold">Total</span>
-          <span className="text-2xl font-bold">{formatPrice(subtotal)}</span>
+          <span className="text-2xl font-bold">{formatPrice(total)}</span>
         </div>
 
         <p className="!mt-2 text-xs text-zinc-600">
