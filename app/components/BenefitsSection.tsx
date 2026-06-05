@@ -42,14 +42,15 @@ const BenefitsSection = () => {
         <div className="container !mx-auto !px-4 sm:!px-6 lg:!px-0">
           <div
             className="
-              flex
-              overflow-x-auto
+              grid
+              grid-cols-5
               items-center
-              justify-between
-              gap-3
+              gap-1
 
+              sm:flex
               sm:overflow-visible
               sm:justify-center
+              sm:gap-3
             "
           >
             {benefits.map((item) => {
@@ -60,7 +61,7 @@ const BenefitsSection = () => {
                   key={item.title}
                   className="
                     flex
-                    min-w-[70px]
+                    min-w-0
                     flex-col
                     items-center
                     justify-center
@@ -91,11 +92,11 @@ const BenefitsSection = () => {
                       w-full
                       whitespace-nowrap
                       text-center
-                      text-[8px]
+                      text-[7px]
                       font-semibold
                       leading-none
 
-                      min-[390px]:text-[9px]
+                      min-[390px]:text-[8px]
                       sm:text-xs
                       sm:tracking-wide
 

@@ -33,6 +33,15 @@ body {
   animation: skeleton-shimmer 1.45s ease-in-out infinite;
 }
 
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes skeleton-shimmer {
   100% {
     transform: translateX(100%);
