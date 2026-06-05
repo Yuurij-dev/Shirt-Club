@@ -78,7 +78,7 @@ const getAsaasErrorMessage = async (response: Response) => {
   return (
     data?.errors?.[0]?.description ||
     data?.message ||
-    "Nao foi possivel comunicar com o Asaas"
+    "Não foi possível comunicar com o Asaas"
   );
 };
 

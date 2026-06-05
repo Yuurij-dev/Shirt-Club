@@ -13,7 +13,7 @@ export const POST = async (request: Request) => {
 
   if (!adminPassword) {
     return NextResponse.json(
-      { error: "ADMIN_PASSWORD nao configurado" },
+      { error: "ADMIN_PASSWORD não configurado" },
       { status: 500 }
     );
   }

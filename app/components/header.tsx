@@ -30,7 +30,7 @@ const Header = () => {
           <div className="relative flex h-20 w-full items-center justify-between">
             <Link
               href="/"
-              aria-label="Ir para a pagina inicial"
+              aria-label="Ir para a página inicial"
               className="relative block h-16 w-[118px] shrink-0 sm:h-[72px] sm:w-[132px] lg:h-[76px] lg:w-[150px]"
             >
               <Image

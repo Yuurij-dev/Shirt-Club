@@ -61,22 +61,22 @@ const isValidEmail = (email = "") => {
 const getRequiredCustomerErrors = (customer: CheckoutCustomer) => {
   const errors: string[] = [];
 
-  if (!customer.name?.trim()) errors.push("Nome obrigatorio");
+  if (!customer.name?.trim()) errors.push("Nome obrigatório");
   const cpfDigits = customer.cpfDigits || onlyDigits(customer.cpf);
-  if (cpfDigits.length !== 11) errors.push("CPF invalido");
-  if (!isValidEmail(customer.email)) errors.push("E-mail invalido");
+  if (cpfDigits.length !== 11) errors.push("CPF inválido");
+  if (!isValidEmail(customer.email)) errors.push("E-mail inválido");
 
   const whatsappDigits = customer.whatsappDigits || onlyDigits(customer.whatsapp);
   if (whatsappDigits.length < 10 || whatsappDigits.length > 11) {
-    errors.push("WhatsApp invalido");
+    errors.push("WhatsApp inválido");
   }
 
   const cepDigits = customer.cepDigits || onlyDigits(customer.cep);
-  if (cepDigits.length !== 8) errors.push("CEP invalido");
+  if (cepDigits.length !== 8) errors.push("CEP inválido");
 
-  if (!customer.street?.trim()) errors.push("Endereco obrigatorio");
-  if (!customer.number?.trim()) errors.push("Numero obrigatorio");
-  if (!customer.neighborhood?.trim()) errors.push("Bairro obrigatorio");
+  if (!customer.street?.trim()) errors.push("Endereço obrigatório");
+  if (!customer.number?.trim()) errors.push("Número obrigatório");
+  if (!customer.neighborhood?.trim()) errors.push("Bairro obrigatório");
   if (!customer.city?.trim()) errors.push("Cidade obrigatoria");
   if (!customer.state?.trim() || customer.state.trim().length !== 2) {
     errors.push("UF invalida");
@@ -210,7 +210,7 @@ export const POST = async (request: Request) => {
       });
 
       if (!product) {
-        throw new Error(`Produto invalido: ${item.productId}`);
+        throw new Error(`Produto inválido: ${item.productId}`);
       }
 
       const quantity = Math.max(1, Number(item.quantity || 1));
@@ -221,7 +221,7 @@ export const POST = async (request: Request) => {
         unitPrice: getPriceNumber(product.price),
         quantity,
         size: item.size || "M",
-        customization: item.customization || "Sem personalizacao",
+        customization: item.customization || "Sem personalização",
       };
     });
 

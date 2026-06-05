@@ -155,27 +155,27 @@ const getFieldError = (
   value: string
 ): string => {
   if (requiredFields.includes(field) && !value.trim()) {
-    return "Campo obrigatorio";
+    return "Campo obrigatório";
   }
 
   if (field === "email" && value.trim() && !isValidEmail(value)) {
-    return "Digite um e-mail valido";
+    return "Digite um e-mail válido";
   }
 
   if (field === "cpf" && value.trim() && !isValidCpf(value)) {
-    return "Digite um CPF valido";
+    return "Digite um CPF válido";
   }
 
   if (field === "whatsapp" && value.trim()) {
     const digits = onlyDigits(value);
 
     if (digits.length < 10 || digits.length > 11) {
-      return "Digite um WhatsApp valido";
+      return "Digite um WhatsApp válido";
     }
   }
 
   if (field === "cep" && value.trim() && onlyDigits(value).length !== 8) {
-    return "Digite um CEP valido";
+    return "Digite um CEP válido";
   }
 
   if (field === "state" && value.trim().length !== 2) {
@@ -272,9 +272,9 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
       const address = (await response.json()) as ViaCepResponse;
 
       if (address.erro) {
-        setCepLookupError("CEP nao encontrado");
+        setCepLookupError("CEP não encontrado");
         markFieldAsTouched("cep");
-        toast.error("CEP nao encontrado");
+        toast.error("CEP não encontrado");
         return;
       }
 
@@ -295,7 +295,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
         state: true,
       }));
     } catch {
-      toast.error("Nao foi possivel validar o CEP agora");
+      toast.error("Não foi possível validar o CEP agora");
     } finally {
       setIsFetchingCep(false);
     }
@@ -395,7 +395,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
           : "Pedido criado"
       );
     } catch {
-      toast.error("Nao foi possivel iniciar o checkout");
+      toast.error("Não foi possível iniciar o checkout");
     } finally {
       setIsSubmitting(false);
     }
@@ -499,7 +499,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
           </label>
 
           <label className="flex flex-col !gap-2 md:col-span-4">
-            <span className={labelClass}>Endereco</span>
+            <span className={labelClass}>Endereço</span>
             <input
               value={formData.street}
               onBlur={() => markFieldAsTouched("street")}
@@ -511,7 +511,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
           </label>
 
           <label className="flex flex-col !gap-2 md:col-span-2">
-            <span className={labelClass}>Numero</span>
+            <span className={labelClass}>Número</span>
             <input
               value={formData.number}
               onBlur={() => markFieldAsTouched("number")}
@@ -579,12 +579,12 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
 
       <section className="rounded-xl border border-zinc-200 bg-white !p-5">
         <label className="flex flex-col !gap-2">
-          <span className={labelClass}>Observacoes do pedido</span>
+          <span className={labelClass}>Observações do pedido</span>
           <textarea
             value={formData.notes}
             onChange={(event) => handleChange("notes", event.target.value)}
             className={getTextareaClass("notes")}
-            placeholder="Ex: preferencias de entrega, duvidas ou detalhes sobre personalizacao."
+            placeholder="Ex: preferências de entrega, dúvidas ou detalhes sobre personalização."
           />
         </label>
       </section>
@@ -637,7 +637,7 @@ const CustomerDataForm = ({ items, subtotal }: CustomerDataFormProps) => {
           >
             <CreditCard size={24} />
             <span>
-              <strong className="block text-sm">Cartao e outros</strong>
+              <strong className="block text-sm">Cartão e outros</strong>
               <small
                 className={
                   paymentMethod === "mercado_pago"

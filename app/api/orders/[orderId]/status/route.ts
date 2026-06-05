@@ -16,7 +16,7 @@ export const GET = async (_request: Request, context: OrderStatusRouteContext) =
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Pedido nao encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
   }
 
   if (order.status === "unpaid" && order.paymentId?.startsWith("pay_")) {

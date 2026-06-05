@@ -98,7 +98,7 @@ const createSupabaseOrder = async (order: StoredOrder) => {
   });
 
   if (!response.ok) {
-    throw new Error("Nao foi possivel salvar o pedido no Supabase");
+    throw new Error("Não foi possível salvar o pedido no Supabase");
   }
 };
 
@@ -111,7 +111,7 @@ const listSupabaseOrders = async () => {
   );
 
   if (!response.ok) {
-    throw new Error("Nao foi possivel buscar pedidos no Supabase");
+    throw new Error("Não foi possível buscar pedidos no Supabase");
   }
 
   const orders = (await response.json()) as SupabaseOrder[];
@@ -142,7 +142,7 @@ const updateSupabaseOrderStatus = async ({
   );
 
   if (!response.ok) {
-    throw new Error("Nao foi possivel atualizar o pedido no Supabase");
+    throw new Error("Não foi possível atualizar o pedido no Supabase");
   }
 };
 
@@ -210,7 +210,7 @@ export const updateOrderStatusByPreferenceId = async ({
   });
 
   if (!order) {
-    throw new Error("Pedido nao encontrado para essa preference");
+    throw new Error("Pedido não encontrado para essa preference");
   }
 
   await updateOrderStatus({

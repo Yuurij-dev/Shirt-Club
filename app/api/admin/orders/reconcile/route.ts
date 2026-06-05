@@ -18,7 +18,7 @@ type ReconcileBody = {
 
 export const POST = async (request: Request) => {
   if (!(await isAdminAuthenticated())) {
-    return NextResponse.json({ error: "Nao autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const body = (await request.json()) as ReconcileBody;
@@ -32,7 +32,7 @@ export const POST = async (request: Request) => {
       const orderId = asaasPayment.externalReference || body.orderId;
 
       if (!orderId) {
-        throw new Error("Pedido nao encontrado para esse pagamento Asaas");
+        throw new Error("Pedido não encontrado para esse pagamento Asaas");
       }
 
       await updateOrderStatus({

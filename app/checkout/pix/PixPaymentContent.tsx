@@ -96,13 +96,13 @@ const PixPaymentContent = () => {
     try {
       await navigator.clipboard.writeText(qrCode);
       setCopiedPixCode(true);
-      toast.success("Codigo Pix copiado");
+      toast.success("Código Pix copiado");
 
       window.setTimeout(() => {
         setCopiedPixCode(false);
       }, 1800);
     } catch {
-      toast.error("Nao foi possivel copiar o codigo Pix");
+      toast.error("Não foi possível copiar o código Pix");
     }
   };
 
@@ -148,12 +148,12 @@ const PixPaymentContent = () => {
         </h1>
 
         <p className="!mx-auto !mt-3 max-w-md text-sm leading-6 text-zinc-600">
-          Recebemos seu Pix com sucesso. Seu pedido ja foi marcado como pago e
-          sera preparado para envio.
+          Recebemos seu Pix com sucesso. Seu pedido já foi marcado como pago e
+          será preparado para envio.
         </p>
 
         <p className="!mx-auto !mt-3 max-w-md text-sm leading-6 text-zinc-600">
-          Voce recebera uma confirmacao pelo WhatsApp com os proximos passos do
+          Você receberá uma confirmação pelo WhatsApp com os próximos passos do
           pedido.
         </p>
 
@@ -186,7 +186,7 @@ const PixPaymentContent = () => {
             PIX GERADO
           </h1>
           <p className="!mt-2 max-w-md text-sm text-zinc-500">
-            Escaneie o QR Code no app do seu banco ou copie o codigo Pix.
+            Escaneie o QR Code no app do seu banco ou copie o código Pix.
           </p>
 
           {checkout.pix.qrCodeBase64 && (
@@ -261,16 +261,16 @@ const PixPaymentContent = () => {
         </div>
 
         <div className="!mt-5 rounded-lg bg-zinc-50 !p-4 text-xs text-zinc-500">
-          Depois do pagamento, o pedido sera atualizado automaticamente quando o
+          Depois do pagamento, o pedido será atualizado automaticamente quando o
           Asaas confirmar o recebimento.
         </div>
 
         <div className="!mt-3 rounded-lg border border-zinc-200 !p-4 text-xs text-zinc-500">
-          Aguardando confirmacao do pagamento...
+          Aguardando confirmação do pagamento...
         </div>
 
         <div className="!mt-3 rounded-lg border border-zinc-200 !p-4 text-xs text-zinc-500">
-          Assim que o pagamento for aprovado, voce recebera uma confirmacao pelo
+          Assim que o pagamento for aprovado, você receberá uma confirmação pelo
           WhatsApp.
         </div>
 

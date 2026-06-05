@@ -55,7 +55,7 @@ const CheckoutOrderSummary = ({
                     Tam: {item.size} | Qtd: {item.quantity}
                   </p>
                   <p className="!mt-1 text-xs text-zinc-500">
-                    {item.customization || "Sem personalizacao"}
+                    {item.customization || "Sem personalização"}
                   </p>
                   <p className="!mt-2 text-sm font-bold">
                     {formatPrice(itemTotal)}

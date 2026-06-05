@@ -12,19 +12,19 @@ const statusContent = {
     icon: CircleCheck,
     title: "PAGAMENTO APROVADO",
     description:
-      "Recebemos a confirmacao do pagamento. Em breve vamos preparar seu pedido.",
+      "Recebemos a confirmação do pagamento. Em breve vamos preparar seu pedido.",
   },
   failure: {
     icon: CircleAlert,
     title: "PAGAMENTO NAO CONCLUIDO",
     description:
-      "O pagamento nao foi concluido. Voce pode voltar ao carrinho e tentar novamente.",
+      "O pagamento não foi concluído. Você pode voltar ao carrinho e tentar novamente.",
   },
   pending: {
     icon: Clock,
     title: "PAGAMENTO PENDENTE",
     description:
-      "Seu pagamento ainda esta em analise. Assim que houver confirmacao, o pedido sera atualizado.",
+      "Seu pagamento ainda está em análise. Assim que houver confirmação, o pedido será atualizado.",
   },
 };
 

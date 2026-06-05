@@ -59,7 +59,7 @@ const reconcileOrderPayment = async (order: AdminOrder) => {
   if (response.status === 404) return false;
 
   if (!response.ok) {
-    throw new Error("Nao foi possivel verificar o pagamento");
+    throw new Error("Não foi possível verificar o pagamento");
   }
 
   return true;
@@ -96,7 +96,7 @@ const AdminPage = () => {
     try {
       await loadOrders();
     } catch {
-      toast.error("Nao foi possivel buscar os pedidos");
+      toast.error("Não foi possível buscar os pedidos");
     } finally {
       setIsLoadingOrders(false);
     }
@@ -130,10 +130,10 @@ const AdminPage = () => {
       }
 
       if (failedCount > 0) {
-        toast.error("Alguns pedidos nao puderam ser verificados");
+        toast.error("Alguns pedidos não puderam ser verificados");
       }
     } catch {
-      toast.error("Nao foi possivel atualizar os pedidos");
+      toast.error("Não foi possível atualizar os pedidos");
     } finally {
       setIsLoadingOrders(false);
     }
@@ -249,7 +249,7 @@ const AdminPage = () => {
               PEDIDOS
             </h1>
             <p className="!mt-1 text-sm text-zinc-500">
-              Acompanhe pedidos nao pagos e pagos.
+              Acompanhe pedidos não pagos e pagos.
             </p>
           </div>
 
@@ -383,7 +383,7 @@ const OrderCard = ({
       toast.success("Pedido atualizado para pago");
       await onRefresh();
     } catch {
-      toast.error("Nao foi possivel verificar o pagamento");
+      toast.error("Não foi possível verificar o pagamento");
     } finally {
       setIsReconciling(false);
     }
@@ -419,7 +419,7 @@ const OrderCard = ({
       </div>
 
       <div className="!mt-4 rounded-lg border border-zinc-100 bg-white !p-3">
-        <p className="text-xs font-bold uppercase text-zinc-500">Endereco</p>
+        <p className="text-xs font-bold uppercase text-zinc-500">Endereço</p>
         <div className="!mt-2 flex flex-col !gap-1 text-xs text-zinc-600">
           <span>
             <strong className="text-zinc-700">CEP:</strong>{" "}
@@ -435,7 +435,7 @@ const OrderCard = ({
           </span>
           {order.customer?.notes && (
             <span>
-              <strong className="text-zinc-700">Observacoes:</strong>{" "}
+              <strong className="text-zinc-700">Observações:</strong>{" "}
               {order.customer.notes}
             </span>
           )}
