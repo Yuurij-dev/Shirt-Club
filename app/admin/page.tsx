@@ -1,13 +1,26 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
+  BarChart3,
+  CheckCircle2,
+  ChevronDown,
   CircleDollarSign,
-  Clock,
+  Clock3,
+  Gift,
+  LayoutDashboard,
   LogOut,
   Package,
   RefreshCw,
+  Search,
+  Settings,
+  ShoppingBag,
+  SlidersHorizontal,
+  Star,
+  Store,
+  Users,
 } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { formatPrice } from "../utils/price";
 
@@ -43,6 +56,17 @@ type OrdersResponse = {
   paid: AdminOrder[];
 };
 
+type AdminSection =
+  | "dashboard"
+  | "orders"
+  | "products"
+  | "clients"
+  | "coupons"
+  | "reviews"
+  | "settings";
+
+type OrderFilter = "all" | "paid" | "unpaid";
+
 const reconcileOrderPayment = async (order: AdminOrder) => {
   const response = await fetch("/api/admin/orders/reconcile", {
     method: "POST",
@@ -65,12 +89,45 @@ const reconcileOrderPayment = async (order: AdminOrder) => {
   return true;
 };
 
+const getOrderDate = (order: AdminOrder) => {
+  return new Date(order.createdAt).toLocaleString("pt-BR");
+};
+
+const getAddressLine = (order: AdminOrder) => {
+  return [
+    order.customer?.street,
+    order.customer?.number,
+    order.customer?.complement,
+  ]
+    .filter(Boolean)
+    .join(", ");
+};
+
+const getCityLine = (order: AdminOrder) => {
+  return [
+    order.customer?.neighborhood,
+    order.customer?.city &&
+      order.customer?.state &&
+      `${order.customer.city} / ${order.customer.state}`,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+};
+
+const getOrderItemsCount = (order: AdminOrder) => {
+  return order.items.reduce((total, item) => total + (item.quantity || 1), 0);
+};
+
 const AdminPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [activeSection, setActiveSection] = useState<AdminSection>("orders");
+  const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<OrdersResponse>({
     unpaid: [],
     paid: [],
@@ -158,6 +215,65 @@ const AdminPage = () => {
     void checkSession();
   }, [fetchOrders]);
 
+  const allOrders = useMemo(() => {
+    return [...orders.unpaid, ...orders.paid].sort((first, second) => {
+      return (
+        new Date(second.createdAt).getTime() -
+        new Date(first.createdAt).getTime()
+      );
+    });
+  }, [orders.paid, orders.unpaid]);
+
+  const visibleOrders = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return allOrders.filter((order) => {
+      const matchesStatus =
+        orderFilter === "all" || order.status === orderFilter;
+      const searchableText = [
+        order.id,
+        order.customer?.name,
+        order.customer?.email,
+        order.customer?.whatsapp,
+        order.customer?.city,
+        order.items.map((item) => item.title).join(" "),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return matchesStatus && searchableText.includes(normalizedSearch);
+    });
+  }, [allOrders, orderFilter, searchTerm]);
+
+  useEffect(() => {
+    if (visibleOrders.length === 0) {
+      setSelectedOrderId(null);
+      return;
+    }
+
+    const selectedOrderExists = visibleOrders.some((order) => {
+      return order.id === selectedOrderId;
+    });
+
+    if (!selectedOrderExists) {
+      setSelectedOrderId(visibleOrders[0].id);
+    }
+  }, [selectedOrderId, visibleOrders]);
+
+  const selectedOrder = useMemo(() => {
+    return allOrders.find((order) => order.id === selectedOrderId) || null;
+  }, [allOrders, selectedOrderId]);
+
+  const paidTotal = orders.paid.reduce((total, order) => total + order.total, 0);
+  const pendingTotal = orders.unpaid.reduce(
+    (total, order) => total + order.total,
+    0
+  );
+  const customersCount = new Set(
+    allOrders.map((order) => order.customer?.email || order.customer?.whatsapp)
+  ).size;
+
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -173,7 +289,7 @@ const AdminPage = () => {
     });
 
     if (!response.ok) {
-      toast.error("Credenciais invalidas");
+      toast.error("Credenciais inválidas");
       return;
     }
 
@@ -205,7 +321,15 @@ const AdminPage = () => {
           onSubmit={handleLogin}
           className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white !p-6 shadow-sm"
         >
-          <h1 className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
+          <Image
+            src="/assets/logo.png"
+            alt="Shirt Club"
+            width={86}
+            height={60}
+            className="h-auto w-20"
+            priority
+          />
+          <h1 className="!mt-5 font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
             ADMIN
           </h1>
           <p className="!mt-1 text-sm text-zinc-500">
@@ -216,7 +340,7 @@ const AdminPage = () => {
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="Usuario"
+              placeholder="Usuário"
               className="h-12 rounded-lg border border-zinc-200 !px-4 text-sm outline-none focus:border-black"
             />
 
@@ -230,7 +354,7 @@ const AdminPage = () => {
 
             <button
               type="submit"
-              className="h-12 rounded-lg bg-black text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+              className="h-12 cursor-pointer rounded-lg bg-black text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
             >
               ENTRAR
             </button>
@@ -241,105 +365,676 @@ const AdminPage = () => {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 !p-4 sm:!p-6">
-      <section className="!mx-auto max-w-7xl">
-        <div className="flex flex-col !gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
-              PEDIDOS
-            </h1>
-            <p className="!mt-1 text-sm text-zinc-500">
-              Acompanhe pedidos não pagos e pagos.
-            </p>
-          </div>
+    <main className="min-h-screen bg-zinc-100 text-zinc-950">
+      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <AdminSidebar
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          totalOrders={allOrders.length}
+          pendingOrders={orders.unpaid.length}
+          onLogout={handleLogout}
+        />
 
-          <div className="flex !gap-3">
-            <button
-              type="button"
-              onClick={refreshAndReconcileOrders}
-              disabled={isLoadingOrders}
-              className="inline-flex h-11 items-center justify-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCw
-                size={18}
-                className={isLoadingOrders ? "animate-spin" : ""}
+        <section className="min-w-0">
+          <AdminTopbar
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            isLoadingOrders={isLoadingOrders}
+            onRefresh={refreshAndReconcileOrders}
+            onLogout={handleLogout}
+          />
+
+          <div className="!mx-auto flex max-w-7xl flex-col !gap-6 !p-4 sm:!p-6">
+            {activeSection === "orders" && (
+              <OrdersPanel
+                orders={orders}
+                allOrders={allOrders}
+                visibleOrders={visibleOrders}
+                selectedOrder={selectedOrder}
+                orderFilter={orderFilter}
+                searchTerm={searchTerm}
+                isLoadingOrders={isLoadingOrders}
+                paidTotal={paidTotal}
+                pendingTotal={pendingTotal}
+                customersCount={customersCount}
+                onFilterChange={setOrderFilter}
+                onSelectOrder={setSelectedOrderId}
+                onRefresh={fetchOrders}
               />
-              ATUALIZAR
-            </button>
+            )}
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-flex h-11 items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
-            >
-              <LogOut size={18} />
-              SAIR
-            </button>
+            {activeSection === "dashboard" && (
+              <DashboardPanel
+                totalOrders={allOrders.length}
+                paidOrders={orders.paid.length}
+                unpaidOrders={orders.unpaid.length}
+                paidTotal={paidTotal}
+                pendingTotal={pendingTotal}
+                customersCount={customersCount}
+                onGoToOrders={() => setActiveSection("orders")}
+              />
+            )}
+
+            {activeSection !== "orders" && activeSection !== "dashboard" && (
+              <ComingSoonPanel section={activeSection} />
+            )}
           </div>
-        </div>
-
-        <div className="!mt-6 grid grid-cols-1 !gap-6 xl:grid-cols-2">
-          <OrderColumn
-            title="NAO PAGOS"
-            icon={Clock}
-            orders={orders.unpaid}
-            emptyText="Nenhum pedido aguardando pagamento."
-            onRefresh={fetchOrders}
-          />
-
-          <OrderColumn
-            title="PAGOS"
-            icon={CircleDollarSign}
-            orders={orders.paid}
-            emptyText="Nenhum pedido pago ainda."
-            onRefresh={fetchOrders}
-          />
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   );
 };
 
-const OrderColumn = ({
-  title,
-  icon: Icon,
+const AdminSidebar = ({
+  activeSection,
+  onSectionChange,
+  totalOrders,
+  pendingOrders,
+  onLogout,
+}: {
+  activeSection: AdminSection;
+  onSectionChange: (section: AdminSection) => void;
+  totalOrders: number;
+  pendingOrders: number;
+  onLogout: () => Promise<void>;
+}) => {
+  const menuItems: Array<{
+    id: AdminSection;
+    label: string;
+    icon: typeof LayoutDashboard;
+    badge?: number;
+  }> = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "orders", label: "Pedidos", icon: ShoppingBag, badge: totalOrders },
+    { id: "products", label: "Produtos", icon: Package },
+    { id: "clients", label: "Clientes", icon: Users },
+    { id: "coupons", label: "Cupons", icon: Gift },
+    { id: "reviews", label: "Avaliações", icon: Star },
+    { id: "settings", label: "Configurações", icon: Settings },
+  ];
+
+  return (
+    <aside className="flex flex-col border-b border-zinc-800 bg-black text-white lg:sticky lg:top-0 lg:h-screen lg:overflow-hidden lg:border-b-0 lg:border-r">
+      <div className="flex items-center justify-between !p-5 lg:block">
+        <Image
+          src="/assets/logo.png"
+          alt="Shirt Club"
+          width={92}
+          height={64}
+          className="h-auto w-20 invert"
+          priority
+        />
+        <button
+          type="button"
+          onClick={onLogout}
+          className="inline-flex h-10 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-white/15 !px-3 text-xs font-bold text-white lg:hidden"
+        >
+          <LogOut size={16} />
+          SAIR
+        </button>
+      </div>
+
+      <nav className="flex overflow-x-auto !px-4 !pb-4 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:!px-5">
+        <p className="hidden text-[10px] font-bold uppercase tracking-wider text-zinc-500 lg:!mb-3 lg:block">
+          Menu
+        </p>
+        <div className="flex min-w-max !gap-2 lg:min-w-0 lg:flex-col">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onSectionChange(item.id)}
+                className={`inline-flex h-11 cursor-pointer items-center justify-between !gap-3 rounded-lg !px-3 text-sm font-bold transition-all duration-200 ${
+                  isActive
+                    ? "bg-white text-black"
+                    : "text-zinc-300 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span className="inline-flex items-center !gap-3">
+                  <Icon size={17} />
+                  {item.label}
+                </span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span
+                    className={`rounded-full !px-2 !py-0.5 text-[10px] ${
+                      isActive
+                        ? "bg-black text-white"
+                        : "bg-white/10 text-zinc-200"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className="hidden border-t border-white/10 !p-5 lg:block">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+          Loja online
+        </p>
+        <div className="!mt-3 flex items-center justify-between rounded-lg bg-white/5 !p-3">
+          <div className="flex items-center !gap-3">
+            <Store size={18} />
+            <div>
+              <p className="text-xs font-bold">Shirt Club</p>
+              <p className="text-[11px] text-zinc-400">
+                {pendingOrders} pendente{pendingOrders === 1 ? "" : "s"}
+              </p>
+            </div>
+          </div>
+          <span className="rounded-full bg-emerald-500/15 !px-2 !py-1 text-[10px] font-bold text-emerald-300">
+            Ativo
+          </span>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+const AdminTopbar = ({
+  searchTerm,
+  onSearchTermChange,
+  isLoadingOrders,
+  onRefresh,
+  onLogout,
+}: {
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
+  isLoadingOrders: boolean;
+  onRefresh: () => Promise<void>;
+  onLogout: () => Promise<void>;
+}) => {
+  return (
+    <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
+      <div className="flex min-h-16 flex-col !gap-3 !px-4 !py-3 sm:flex-row sm:items-center sm:justify-between sm:!px-6">
+        <div className="relative w-full max-w-md">
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+          />
+          <input
+            value={searchTerm}
+            onChange={(event) => onSearchTermChange(event.target.value)}
+            placeholder="Buscar pedidos..."
+            className="h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 !pl-10 !pr-4 text-sm outline-none transition-all duration-200 focus:border-black focus:bg-white"
+          />
+        </div>
+
+        <div className="flex !gap-2">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoadingOrders}
+            className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              size={18}
+              className={isLoadingOrders ? "animate-spin" : ""}
+            />
+            ATUALIZAR
+          </button>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="hidden h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 sm:inline-flex"
+          >
+            <LogOut size={18} />
+            SAIR
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+const OrdersPanel = ({
   orders,
-  emptyText,
+  allOrders,
+  visibleOrders,
+  selectedOrder,
+  orderFilter,
+  searchTerm,
+  isLoadingOrders,
+  paidTotal,
+  pendingTotal,
+  customersCount,
+  onFilterChange,
+  onSelectOrder,
   onRefresh,
 }: {
-  title: string;
-  icon: typeof Clock;
-  orders: AdminOrder[];
-  emptyText: string;
+  orders: OrdersResponse;
+  allOrders: AdminOrder[];
+  visibleOrders: AdminOrder[];
+  selectedOrder: AdminOrder | null;
+  orderFilter: OrderFilter;
+  searchTerm: string;
+  isLoadingOrders: boolean;
+  paidTotal: number;
+  pendingTotal: number;
+  customersCount: number;
+  onFilterChange: (filter: OrderFilter) => void;
+  onSelectOrder: (orderId: string) => void;
   onRefresh: () => Promise<void>;
 }) => {
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white !p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center !gap-3">
-          <Icon size={22} />
-          <h2 className="font-[family-name:var(--font-bebas)] text-3xl text-zinc-950">
-            {title}
-          </h2>
-        </div>
+    <>
+      <div className="flex flex-col !gap-1">
+        <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
+          Pedidos
+        </h1>
+        <p className="text-sm text-zinc-500">
+          Gerencie e acompanhe todos os pedidos da loja.
+        </p>
+      </div>
 
-        <span className="rounded-full bg-zinc-100 !px-3 !py-1 text-xs font-bold">
-          {orders.length}
+      <div className="grid grid-cols-1 !gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title="Total de pedidos"
+          value={String(allOrders.length)}
+          helper={`${customersCount} cliente${customersCount === 1 ? "" : "s"}`}
+          icon={ShoppingBag}
+        />
+        <MetricCard
+          title="Pedidos pagos"
+          value={String(orders.paid.length)}
+          helper={formatPrice(paidTotal)}
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <MetricCard
+          title="Pedidos não pagos"
+          value={String(orders.unpaid.length)}
+          helper={formatPrice(pendingTotal)}
+          icon={Clock3}
+          tone="warning"
+        />
+        <MetricCard
+          title="Faturamento"
+          value={formatPrice(paidTotal)}
+          helper="Total confirmado"
+          icon={CircleDollarSign}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 !gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="min-w-0 rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <div className="flex flex-col !gap-4 border-b border-zinc-100 !p-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap !gap-2">
+              <FilterButton
+                label="Todos"
+                count={allOrders.length}
+                active={orderFilter === "all"}
+                onClick={() => onFilterChange("all")}
+              />
+              <FilterButton
+                label="Pagos"
+                count={orders.paid.length}
+                active={orderFilter === "paid"}
+                onClick={() => onFilterChange("paid")}
+              />
+              <FilterButton
+                label="Não pagos"
+                count={orders.unpaid.length}
+                active={orderFilter === "unpaid"}
+                onClick={() => onFilterChange("unpaid")}
+              />
+            </div>
+
+            <button
+              type="button"
+              className="inline-flex h-10 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 !px-3 text-xs font-bold transition-all duration-200 hover:border-black"
+            >
+              <SlidersHorizontal size={16} />
+              FILTROS
+            </button>
+          </div>
+
+          <OrderList
+            orders={visibleOrders}
+            selectedOrderId={selectedOrder?.id || null}
+            searchTerm={searchTerm}
+            isLoadingOrders={isLoadingOrders}
+            onSelectOrder={onSelectOrder}
+            onRefresh={onRefresh}
+          />
+        </section>
+
+        <OrderDetailPanel order={selectedOrder} onRefresh={onRefresh} />
+      </div>
+    </>
+  );
+};
+
+const MetricCard = ({
+  title,
+  value,
+  helper,
+  icon: Icon,
+  tone = "neutral",
+}: {
+  title: string;
+  value: string;
+  helper: string;
+  icon: typeof ShoppingBag;
+  tone?: "neutral" | "success" | "warning";
+}) => {
+  const toneClass = {
+    neutral: "bg-zinc-100 text-zinc-700",
+    success: "bg-emerald-50 text-emerald-700",
+    warning: "bg-amber-50 text-amber-700",
+  }[tone];
+
+  return (
+    <article className="rounded-xl border border-zinc-200 bg-white !p-4 shadow-sm">
+      <div className="flex items-start justify-between !gap-4">
+        <div>
+          <p className="text-xs font-bold text-zinc-500">{title}</p>
+          <strong className="!mt-2 block text-2xl text-zinc-950">
+            {value}
+          </strong>
+          <span className="!mt-1 block text-xs text-zinc-500">{helper}</span>
+        </div>
+        <span
+          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${toneClass}`}
+        >
+          <Icon size={18} />
         </span>
       </div>
+    </article>
+  );
+};
 
-      <div className="!mt-5 flex flex-col !gap-4">
-        {orders.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-zinc-200 !p-8 text-center">
-            <Package className="mx-auto text-zinc-400" size={34} />
-            <p className="!mt-3 text-sm text-zinc-500">{emptyText}</p>
-          </div>
-        ) : (
-          orders.map((order) => (
-            <OrderCard key={order.id} order={order} onRefresh={onRefresh} />
-          ))
+const FilterButton = ({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold transition-all duration-200 ${
+        active
+          ? "bg-black text-white"
+          : "bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950"
+      }`}
+    >
+      {label} <span className="opacity-70">{count}</span>
+    </button>
+  );
+};
+
+const OrderList = ({
+  orders,
+  selectedOrderId,
+  searchTerm,
+  isLoadingOrders,
+  onSelectOrder,
+  onRefresh,
+}: {
+  orders: AdminOrder[];
+  selectedOrderId: string | null;
+  searchTerm: string;
+  isLoadingOrders: boolean;
+  onSelectOrder: (orderId: string) => void;
+  onRefresh: () => Promise<void>;
+}) => {
+  if (orders.length === 0) {
+    return (
+      <div className="!p-10 text-center">
+        <Package className="mx-auto text-zinc-400" size={36} />
+        <p className="!mt-3 text-sm font-bold text-zinc-700">
+          Nenhum pedido encontrado.
+        </p>
+        {searchTerm && (
+          <p className="!mt-1 text-xs text-zinc-500">
+            Tente buscar por outro cliente, produto ou código.
+          </p>
         )}
       </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden">
+      <div className="hidden grid-cols-[1.1fr_1.3fr_0.8fr_0.9fr_0.8fr] border-b border-zinc-100 !px-4 !py-3 text-xs font-bold uppercase text-zinc-500 lg:grid">
+        <span>Pedido</span>
+        <span>Cliente</span>
+        <span>Data</span>
+        <span>Status</span>
+        <span className="text-right">Total</span>
+      </div>
+
+      <div className="divide-y divide-zinc-100">
+        {orders.map((order) => (
+          <OrderRow
+            key={order.id}
+            order={order}
+            isSelected={selectedOrderId === order.id}
+            isLoadingOrders={isLoadingOrders}
+            onSelect={() => onSelectOrder(order.id)}
+            onRefresh={onRefresh}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const OrderRow = ({
+  order,
+  isSelected,
+  isLoadingOrders,
+  onSelect,
+  onRefresh,
+}: {
+  order: AdminOrder;
+  isSelected: boolean;
+  isLoadingOrders: boolean;
+  onSelect: () => void;
+  onRefresh: () => Promise<void>;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <article
+      className={`transition-all duration-200 ${
+        isSelected ? "bg-zinc-50" : "bg-white"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => {
+          onSelect();
+          setIsExpanded((current) => !current);
+        }}
+        aria-expanded={isExpanded}
+        className="grid w-full cursor-pointer grid-cols-1 !gap-3 !px-4 !py-4 text-left lg:grid-cols-[1.1fr_1.3fr_0.8fr_0.9fr_0.8fr] lg:items-center"
+      >
+        <div className="flex items-start !gap-2">
+          <ChevronDown
+            size={17}
+            className={`!mt-0.5 shrink-0 text-zinc-400 transition-transform duration-200 ${
+              isExpanded ? "rotate-180" : ""
+            }`}
+          />
+          <div>
+            <strong className="block text-sm text-zinc-950">{order.id}</strong>
+            <span className="text-xs text-zinc-500">
+              {getOrderItemsCount(order)} item
+              {getOrderItemsCount(order) === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-bold text-zinc-800">
+            {order.customer?.name || "Cliente sem nome"}
+          </p>
+          <p className="text-xs text-zinc-500">{order.customer?.email}</p>
+        </div>
+
+        <span className="text-xs text-zinc-500">{getOrderDate(order)}</span>
+
+        <OrderStatusBadge status={order.status} />
+
+        <strong className="text-left text-sm text-zinc-950 lg:text-right">
+          {formatPrice(order.total)}
+        </strong>
+      </button>
+
+      {isExpanded && (
+        <div className="border-t border-zinc-100 !px-4 !pb-4">
+          <OrderCard order={order} onRefresh={onRefresh} />
+          {isLoadingOrders && (
+            <p className="!mt-2 text-xs text-zinc-400">
+              Atualizando informações do pedido...
+            </p>
+          )}
+        </div>
+      )}
+    </article>
+  );
+};
+
+const OrderStatusBadge = ({ status }: { status: AdminOrder["status"] }) => {
+  const isPaid = status === "paid";
+
+  return (
+    <span
+      className={`inline-flex w-fit items-center !gap-1 rounded-full !px-2.5 !py-1 text-xs font-bold ${
+        isPaid
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-amber-50 text-amber-700"
+      }`}
+    >
+      {isPaid ? <CheckCircle2 size={13} /> : <Clock3 size={13} />}
+      {isPaid ? "Pago" : "Não pago"}
+    </span>
+  );
+};
+
+const OrderDetailPanel = ({
+  order,
+  onRefresh,
+}: {
+  order: AdminOrder | null;
+  onRefresh: () => Promise<void>;
+}) => {
+  if (!order) {
+    return (
+      <aside className="rounded-xl border border-zinc-200 bg-white !p-6 text-center shadow-sm">
+        <Package className="mx-auto text-zinc-400" size={34} />
+        <p className="!mt-3 text-sm font-bold text-zinc-700">
+          Selecione um pedido
+        </p>
+        <p className="!mt-1 text-xs text-zinc-500">
+          Os detalhes completos aparecem aqui.
+        </p>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="h-fit rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm xl:sticky xl:top-24">
+      <div className="flex items-start justify-between !gap-4">
+        <div>
+          <h2 className="font-[family-name:var(--font-bebas)] text-3xl text-zinc-950">
+            Pedido {order.id}
+          </h2>
+          <p className="text-xs text-zinc-500">Realizado em {getOrderDate(order)}</p>
+        </div>
+        <OrderStatusBadge status={order.status} />
+      </div>
+
+      <div className="!mt-5 space-y-5">
+        <DetailBlock title="Cliente">
+          <p className="text-sm font-bold text-zinc-800">
+            {order.customer?.name || "Cliente sem nome"}
+          </p>
+          <p className="text-xs text-zinc-500">{order.customer?.email}</p>
+          <p className="text-xs text-zinc-500">{order.customer?.whatsapp}</p>
+        </DetailBlock>
+
+        <DetailBlock title="Endereço de entrega">
+          <p className="text-xs text-zinc-600">{getAddressLine(order) || "-"}</p>
+          <p className="text-xs text-zinc-600">{getCityLine(order) || "-"}</p>
+          <p className="text-xs text-zinc-600">CEP: {order.customer?.cep || "-"}</p>
+          {order.customer?.notes && (
+            <p className="text-xs text-zinc-500">
+              Observações: {order.customer.notes}
+            </p>
+          )}
+        </DetailBlock>
+
+        <DetailBlock title="Itens do pedido">
+          <ul className="flex flex-col !gap-3">
+            {order.items.map((item, index) => (
+              <li
+                key={`${item.title}-${index}`}
+                className="rounded-lg bg-zinc-50 !p-3 text-sm text-zinc-700"
+              >
+                <span className="font-bold text-zinc-900">
+                  {item.quantity || 1}x {item.title}
+                </span>
+                <span className="block text-xs text-zinc-500">
+                  Tamanho: {item.size || "M"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </DetailBlock>
+
+        <DetailBlock title="Pagamento">
+          <div className="flex items-center justify-between text-sm">
+            <span>Total</span>
+            <strong>{formatPrice(order.total)}</strong>
+          </div>
+          {order.preferenceId && (
+            <p className="!mt-2 break-all text-xs text-zinc-500">
+              Preference: {order.preferenceId}
+            </p>
+          )}
+          {order.paymentId && (
+            <p className="!mt-1 break-all text-xs text-zinc-500">
+              Pagamento: {order.paymentId}
+            </p>
+          )}
+        </DetailBlock>
+
+        {order.status === "unpaid" && (
+          <OrderPaymentButton order={order} onRefresh={onRefresh} />
+        )}
+      </div>
+    </aside>
+  );
+};
+
+const DetailBlock = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => {
+  return (
+    <section className="border-t border-zinc-100 !pt-4">
+      <p className="!mb-2 text-xs font-bold uppercase text-zinc-500">{title}</p>
+      {children}
     </section>
   );
 };
@@ -351,23 +1046,81 @@ const OrderCard = ({
   order: AdminOrder;
   onRefresh: () => Promise<void>;
 }) => {
-  const createdAt = new Date(order.createdAt).toLocaleString("pt-BR");
+  return (
+    <div className="!mt-3 rounded-lg border border-zinc-100 bg-white !p-3">
+      <div className="rounded-lg bg-zinc-50 !p-3">
+        <p className="text-xs font-bold uppercase text-zinc-500">Itens</p>
+        <ul className="!mt-2 flex flex-col !gap-2">
+          {order.items.map((item, index) => (
+            <li key={index} className="text-sm text-zinc-700">
+              {item.quantity || 1}x {item.title} - Tam. {item.size || "M"}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="!mt-3 rounded-lg border border-zinc-100 bg-white !p-3">
+        <p className="text-xs font-bold uppercase text-zinc-500">Endereço</p>
+        <div className="!mt-2 flex flex-col !gap-1 text-xs text-zinc-600">
+          <span>
+            <strong className="text-zinc-700">CEP:</strong>{" "}
+            {order.customer?.cep || "-"}
+          </span>
+          <span>
+            <strong className="text-zinc-700">Rua:</strong>{" "}
+            {getAddressLine(order) || "-"}
+          </span>
+          <span>
+            <strong className="text-zinc-700">Bairro/Cidade:</strong>{" "}
+            {getCityLine(order) || "-"}
+          </span>
+          {order.customer?.notes && (
+            <span>
+              <strong className="text-zinc-700">Observações:</strong>{" "}
+              {order.customer.notes}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="!mt-3 grid grid-cols-1 !gap-2 text-xs text-zinc-500 sm:grid-cols-2">
+        <span>
+          <strong className="text-zinc-700">Criado:</strong>{" "}
+          {getOrderDate(order)}
+        </span>
+        <span>
+          <strong className="text-zinc-700">Cidade:</strong>{" "}
+          {order.customer?.city || "-"} / {order.customer?.state || "-"}
+        </span>
+        {order.preferenceId && (
+          <span className="break-all">
+            <strong className="text-zinc-700">Preference:</strong>{" "}
+            {order.preferenceId}
+          </span>
+        )}
+        {order.paymentId && (
+          <span className="break-all">
+            <strong className="text-zinc-700">Pagamento:</strong>{" "}
+            {order.paymentId}
+          </span>
+        )}
+      </div>
+
+      {order.status === "unpaid" && (
+        <OrderPaymentButton order={order} onRefresh={onRefresh} />
+      )}
+    </div>
+  );
+};
+
+const OrderPaymentButton = ({
+  order,
+  onRefresh,
+}: {
+  order: AdminOrder;
+  onRefresh: () => Promise<void>;
+}) => {
   const [isReconciling, setIsReconciling] = useState(false);
-  const addressLine = [
-    order.customer?.street,
-    order.customer?.number,
-    order.customer?.complement,
-  ]
-    .filter(Boolean)
-    .join(", ");
-  const cityLine = [
-    order.customer?.neighborhood,
-    order.customer?.city &&
-      order.customer?.state &&
-      `${order.customer.city} / ${order.customer.state}`,
-  ]
-    .filter(Boolean)
-    .join(" - ");
 
   const reconcilePayment = async () => {
     setIsReconciling(true);
@@ -390,95 +1143,151 @@ const OrderCard = ({
   };
 
   return (
-    <article className="rounded-lg border border-zinc-200 !p-4">
-      <div className="flex flex-col !gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 className="text-sm font-bold text-zinc-950">{order.id}</h3>
-          <p className="!mt-1 text-sm text-zinc-600">
-            {order.customer?.name || "Cliente sem nome"}
-          </p>
-          <p className="text-xs text-zinc-500">
-            {order.customer?.email} | {order.customer?.whatsapp}
-          </p>
-        </div>
+    <button
+      type="button"
+      onClick={reconcilePayment}
+      disabled={isReconciling}
+      className="!mt-4 inline-flex h-10 w-full cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-xs font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+    >
+      <RefreshCw size={16} className={isReconciling ? "animate-spin" : ""} />
+      VERIFICAR PAGAMENTO
+    </button>
+  );
+};
 
-        <strong className="text-lg text-zinc-950">
-          {formatPrice(order.total)}
-        </strong>
+const DashboardPanel = ({
+  totalOrders,
+  paidOrders,
+  unpaidOrders,
+  paidTotal,
+  pendingTotal,
+  customersCount,
+  onGoToOrders,
+}: {
+  totalOrders: number;
+  paidOrders: number;
+  unpaidOrders: number;
+  paidTotal: number;
+  pendingTotal: number;
+  customersCount: number;
+  onGoToOrders: () => void;
+}) => {
+  return (
+    <>
+      <div className="flex flex-col !gap-1">
+        <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
+          Dashboard
+        </h1>
+        <p className="text-sm text-zinc-500">
+          Visão geral da operação da loja.
+        </p>
       </div>
 
-      <div className="!mt-4 rounded-lg bg-zinc-50 !p-3">
-        <p className="text-xs font-bold uppercase text-zinc-500">Itens</p>
-        <ul className="!mt-2 flex flex-col !gap-2">
-          {order.items.map((item, index) => (
-            <li key={index} className="text-sm text-zinc-700">
-              {item.quantity || 1}x {item.title} - Tam. {item.size || "M"}
-            </li>
-          ))}
-        </ul>
+      <div className="grid grid-cols-1 !gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title="Total de pedidos"
+          value={String(totalOrders)}
+          helper={`${customersCount} cliente${customersCount === 1 ? "" : "s"}`}
+          icon={ShoppingBag}
+        />
+        <MetricCard
+          title="Pedidos pagos"
+          value={String(paidOrders)}
+          helper={formatPrice(paidTotal)}
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <MetricCard
+          title="Pedidos não pagos"
+          value={String(unpaidOrders)}
+          helper={formatPrice(pendingTotal)}
+          icon={Clock3}
+          tone="warning"
+        />
+        <MetricCard
+          title="Faturamento"
+          value={formatPrice(paidTotal)}
+          helper="Total confirmado"
+          icon={BarChart3}
+        />
       </div>
 
-      <div className="!mt-4 rounded-lg border border-zinc-100 bg-white !p-3">
-        <p className="text-xs font-bold uppercase text-zinc-500">Endereço</p>
-        <div className="!mt-2 flex flex-col !gap-1 text-xs text-zinc-600">
-          <span>
-            <strong className="text-zinc-700">CEP:</strong>{" "}
-            {order.customer?.cep || "-"}
-          </span>
-          <span>
-            <strong className="text-zinc-700">Rua:</strong>{" "}
-            {addressLine || "-"}
-          </span>
-          <span>
-            <strong className="text-zinc-700">Bairro/Cidade:</strong>{" "}
-            {cityLine || "-"}
-          </span>
-          {order.customer?.notes && (
-            <span>
-              <strong className="text-zinc-700">Observações:</strong>{" "}
-              {order.customer.notes}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="!mt-4 grid grid-cols-1 !gap-2 text-xs text-zinc-500 sm:grid-cols-2">
-        <span>
-          <strong className="text-zinc-700">Criado:</strong> {createdAt}
-        </span>
-        <span>
-          <strong className="text-zinc-700">Cidade:</strong>{" "}
-          {order.customer?.city || "-"} / {order.customer?.state || "-"}
-        </span>
-        {order.preferenceId && (
-          <span>
-            <strong className="text-zinc-700">Preference:</strong>{" "}
-            {order.preferenceId}
-          </span>
-        )}
-        {order.paymentId && (
-          <span>
-            <strong className="text-zinc-700">Pagamento:</strong>{" "}
-            {order.paymentId}
-          </span>
-        )}
-      </div>
-
-      {order.status === "unpaid" && (
+      <section className="rounded-xl border border-zinc-200 bg-white !p-6 shadow-sm">
+        <h2 className="font-[family-name:var(--font-bebas)] text-3xl text-zinc-950">
+          Próximo passo
+        </h2>
+        <p className="!mt-2 max-w-2xl text-sm text-zinc-500">
+          Por enquanto o painel está focado em pedidos. As outras áreas já ficam
+          preparadas para entrar depois sem bagunçar a tela principal.
+        </p>
         <button
           type="button"
-          onClick={reconcilePayment}
-          disabled={isReconciling}
-          className="!mt-4 inline-flex h-10 w-full items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-xs font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+          onClick={onGoToOrders}
+          className="!mt-5 inline-flex h-11 cursor-pointer items-center justify-center rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
         >
-          <RefreshCw
-            size={16}
-            className={isReconciling ? "animate-spin" : ""}
-          />
-          VERIFICAR PAGAMENTO
+          VER PEDIDOS
         </button>
-      )}
-    </article>
+      </section>
+    </>
+  );
+};
+
+const ComingSoonPanel = ({ section }: { section: AdminSection }) => {
+  const content: Record<
+    Exclude<AdminSection, "dashboard" | "orders">,
+    { title: string; description: string; icon: typeof Package }
+  > = {
+    products: {
+      title: "Produtos",
+      description:
+        "Área reservada para cadastrar e editar produtos depois. Por enquanto, seguimos usando os dados atuais do site.",
+      icon: Package,
+    },
+    clients: {
+      title: "Clientes",
+      description:
+        "Em breve você vai conseguir consultar clientes, histórico de compras e informações de contato.",
+      icon: Users,
+    },
+    coupons: {
+      title: "Cupons",
+      description:
+        "Tela em desenvolvimento para criar descontos, acompanhar uso e controlar validade dos cupons.",
+      icon: Gift,
+    },
+    reviews: {
+      title: "Avaliações",
+      description:
+        "Área em desenvolvimento para gerenciar avaliações dos produtos e feedbacks dos clientes.",
+      icon: Star,
+    },
+    settings: {
+      title: "Configurações",
+      description:
+        "Espaço reservado para ajustes da loja, integrações, dados comerciais e preferências do checkout.",
+      icon: Settings,
+    },
+  };
+  const current = content[section as keyof typeof content];
+  const Icon = current.icon;
+
+  return (
+    <section className="flex min-h-[520px] items-center justify-center rounded-xl border border-zinc-200 bg-white !p-6 text-center shadow-sm">
+      <div className="max-w-md">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 text-zinc-700">
+          <Icon size={28} />
+        </span>
+        <h1 className="!mt-5 font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
+          {current.title}
+        </h1>
+        <p className="!mt-2 text-sm leading-relaxed text-zinc-500">
+          {current.description}
+        </p>
+        <span className="!mt-6 inline-flex rounded-full bg-black !px-4 !py-2 text-xs font-bold uppercase text-white">
+          Em desenvolvimento
+        </span>
+      </div>
+    </section>
   );
 };
 
