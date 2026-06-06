@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CircleAlert, CircleCheck, Clock } from "lucide-react";
 import Footer from "@/app/components/Footer";
 import Header from "@/app/components/header";
+import ClearCartOnSuccess from "./ClearCartOnSuccess";
 
 type CheckoutStatusPageProps = {
   status: "success" | "failure" | "pending";
@@ -34,6 +35,7 @@ const CheckoutStatusPage = ({ status }: CheckoutStatusPageProps) => {
 
   return (
     <div className="flex min-h-screen flex-col">
+      {status === "success" && <ClearCartOnSuccess />}
       <Header />
 
       <main className="container !mx-auto flex flex-1 items-center justify-center !px-4 !py-12 sm:!px-6 lg:!px-0">
