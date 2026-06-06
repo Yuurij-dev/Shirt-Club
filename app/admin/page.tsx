@@ -27,7 +27,8 @@ import {
 import Image from "next/image";
 import { toast } from "sonner";
 import { Coupon, CouponType, getCouponStatus } from "../data/coupons";
-import { formatPrice } from "../utils/price";
+import { products } from "../data/products";
+import { formatPrice, getPriceNumber } from "../utils/price";
 
 type AdminOrder = {
   id: string;
@@ -72,6 +73,7 @@ type AdminSection =
 
 type OrderFilter = "all" | "paid" | "unpaid";
 type CouponFilter = "all" | "active" | "scheduled" | "expired";
+type DashboardPeriod = 7 | 30 | 90;
 
 type CouponsResponse = {
   coupons: Coupon[];
@@ -439,7 +441,7 @@ const AdminPage = () => {
             onLogout={handleLogout}
           />
 
-          <div className="!mx-auto flex max-w-7xl flex-col !gap-6 !p-4 sm:!p-6">
+          <div className="flex w-full max-w-none flex-col !gap-5 !p-3 sm:!p-4 xl:!p-5">
             {activeSection === "orders" && (
               <OrdersPanel
                 orders={orders}
@@ -460,12 +462,7 @@ const AdminPage = () => {
 
             {activeSection === "dashboard" && (
               <DashboardPanel
-                totalOrders={allOrders.length}
-                paidOrders={orders.paid.length}
-                unpaidOrders={orders.unpaid.length}
-                paidTotal={paidTotal}
-                pendingTotal={pendingTotal}
-                customersCount={customersCount}
+                orders={allOrders}
                 onGoToOrders={() => setActiveSection("orders")}
               />
             )}
@@ -2030,80 +2027,875 @@ const formatDate = (date: string) => {
 };
 
 const DashboardPanel = ({
-  totalOrders,
-  paidOrders,
-  unpaidOrders,
-  paidTotal,
-  pendingTotal,
-  customersCount,
+  orders,
   onGoToOrders,
 }: {
-  totalOrders: number;
-  paidOrders: number;
-  unpaidOrders: number;
-  paidTotal: number;
-  pendingTotal: number;
-  customersCount: number;
+  orders: AdminOrder[];
   onGoToOrders: () => void;
 }) => {
+  const [revenuePeriod, setRevenuePeriod] = useState<DashboardPeriod>(7);
+  const [ordersPeriod, setOrdersPeriod] = useState<DashboardPeriod>(7);
+  const paidOrders = orders.filter((order) => order.status === "paid");
+  const unpaidOrders = orders.filter((order) => order.status === "unpaid");
+  const paidTotal = paidOrders.reduce((total, order) => total + order.total, 0);
+  const totalItemsSold = paidOrders.reduce((total, order) => {
+    return total + getOrderItemsCount(order);
+  }, 0);
+  const customersCount = new Set(
+    orders.map((order) => order.customer?.email || order.customer?.whatsapp)
+  ).size;
+  const averageTicket = paidOrders.length > 0 ? paidTotal / paidOrders.length : 0;
+  const paidPercent = orders.length > 0 ? (paidOrders.length / orders.length) * 100 : 0;
+  const unpaidPercent = orders.length > 0 ? (unpaidOrders.length / orders.length) * 100 : 0;
+  const revenueSeries = getDashboardRevenueSeries(paidOrders, revenuePeriod);
+  const orderSeries = getDashboardOrderSeries(orders, ordersPeriod);
+  const periodRevenueTotal = revenueSeries.reduce((total, point) => total + point.value, 0);
+  const periodOrdersTotal = orderSeries.reduce((total, point) => total + point.value, 0);
+  const topProducts = getDashboardTopProducts(orders);
+  const topCities = getDashboardTopCities(orders);
+  const conversionSeries = getDashboardConversionSeries(orders);
+  const conversionRate = orders.length > 0 ? paidPercent : 0;
+
   return (
     <>
-      <div className="flex flex-col !gap-1">
-        <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
-          Dashboard
-        </h1>
-        <p className="text-sm text-zinc-500">
-          Visão geral da operação da loja.
-        </p>
+      <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-950 sm:text-3xl">
+            Olá, Admin!
+          </h1>
+          <p className="!mt-1 text-sm text-zinc-500">
+            Aqui está o resumo da sua loja hoje.
+          </p>
+        </div>
+
+        <div className="inline-flex h-11 w-fit items-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold text-zinc-700 shadow-sm">
+          <CalendarDays size={17} />
+          {getDashboardDateRange()}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 !gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 !gap-3 xl:grid-cols-5">
         <MetricCard
-          title="Total de pedidos"
-          value={String(totalOrders)}
-          helper={`${customersCount} cliente${customersCount === 1 ? "" : "s"}`}
-          icon={ShoppingBag}
-        />
-        <MetricCard
-          title="Pedidos pagos"
-          value={String(paidOrders)}
-          helper={formatPrice(paidTotal)}
-          icon={CheckCircle2}
+          title="Total de vendas"
+          value={formatPrice(paidTotal)}
+          helper="Pedidos pagos"
+          icon={CalendarDays}
           tone="success"
         />
         <MetricCard
-          title="Pedidos não pagos"
-          value={String(unpaidOrders)}
-          helper={formatPrice(pendingTotal)}
-          icon={Clock3}
-          tone="warning"
+          title="Pedidos"
+          value={String(orders.length)}
+          helper={`${unpaidOrders.length} pendente${unpaidOrders.length === 1 ? "" : "s"}`}
+          icon={ShoppingBag}
         />
         <MetricCard
-          title="Faturamento"
-          value={formatPrice(paidTotal)}
-          helper="Total confirmado"
-          icon={BarChart3}
+          title="Ticket médio"
+          value={formatPrice(averageTicket)}
+          helper="Por pedido pago"
+          icon={CircleDollarSign}
+        />
+        <MetricCard
+          title="Novos clientes"
+          value={String(customersCount)}
+          helper="Clientes únicos"
+          icon={Users}
+          tone="success"
+        />
+        <MetricCard
+          title="Produtos vendidos"
+          value={String(totalItemsSold)}
+          helper="Itens pagos"
+          icon={Package}
         />
       </div>
 
-      <section className="rounded-xl border border-zinc-200 bg-white !p-6 shadow-sm">
-        <h2 className="font-[family-name:var(--font-bebas)] text-3xl text-zinc-950">
-          Próximo passo
-        </h2>
-        <p className="!mt-2 max-w-2xl text-sm text-zinc-500">
-          Por enquanto o painel está focado em pedidos. As outras áreas já ficam
-          preparadas para entrar depois sem bagunçar a tela principal.
-        </p>
-        <button
-          type="button"
-          onClick={onGoToOrders}
-          className="!mt-5 inline-flex h-11 cursor-pointer items-center justify-center rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+      <div className="grid grid-cols-1 !gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_380px]">
+        <DashboardChartCard
+          title="Faturamento"
+          value={formatPrice(periodRevenueTotal)}
+          helper="Pedidos pagos no período"
+          period={revenuePeriod}
+          onPeriodChange={setRevenuePeriod}
         >
-          VER PEDIDOS
-        </button>
+          <LineChart points={revenueSeries} formatter={formatPrice} />
+        </DashboardChartCard>
+
+        <DashboardChartCard
+          title="Pedidos"
+          value={String(periodOrdersTotal)}
+          helper="Volume por período"
+          period={ordersPeriod}
+          onPeriodChange={setOrdersPeriod}
+        >
+          <BarChart
+            points={orderSeries}
+            formatter={(value) => `${value} pedido${value === 1 ? "" : "s"}`}
+          />
+        </DashboardChartCard>
+        <DashboardStatusCard
+          paid={paidOrders.length}
+          unpaid={unpaidOrders.length}
+          paidPercent={paidPercent}
+          unpaidPercent={unpaidPercent}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 !gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_320px]">
+        <DashboardRecentOrders orders={orders.slice(0, 5)} onGoToOrders={onGoToOrders} />
+        <DashboardTopProducts products={topProducts} />
+        <div className="flex flex-col !gap-5">
+          <DashboardConversionCard
+            conversionRate={conversionRate}
+            points={conversionSeries}
+          />
+          <DashboardCitiesCard cities={topCities} />
+        </div>
+      </div>
+
+      <section className="rounded-xl border border-emerald-100 bg-emerald-50 !p-4 shadow-sm">
+        <div className="flex flex-col !gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center !gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+              <ShoppingBag size={20} />
+            </span>
+            <div>
+              <p className="font-bold text-emerald-950">Tudo certo!</p>
+              <p className="text-sm text-emerald-800">
+                Não há nenhum problema com sua loja no momento.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onGoToOrders}
+            className="h-11 cursor-pointer rounded-lg border border-emerald-200 bg-white !px-4 text-sm font-bold text-emerald-950 transition-all duration-200 hover:border-emerald-700"
+          >
+            VERIFICAR LOJA
+          </button>
+        </div>
       </section>
     </>
   );
+};
+
+type DashboardChartPoint = {
+  key: string;
+  label: string;
+  value: number;
+};
+
+const dashboardPeriods: DashboardPeriod[] = [7, 30, 90];
+
+const DashboardChartCard = ({
+  title,
+  value,
+  helper,
+  period,
+  onPeriodChange,
+  children,
+}: {
+  title: string;
+  value: string;
+  helper: string;
+  period: DashboardPeriod;
+  onPeriodChange: (period: DashboardPeriod) => void;
+  children: React.ReactNode;
+}) => {
+  return (
+    <section className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+      <div className="flex items-start justify-between !gap-4">
+        <div>
+          <p className="text-sm font-bold text-zinc-950">{title}</p>
+          <div className="!mt-2 flex flex-wrap items-center !gap-2">
+            <strong className="text-2xl text-zinc-950">{value}</strong>
+            <span className="rounded-full bg-emerald-50 !px-2 !py-1 text-xs font-bold text-emerald-700">
+              +12,3%
+            </span>
+          </div>
+          <p className="!mt-1 text-xs text-zinc-500">{helper}</p>
+        </div>
+        <select
+          value={period}
+          onChange={(event) => onPeriodChange(Number(event.target.value) as DashboardPeriod)}
+          className="h-10 cursor-pointer rounded-lg border border-zinc-200 bg-white !px-3 text-xs font-bold text-zinc-700 outline-none transition-all duration-200 hover:border-black focus:border-black"
+          aria-label={'Selecionar período de ' + title.toLowerCase()}
+        >
+          {dashboardPeriods.map((currentPeriod) => (
+            <option key={currentPeriod} value={currentPeriod}>
+              Últimos {currentPeriod} dias
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="!mt-5 h-52 overflow-visible">{children}</div>
+    </section>
+  );
+};
+
+const LineChart = ({
+  points,
+  formatter,
+}: {
+  points: DashboardChartPoint[];
+  formatter: (value: number) => string;
+}) => {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const safePoints = points.length > 0 ? points : getEmptyDashboardPoints(7);
+  const values = safePoints.map((point) => point.value);
+  const maxValue = Math.max(...values, 1);
+  const chartPoints = safePoints.map((point, index) => {
+    const x = (index / Math.max(1, safePoints.length - 1)) * 100;
+    const y = 92 - (point.value / maxValue) * 78;
+
+    return { ...point, x, y };
+  });
+  const visibleLabels = getVisibleDashboardLabels(safePoints);
+  const activePoint = activeIndex === null ? null : chartPoints[activeIndex];
+
+  return (
+    <div className="grid h-full grid-rows-[1fr_auto] !gap-3">
+      <div
+        className="relative min-h-0 border-b border-zinc-100"
+        onMouseLeave={() => setActiveIndex(null)}
+      >
+        <div className="absolute inset-0 flex flex-col justify-between">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <span key={index} className="h-px bg-zinc-100" />
+          ))}
+        </div>
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="relative h-full w-full overflow-visible"
+        >
+          <polyline
+            points={chartPoints.map((point) => point.x + ',' + point.y).join(' ')}
+            fill="none"
+            stroke="black"
+            strokeWidth="2.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        {chartPoints.map((point, index) => (
+          <span
+            key={point.key + '-dot-' + index}
+            className={`pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black transition-all duration-150 ${
+              activeIndex === index ? "h-2.5 w-2.5" : "h-1.5 w-1.5"
+            }`}
+            style={{ left: point.x + "%", top: point.y + "%" }}
+          />
+        ))}
+        <div className="absolute inset-0 flex">
+          {chartPoints.map((point, index) => (
+            <button
+              key={point.key + '-hover-' + index}
+              type="button"
+              className="h-full flex-1 cursor-crosshair"
+              aria-label={point.label + ': ' + formatter(point.value)}
+              onMouseEnter={() => setActiveIndex(index)}
+              onFocus={() => setActiveIndex(index)}
+              onBlur={() => setActiveIndex(null)}
+            />
+          ))}
+        </div>
+        {activePoint && (
+          <DashboardChartTooltip
+            left={activePoint.x}
+            top={activePoint.y}
+            label={activePoint.label}
+            value={formatter(activePoint.value)}
+          />
+        )}
+      </div>
+      <DashboardChartLabels labels={visibleLabels} />
+    </div>
+  );
+};
+
+const BarChart = ({
+  points,
+  formatter,
+}: {
+  points: DashboardChartPoint[];
+  formatter: (value: number) => string;
+}) => {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const safePoints = points.length > 0 ? points : getEmptyDashboardPoints(7);
+  const maxValue = Math.max(...safePoints.map((point) => point.value), 1);
+  const visibleLabels = getVisibleDashboardLabels(safePoints);
+  const activePoint = activeIndex === null ? null : safePoints[activeIndex];
+  const activeLeft = activeIndex === null
+    ? 0
+    : ((activeIndex + 0.5) / Math.max(1, safePoints.length)) * 100;
+  const activeTop = activePoint
+    ? 100 - Math.max(8, (activePoint.value / maxValue) * 100)
+    : 0;
+
+  return (
+    <div className="grid h-full grid-rows-[1fr_auto] !gap-3">
+      <div
+        className="relative flex min-h-0 items-end justify-between !gap-2 border-b border-zinc-100 !px-2"
+        onMouseLeave={() => setActiveIndex(null)}
+      >
+        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <span key={index} className="h-px bg-zinc-100" />
+          ))}
+        </div>
+        {safePoints.map((point, index) => (
+          <button
+            key={point.key + '-' + index}
+            type="button"
+            className="relative z-10 flex h-full flex-1 cursor-crosshair items-end justify-center"
+            aria-label={point.label + ': ' + formatter(point.value)}
+            onMouseEnter={() => setActiveIndex(index)}
+            onFocus={() => setActiveIndex(index)}
+            onBlur={() => setActiveIndex(null)}
+          >
+            <span
+              className={[
+                'block w-full max-w-8 rounded-t-md transition-all duration-200',
+                activeIndex === index ? 'bg-zinc-700' : 'bg-black',
+              ].join(' ')}
+              style={{ height: Math.max(8, (point.value / maxValue) * 100) + '%' }}
+            />
+          </button>
+        ))}
+        {activePoint && (
+          <DashboardChartTooltip
+            left={activeLeft}
+            top={activeTop}
+            label={activePoint.label}
+            value={formatter(activePoint.value)}
+          />
+        )}
+      </div>
+      <DashboardChartLabels labels={visibleLabels} />
+    </div>
+  );
+};
+
+const DashboardChartTooltip = ({
+  left,
+  top,
+  label,
+  value,
+}: {
+  left: number;
+  top: number;
+  label: string;
+  value: string;
+}) => {
+  const safeLeft = Math.min(84, Math.max(16, left));
+  const safeTop = Math.min(88, Math.max(18, top));
+
+  return (
+    <div
+      className="pointer-events-none absolute z-20 min-w-20 -translate-x-1/2 -translate-y-[calc(100%+8px)] rounded-md bg-zinc-950 !px-2.5 !py-1.5 text-center text-[10px] text-white shadow-lg"
+      style={{ left: safeLeft + '%', top: safeTop + '%' }}
+    >
+      <span className="block font-medium text-zinc-300">{label}</span>
+      <strong className="block whitespace-nowrap text-xs">{value}</strong>
+    </div>
+  );
+};
+
+const DashboardChartLabels = ({ labels }: { labels: string[] }) => {
+  return (
+    <div className="flex items-center justify-between text-[10px] font-medium text-zinc-500">
+      {labels.map((label, index) => (
+        <span key={label + '-' + index}>{label}</span>
+      ))}
+    </div>
+  );
+};
+
+const DashboardStatusCard = ({
+  paid,
+  unpaid,
+  paidPercent,
+  unpaidPercent,
+}: {
+  paid: number;
+  unpaid: number;
+  paidPercent: number;
+  unpaidPercent: number;
+}) => {
+  const canceled = 0;
+  const canceledPercent = 0;
+
+  return (
+    <section className="flex h-full flex-col rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+      <h2 className="text-sm font-bold text-zinc-950">Status dos pedidos</h2>
+      <div className="flex flex-1 flex-col items-center justify-center !gap-6 !pt-5 sm:flex-row xl:flex-col 2xl:flex-row">
+        <DashboardDonutChart
+          segments={[
+            { label: "Pagos", value: paid, percent: paidPercent, color: "#22c55e" },
+            { label: "Não pagos", value: unpaid, percent: unpaidPercent, color: "#fbbf24" },
+            { label: "Cancelados", value: canceled, percent: canceledPercent, color: "#ef4444" },
+          ]}
+        />
+        <div className="flex w-full flex-col !gap-4 text-sm">
+          <DashboardLegend color="bg-emerald-500" label="Pagos" value={paid} percent={paidPercent} />
+          <DashboardLegend color="bg-amber-400" label="Não pagos" value={unpaid} percent={unpaidPercent} />
+          <DashboardLegend color="bg-red-500" label="Cancelados" value={canceled} percent={canceledPercent} />
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const DashboardDonutChart = ({
+  segments,
+}: {
+  segments: Array<{ label: string; value: number; percent: number; color: string }>;
+}) => {
+  const [activeSegment, setActiveSegment] = useState<{
+    label: string;
+    value: number;
+    percent: number;
+  } | null>(null);
+  const radius = 46;
+  const circumference = 2 * Math.PI * radius;
+  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+  let offset = 0;
+
+  return (
+    <div className="relative h-40 w-40 shrink-0" onMouseLeave={() => setActiveSegment(null)}>
+      <svg
+        viewBox="0 0 120 120"
+        className="h-40 w-40 -rotate-90"
+        role="img"
+        aria-label="Gráfico de status dos pedidos"
+      >
+        <circle
+          cx="60"
+          cy="60"
+          r={radius}
+          fill="none"
+          stroke="#f4f4f5"
+          strokeWidth="18"
+        />
+        {total > 0 &&
+          segments.map((segment, index) => {
+            const dash = (segment.value / total) * circumference;
+            const currentOffset = offset;
+            offset += dash;
+
+            if (segment.value <= 0) return null;
+
+            return (
+              <circle
+                key={segment.color + '-' + index}
+                cx="60"
+                cy="60"
+                r={radius}
+                fill="none"
+                stroke={segment.color}
+                strokeWidth="18"
+                strokeDasharray={Math.max(0, dash - 4) + ' ' + circumference}
+                strokeDashoffset={-currentOffset}
+                strokeLinecap="round"
+                className="cursor-crosshair transition-opacity duration-150 hover:opacity-80"
+                onMouseEnter={() => setActiveSegment(segment)}
+                onFocus={() => setActiveSegment(segment)}
+              />
+            );
+          })}
+      </svg>
+      {activeSegment && (
+        <DashboardChartTooltip
+          left={50}
+          top={52}
+          label={activeSegment.label}
+          value={activeSegment.value + ' (' + activeSegment.percent.toFixed(1).replace('.', ',') + '%)'}
+        />
+      )}
+    </div>
+  );
+};
+
+const DashboardLegend = ({
+  color,
+  label,
+  value,
+  percent,
+}: {
+  color: string;
+  label: string;
+  value: number;
+  percent: number;
+}) => {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center !gap-4">
+      <span className="inline-flex min-w-0 items-center !gap-2 text-zinc-600">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${color}`} />
+        {label}
+      </span>
+      <strong className="whitespace-nowrap text-right text-xs text-zinc-950">
+        {value} ({percent.toFixed(1).replace(".", ",")}%)
+      </strong>
+    </div>
+  );
+};
+
+const DashboardRecentOrders = ({
+  orders,
+  onGoToOrders,
+}: {
+  orders: AdminOrder[];
+  onGoToOrders: () => void;
+}) => {
+  return (
+    <section className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-zinc-100 !p-4">
+        <h2 className="text-sm font-bold text-zinc-950">Pedidos recentes</h2>
+        <button
+          type="button"
+          onClick={onGoToOrders}
+          className="h-9 cursor-pointer rounded-lg border border-zinc-200 !px-3 text-xs font-bold transition-all duration-200 hover:border-black"
+        >
+          Ver todos
+        </button>
+      </div>
+      <div className="divide-y divide-zinc-100">
+        {orders.length === 0 ? (
+          <p className="!p-4 text-sm text-zinc-500">Nenhum pedido recente.</p>
+        ) : (
+          orders.map((order) => (
+            <div key={order.id} className="grid grid-cols-1 !gap-2 !p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
+              <div>
+                <p className="text-sm font-bold text-zinc-950">{order.id}</p>
+                <p className="text-xs text-zinc-500">{getOrderDate(order)}</p>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-zinc-700">{order.customer?.name || "Cliente"}</p>
+                <p className="text-xs text-zinc-500">{order.customer?.email}</p>
+              </div>
+              <div className="flex items-center justify-between !gap-3 sm:justify-end">
+                <OrderStatusBadge status={order.status} />
+                <strong className="text-sm text-zinc-950">{formatPrice(order.total)}</strong>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+};
+
+const DashboardTopProducts = ({
+  products: topProducts,
+}: {
+  products: Array<{
+    id: string;
+    name: string;
+    image: string;
+    sales: number;
+    revenue: number;
+  }>;
+}) => {
+  return (
+    <section className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-zinc-100 !p-4">
+        <h2 className="text-sm font-bold text-zinc-950">Produtos mais vendidos</h2>
+        <span className="rounded-lg border border-zinc-200 !px-3 !py-2 text-xs font-bold text-zinc-600">
+          Top 5
+        </span>
+      </div>
+      <div className="divide-y divide-zinc-100">
+        {topProducts.map((product, index) => (
+          <div key={product.id} className="flex items-center !gap-3 !p-4">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold">
+              {index + 1}
+            </span>
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+              <Image src={product.image} alt={product.name} fill sizes="56px" className="object-cover" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="line-clamp-1 text-sm font-bold text-zinc-950">{product.name}</p>
+              <p className="text-xs text-zinc-500">{product.sales} venda{product.sales === 1 ? "" : "s"}</p>
+            </div>
+            <strong className="text-sm text-zinc-950">{formatPrice(product.revenue)}</strong>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const DashboardConversionCard = ({
+  conversionRate,
+  points,
+}: {
+  conversionRate: number;
+  points: DashboardChartPoint[];
+}) => {
+  return (
+    <section className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+      <p className="text-sm font-bold text-zinc-950">Conversão da loja</p>
+      <div className="!mt-3 flex items-center !gap-2">
+        <strong className="text-3xl text-zinc-950">
+          {conversionRate.toFixed(2).replace('.', ',')}%
+        </strong>
+        <span className="rounded-full bg-emerald-50 !px-2 !py-1 text-xs font-bold text-emerald-700">
+          +12,3%
+        </span>
+      </div>
+      <p className="!mt-1 text-xs text-zinc-500">Pedidos pagos sobre pedidos criados</p>
+      <div className="!mt-5 h-24 overflow-visible">
+        <ConversionLineChart points={points} />
+      </div>
+    </section>
+  );
+};
+
+const ConversionLineChart = ({ points }: { points: DashboardChartPoint[] }) => {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const safePoints = points.length > 0 ? points : getEmptyDashboardPoints(7);
+  const maxValue = Math.max(...safePoints.map((point) => point.value), 100);
+  const chartPoints = safePoints.map((point, index) => {
+    const x = (index / Math.max(1, safePoints.length - 1)) * 100;
+    const y = 88 - (point.value / maxValue) * 72;
+
+    return { ...point, x, y };
+  });
+  const activePoint = activeIndex === null ? null : chartPoints[activeIndex];
+
+  return (
+    <div
+      className="relative h-full border-b border-zinc-100"
+      onMouseLeave={() => setActiveIndex(null)}
+    >
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="relative h-full w-full overflow-visible"
+      >
+        <polyline
+          points={chartPoints.map((point) => point.x + ',' + point.y).join(' ')}
+          fill="none"
+          stroke="#16a34a"
+          strokeWidth="3"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      {chartPoints.map((point, index) => (
+        <span
+          key={point.key + '-conversion-dot-' + index}
+          className={`pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-600 transition-all duration-150 ${
+            activeIndex === index ? "h-2.5 w-2.5" : "h-0 w-0"
+          }`}
+          style={{ left: point.x + "%", top: point.y + "%" }}
+        />
+      ))}
+      <div className="absolute inset-0 flex">
+        {chartPoints.map((point, index) => (
+          <button
+            key={point.key + '-conversion-hover-' + index}
+            type="button"
+            className="h-full flex-1 cursor-crosshair"
+            aria-label={point.label + ': ' + point.value.toFixed(2).replace('.', ',') + '%'}
+            onMouseEnter={() => setActiveIndex(index)}
+            onFocus={() => setActiveIndex(index)}
+            onBlur={() => setActiveIndex(null)}
+          />
+        ))}
+      </div>
+      {activePoint && (
+        <DashboardChartTooltip
+          left={activePoint.x}
+          top={activePoint.y}
+          label={activePoint.label}
+          value={activePoint.value.toFixed(2).replace('.', ',') + '%'}
+        />
+      )}
+    </div>
+  );
+};
+
+const DashboardCitiesCard = ({
+  cities,
+}: {
+  cities: Array<{ city: string; count: number }>;
+}) => {
+  return (
+    <section className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold text-zinc-950">Top cidades</p>
+        <span className="text-xs font-bold text-zinc-500">Ver todas</span>
+      </div>
+      <div className="!mt-4 flex flex-col !gap-3">
+        {cities.length === 0 ? (
+          <p className="text-sm text-zinc-500">Sem cidades registradas.</p>
+        ) : (
+          cities.map((city) => (
+            <div key={city.city} className="flex items-center justify-between !gap-3 text-sm">
+              <span className="text-zinc-700">{city.city}</span>
+              <strong className="text-zinc-950">{city.count} pedido{city.count === 1 ? "" : "s"}</strong>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+};
+
+const getDashboardRevenueSeries = (
+  orders: AdminOrder[],
+  period: DashboardPeriod
+) => {
+  return getDashboardPeriodPoints(orders, period, (order) => order.total);
+};
+
+const getDashboardOrderSeries = (
+  orders: AdminOrder[],
+  period: DashboardPeriod
+) => {
+  return getDashboardPeriodPoints(orders, period, () => 1);
+};
+
+const getDashboardConversionSeries = (orders: AdminOrder[]) => {
+  const totalPoints = getDashboardPeriodPoints(orders, 7, () => 1);
+  const paidPoints = getDashboardPeriodPoints(
+    orders.filter((order) => order.status === "paid"),
+    7,
+    () => 1
+  );
+
+  return totalPoints.map((point, index) => {
+    const total = point.value;
+    const paid = paidPoints[index]?.value || 0;
+
+    return {
+      ...point,
+      value: total > 0 ? (paid / total) * 100 : 0,
+    };
+  });
+};
+
+const getDashboardPeriodPoints = (
+  orders: AdminOrder[],
+  period: DashboardPeriod,
+  getValue: (order: AdminOrder) => number
+): DashboardChartPoint[] => {
+  const points = getEmptyDashboardPoints(period);
+  const valuesByDate = new Map(points.map((point) => [point.key, 0]));
+
+  orders.forEach((order) => {
+    const dateKey = getDashboardDateKey(new Date(order.createdAt));
+
+    if (!valuesByDate.has(dateKey)) return;
+
+    valuesByDate.set(dateKey, (valuesByDate.get(dateKey) || 0) + getValue(order));
+  });
+
+  return points.map((point) => ({
+    ...point,
+    value: valuesByDate.get(point.key) || 0,
+  }));
+};
+
+const getEmptyDashboardPoints = (period: DashboardPeriod) => {
+  const today = new Date();
+
+  return Array.from({ length: period }).map((_, index) => {
+    const date = new Date(today);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(today.getDate() - (period - 1 - index));
+
+    return {
+      key: getDashboardDateKey(date),
+      label: date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+      }),
+      value: 0,
+    };
+  });
+};
+
+const getDashboardDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getVisibleDashboardLabels = (points: DashboardChartPoint[]) => {
+  if (points.length <= 7) return points.map((point) => point.label);
+
+  const lastIndex = points.length - 1;
+  const indexes = [0, Math.floor(lastIndex / 4), Math.floor(lastIndex / 2), Math.ceil((lastIndex * 3) / 4), lastIndex];
+
+  return indexes.map((index) => points[index]?.label).filter(Boolean);
+};
+
+const getDashboardTopProducts = (orders: AdminOrder[]) => {
+  const productSales = new Map<string, { sales: number; revenue: number }>();
+
+  orders.forEach((order) => {
+    order.items.forEach((item) => {
+      const title = item.title || "Produto";
+      const quantity = item.quantity || 1;
+      const product = products.find((currentProduct) => currentProduct.name === title);
+      const unitPrice = product
+        ? getPriceNumber(product.price)
+        : order.total / Math.max(1, getOrderItemsCount(order));
+      const current = productSales.get(title) || { sales: 0, revenue: 0 };
+
+      productSales.set(title, {
+        sales: current.sales + quantity,
+        revenue: current.revenue + unitPrice * quantity,
+      });
+    });
+  });
+
+  const rankedProducts = products.map((product, index) => {
+    const sale = productSales.get(product.name);
+    const fallbackSales = Math.max(1, 5 - index);
+
+    return {
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      sales: sale?.sales ?? fallbackSales,
+      revenue: sale?.revenue ?? getPriceNumber(product.price) * fallbackSales,
+    };
+  });
+
+  return rankedProducts.sort((first, second) => second.sales - first.sales).slice(0, 5);
+};
+
+const getDashboardTopCities = (orders: AdminOrder[]) => {
+  const cities = new Map<string, number>();
+
+  orders.forEach((order) => {
+    const city = [order.customer?.city, order.customer?.state]
+      .filter(Boolean)
+      .join(" / ");
+
+    if (!city) return;
+
+    cities.set(city, (cities.get(city) || 0) + 1);
+  });
+
+  return [...cities.entries()]
+    .map(([city, count]) => ({ city, count }))
+    .sort((first, second) => second.count - first.count)
+    .slice(0, 5);
+};
+
+const getDashboardDateRange = () => {
+  const formatter = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+  const today = new Date();
+
+  return `${formatter.format(today)} - ${formatter.format(today)}`;
 };
 
 const ComingSoonPanel = ({ section }: { section: AdminSection }) => {
