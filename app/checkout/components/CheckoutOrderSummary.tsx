@@ -25,7 +25,7 @@ const CheckoutOrderSummary = ({
   const installment = total / 12;
 
   return (
-    <aside className="lg:sticky lg:top-6">
+    <div>
       <div className="rounded-xl border border-zinc-200 bg-white !p-5">
         <div className="flex items-center !gap-3">
           <PackageCheck size={22} />
@@ -112,7 +112,7 @@ const CheckoutOrderSummary = ({
           </div>
         </div>
       </div>
-    </aside>
+    </div>
   );
 };
 

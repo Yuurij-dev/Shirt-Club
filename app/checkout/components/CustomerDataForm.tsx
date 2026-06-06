@@ -10,6 +10,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
+import CartCouponCard from "@/app/carrinho/components/CartCouponCard";
 import type { CartItem } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/utils/price";
 
@@ -596,6 +597,10 @@ const CustomerDataForm = ({
           />
         </label>
       </section>
+
+      <div className="lg:hidden">
+        <CartCouponCard />
+      </div>
 
       <section className="rounded-xl border border-zinc-200 bg-white !p-5">
         <div className="flex items-center !gap-3">
