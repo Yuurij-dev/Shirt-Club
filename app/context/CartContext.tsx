@@ -191,6 +191,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const clearCart = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(couponStorageKey);
+    }
+
     setItems([]);
     setAppliedCoupon(null);
   };
