@@ -152,7 +152,9 @@ const AdminPage = () => {
     const response = await fetch("/api/admin/orders");
 
     if (!response.ok) {
-      setIsAuthenticated(false);
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+      }
       return null;
     }
 
@@ -178,7 +180,9 @@ const AdminPage = () => {
     const response = await fetch("/api/admin/coupons");
 
     if (!response.ok) {
-      setIsAuthenticated(false);
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+      }
       return null;
     }
 

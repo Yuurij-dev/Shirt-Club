@@ -58,9 +58,16 @@ export const GET = async () => {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const coupons = await listCoupons();
+  try {
+    const coupons = await listCoupons();
 
-  return NextResponse.json({ coupons });
+    return NextResponse.json({ coupons });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Não foi possível buscar os cupons";
+
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 };
 
 export const POST = async (request: Request) => {

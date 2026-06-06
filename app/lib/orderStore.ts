@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { incrementCouponUsageByCode } from "@/app/lib/couponStore";
 
 export type OrderStatus = "unpaid" | "paid";
 
@@ -7,6 +8,7 @@ export type StoredOrder = {
   id: string;
   customer: unknown;
   items: unknown[];
+  coupon?: unknown | null;
   status: OrderStatus;
   total: number;
   preferenceId?: string | null;
@@ -19,6 +21,7 @@ type SupabaseOrder = {
   id: string;
   customer: unknown;
   items: unknown[];
+  coupon?: unknown | null;
   status: OrderStatus;
   total: number;
   preference_id?: string | null;
@@ -52,6 +55,7 @@ const toStoredOrder = (order: SupabaseOrder): StoredOrder => {
     id: order.id,
     customer: order.customer,
     items: order.items,
+    coupon: order.coupon,
     status: order.status,
     total: order.total,
     preferenceId: order.preference_id,
@@ -66,6 +70,7 @@ const toSupabaseOrder = (order: StoredOrder) => {
     id: order.id,
     customer: order.customer,
     items: order.items,
+    coupon: order.coupon ?? null,
     status: order.status,
     total: order.total,
     preference_id: order.preferenceId,
@@ -88,6 +93,31 @@ const readLocalOrders = async (): Promise<StoredOrder[]> => {
 const writeLocalOrders = async (orders: StoredOrder[]) => {
   await fs.mkdir(path.dirname(localOrdersFile), { recursive: true });
   await fs.writeFile(localOrdersFile, JSON.stringify(orders, null, 2));
+};
+
+const getCouponCodeFromOrder = (order?: StoredOrder | null) => {
+  if (!order?.coupon || typeof order.coupon !== "object") return null;
+  if (!("code" in order.coupon)) return null;
+
+  return typeof order.coupon.code === "string" ? order.coupon.code : null;
+};
+
+const registerCouponUsageIfNeeded = async ({
+  previousOrder,
+  nextStatus,
+}: {
+  previousOrder?: StoredOrder | null;
+  nextStatus: OrderStatus;
+}) => {
+  if (!previousOrder || previousOrder.status === "paid" || nextStatus !== "paid") {
+    return;
+  }
+
+  const couponCode = getCouponCodeFromOrder(previousOrder);
+
+  if (couponCode) {
+    await incrementCouponUsageByCode(couponCode);
+  }
 };
 
 const createSupabaseOrder = async (order: StoredOrder) => {
@@ -128,6 +158,9 @@ const updateSupabaseOrderStatus = async ({
   status: OrderStatus;
   paymentId?: string | null;
 }) => {
+  const existingOrder = (await listSupabaseOrders()).find((order) => {
+    return order.id === orderId;
+  });
   const response = await fetch(
     `${process.env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`,
     {
@@ -144,6 +177,11 @@ const updateSupabaseOrderStatus = async ({
   if (!response.ok) {
     throw new Error("Não foi possível atualizar o pedido no Supabase");
   }
+
+  await registerCouponUsageIfNeeded({
+    previousOrder: existingOrder,
+    nextStatus: status,
+  });
 };
 
 export const createOrder = async (order: StoredOrder) => {
@@ -180,6 +218,7 @@ export const updateOrderStatus = async ({
 
   const orders = await readLocalOrders();
   const updatedAt = new Date().toISOString();
+  const existingOrder = orders.find((order) => order.id === orderId);
 
   await writeLocalOrders(
     orders.map((order) => {
@@ -193,8 +232,12 @@ export const updateOrderStatus = async ({
       };
     })
   );
-};
 
+  await registerCouponUsageIfNeeded({
+    previousOrder: existingOrder,
+    nextStatus: status,
+  });
+};
 export const updateOrderStatusByPreferenceId = async ({
   preferenceId,
   status,

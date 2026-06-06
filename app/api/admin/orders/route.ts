@@ -7,10 +7,17 @@ export const GET = async () => {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const orders = await listOrders();
+  try {
+    const orders = await listOrders();
 
-  return NextResponse.json({
-    unpaid: orders.filter((order) => order.status === "unpaid"),
-    paid: orders.filter((order) => order.status === "paid"),
-  });
+    return NextResponse.json({
+      unpaid: orders.filter((order) => order.status === "unpaid"),
+      paid: orders.filter((order) => order.status === "paid"),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Não foi possível buscar os pedidos";
+
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 };
