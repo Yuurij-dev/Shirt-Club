@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import {
   CreditCard,
+  ClipboardCheck,
   Loader2,
   Lock,
   MapPin,
@@ -267,6 +268,33 @@ const CustomerDataForm = ({
     handleChange("cpf", formatCpf(value));
   };
 
+  const fillTestCheckoutData = () => {
+    setFormData({
+      name: "Cliente Teste",
+      cpf: "529.982.247-25",
+      email: "cliente.teste@email.com",
+      whatsapp: "(61) 99999-9999",
+      cep: "71587-648",
+      street: "Quadra 3 Conjunto 4 Lote 1 Bloco N",
+      number: "12",
+      complement: "Casa",
+      neighborhood: "Paranoa Parque",
+      city: "Brasilia",
+      state: "DF",
+      notes: "Pedido preenchido automaticamente para teste.",
+    });
+
+    setCepLookupError("");
+    setTouchedFields(
+      requiredFields.reduce((fields, field) => {
+        return {
+          ...fields,
+          [field]: true,
+        };
+      }, {} as Partial<Record<keyof CheckoutFormData, boolean>>)
+    );
+  };
+
   const fetchAddressByCep = async (cep: string) => {
     const digits = onlyDigits(cep);
 
@@ -413,11 +441,22 @@ const CustomerDataForm = ({
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col !gap-6">
       <section className="rounded-xl border border-zinc-200 bg-white !p-5">
-        <div className="flex items-center !gap-3">
-          <User size={22} />
-          <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
-            DADOS DO CLIENTE
-          </h2>
+        <div className="flex flex-col !gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center !gap-3">
+            <User size={22} />
+            <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
+              DADOS DO CLIENTE
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={fillTestCheckoutData}
+            className="inline-flex h-10 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-xs font-bold text-zinc-950 transition-all duration-200 hover:border-black hover:bg-zinc-50"
+          >
+            <ClipboardCheck size={16} />
+            PREENCHER TESTE
+          </button>
         </div>
 
         <div className="!mt-5 grid grid-cols-1 !gap-4 md:grid-cols-2">
