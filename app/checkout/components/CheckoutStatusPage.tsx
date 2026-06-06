@@ -13,19 +13,19 @@ const statusContent = {
     icon: CircleCheck,
     title: "PAGAMENTO APROVADO",
     description:
-      "Recebemos a confirmação do pagamento. Em breve vamos preparar seu pedido.",
+      "Recebemos a confirma\u00e7\u00e3o do pagamento. Em breve vamos preparar seu pedido. Voc\u00ea receber\u00e1 as informa\u00e7\u00f5es pelo WhatsApp e e-mail.",
   },
   failure: {
     icon: CircleAlert,
-    title: "PAGAMENTO NAO CONCLUIDO",
+    title: "PAGAMENTO N\u00c3O CONCLU\u00cdDO",
     description:
-      "O pagamento não foi concluído. Você pode voltar ao carrinho e tentar novamente.",
+      "O pagamento n\u00e3o foi conclu\u00eddo. Voc\u00ea pode voltar ao carrinho e tentar novamente.",
   },
   pending: {
     icon: Clock,
     title: "PAGAMENTO PENDENTE",
     description:
-      "Seu pagamento ainda está em análise. Assim que houver confirmação, o pedido será atualizado.",
+      "Seu pagamento ainda est\u00e1 em an\u00e1lise. Assim que houver confirma\u00e7\u00e3o, o pedido ser\u00e1 atualizado.",
   },
 };
 
