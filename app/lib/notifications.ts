@@ -60,6 +60,21 @@ const getOrderItemsText = (order: StoredOrder) => {
     .join("\n");
 };
 
+const escapeHtml = (value: string) => {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+const getLogoUrl = () => {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+
+  return appUrl ? `${appUrl}/assets/logo.png` : null;
+};
+
 const createPaidOrderMessage = (order: StoredOrder) => {
   const customer = getCustomer(order);
   const customerName = customer.name || "cliente";
@@ -169,6 +184,122 @@ const createDeliveryStatusMessage = (
   };
 };
 
+const createDeliveryStatusEmailMessage = (
+  order: StoredOrder,
+  deliveryStatus: DeliveryStatus
+) => {
+  const customer = getCustomer(order);
+  const customerName = customer.name || "cliente";
+  const logoUrl = getLogoUrl();
+
+  const content: Record<
+    DeliveryStatus,
+    {
+      intro: string;
+      currentStatus: string;
+      nextStep: string;
+      message: string;
+    }
+  > = {
+    not_separated: {
+      intro: `Temos uma atualiza\u00e7\u00e3o sobre o seu pedido #${order.id}. Ele voltou para nossa fila de prepara\u00e7\u00e3o.`,
+      currentStatus: "Pedido em prepara\u00e7\u00e3o",
+      nextStep: "Separa\u00e7\u00e3o do pedido",
+      message:
+        "Assim que tivermos uma nova atualiza\u00e7\u00e3o, avisaremos voc\u00ea por aqui.",
+    },
+    separated: {
+      intro: `Seu pedido #${order.id} j\u00e1 foi separado.`,
+      currentStatus: "Pedido separado",
+      nextStep: "Envio do pedido",
+      message: "Assim que ele for enviado, avisaremos voc\u00ea por aqui.",
+    },
+    shipped: {
+      intro: `Boa not\u00edcia: seu pedido #${order.id} acabou de ser enviado.`,
+      currentStatus: "Pedido enviado",
+      nextStep: "Entrega do pedido",
+      message: "Agora \u00e9 s\u00f3 ficar de olho. Em breve ele chega por a\u00ed.",
+    },
+    delivered: {
+      intro: `Seu pedido #${order.id} foi marcado como entregue.`,
+      currentStatus: "Pedido entregue",
+      nextStep: "Aproveitar sua camisa",
+      message: "Esperamos que voc\u00ea curta muito sua camisa.",
+    },
+    canceled: {
+      intro: `Passando para avisar que o pedido #${order.id} foi cancelado.`,
+      currentStatus: "Pedido cancelado",
+      nextStep: "Falar com nossa equipe, se precisar",
+      message:
+        "Se isso n\u00e3o foi esperado ou se voc\u00ea tiver qualquer d\u00favida, chama nossa equipe por aqui.",
+    },
+  };
+
+  const statusContent = content[deliveryStatus];
+  const text = [
+    "Atualiza\u00e7\u00e3o do pedido",
+    "",
+    `Ol\u00e1, ${customerName}! \u{1f4e6}`,
+    "",
+    statusContent.intro,
+    "",
+    "Status atual:",
+    statusContent.currentStatus,
+    "",
+    "Pr\u00f3xima etapa:",
+    statusContent.nextStep,
+    "",
+    statusContent.message,
+    "",
+    "Atenciosamente,",
+    "Equipe Shirt Club - Camisas que carregam hist\u00f3ria.",
+  ].join("\n");
+
+  return {
+    subject: `Atualiza\u00e7\u00e3o do pedido ${order.id} - Shirt Club`,
+    text,
+    html: `
+      <div style="margin: 0; padding: 0; background: #f5f5f5; font-family: Arial, sans-serif; color: #111;">
+        <div style="max-width: 560px; margin: 0 auto; padding: 32px 18px;">
+          <div style="background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 28px;">
+            ${
+              logoUrl
+                ? `<img src="${logoUrl}" width="92" alt="Shirt Club" style="display: block; margin: 0 0 28px; width: 92px; height: auto;" />`
+                : ""
+            }
+            <h1 style="font-size: 28px; line-height: 1.1; margin: 0 0 24px; color: #000;">Atualiza&ccedil;&atilde;o do pedido</h1>
+            <p style="font-size: 16px; line-height: 1.6; margin: 0 0 18px;">Ol&aacute;, <strong>${escapeHtml(
+              customerName
+            )}</strong>! &#128230;</p>
+            <p style="font-size: 16px; line-height: 1.6; margin: 0 0 24px;">${escapeHtml(
+              statusContent.intro
+            )}</p>
+            <div style="margin: 0 0 18px;">
+              <p style="font-size: 14px; line-height: 1.4; margin: 0 0 4px;"><strong>Status atual:</strong></p>
+              <p style="font-size: 16px; line-height: 1.5; margin: 0;"><strong>${escapeHtml(
+                statusContent.currentStatus
+              )}</strong></p>
+            </div>
+            <div style="margin: 0 0 24px;">
+              <p style="font-size: 14px; line-height: 1.4; margin: 0 0 4px;"><strong>Pr&oacute;xima etapa:</strong></p>
+              <p style="font-size: 16px; line-height: 1.5; margin: 0;"><strong>${escapeHtml(
+                statusContent.nextStep
+              )}</strong></p>
+            </div>
+            <p style="font-size: 16px; line-height: 1.6; margin: 0 0 28px;">${escapeHtml(
+              statusContent.message
+            )}</p>
+            <p style="font-size: 15px; line-height: 1.6; margin: 0;">
+              Atenciosamente,<br />
+              <strong>Equipe Shirt Club</strong> - Camisas que carregam hist&oacute;ria.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+};
+
 const sendPaidEmail = async (order: StoredOrder) => {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
@@ -226,7 +357,7 @@ const sendDeliveryStatusEmail = async (
     return false;
   }
 
-  const message = createDeliveryStatusMessage(order, deliveryStatus);
+  const message = createDeliveryStatusEmailMessage(order, deliveryStatus);
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
