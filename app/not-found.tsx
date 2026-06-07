@@ -43,11 +43,11 @@ const NotFound = () => {
               </Link>
 
               <Link
-                href="/lancamentos"
+                href="/masculino"
                 className="inline-flex h-12 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-950 bg-white !px-6 text-sm font-bold text-zinc-950 transition-all duration-200 hover:bg-zinc-50"
               >
                 <Shirt size={18} />
-                VER LANÇAMENTOS
+                VER MASCULINO
               </Link>
             </div>
           </div>

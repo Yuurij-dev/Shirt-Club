@@ -336,7 +336,7 @@ export const getProductsByIds = (ids: string[]) => {
     .filter((product): product is Product => Boolean(product));
 };
 
-export const launchProducts = getProductsByIds([
+export const masculineProducts = getProductsByIds([
   "camisa-real-madrid-home-24-25",
   "camisa-flamengo-home-24-25",
   "camisa-corinthians-home-24-25",

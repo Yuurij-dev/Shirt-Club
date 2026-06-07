@@ -47,7 +47,7 @@ const institutionalLinks: FooterLink[] = [
 const categoryLinks: FooterLink[] = [
   { label: "Times", href: "/times" },
   { label: "Seleções", href: "/selecoes" },
-  { label: "Lançamentos", href: "/lancamentos" },
+  { label: "Masculino", href: "/masculino" },
   { label: "Retro", href: "/retro" },
   { label: "Personalize", href: "/personalize" },
 ];

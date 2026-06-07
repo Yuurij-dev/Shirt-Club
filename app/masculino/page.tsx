@@ -4,12 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import Footer from "../components/Footer";
 import Header from "../components/header";
-import PromoBannerLancamentos from "./components/promoBannerLancamentos";
+import PromoBannerMasculino from "./components/PromoBannerMasculino";
 import ProductFilters from "./components/ProductFilters";
 import ProductGrid from "./components/ProductGrid";
 import StoreHighlights from "../components/StoreHighlights";
 import NewsletterSection from "../components/NewsletterSection";
-import { launchProducts } from "../data/products";
+import { masculineProducts } from "../data/products";
 
 const getPriceNumber = (price: string | number) => {
   if (typeof price === "number") return price;
@@ -17,13 +17,13 @@ const getPriceNumber = (price: string | number) => {
   return Number(price.replace("R$ ", "").replace(".", "").replace(",", "."));
 };
 
-const LancamentosPage = () => {
+const MasculinoPage = () => {
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [maxPrice, setMaxPrice] = useState(599.9);
   const [sortOrder, setSortOrder] = useState("recentes");
 
-  const filteredProducts = launchProducts
+  const filteredProducts = masculineProducts
     .filter((product) => {
       const matchCategory =
         selectedCategory === "Todas" || product.category === selectedCategory;
@@ -36,8 +36,13 @@ const LancamentosPage = () => {
       return matchCategory && matchTeam && matchPrice;
     })
     .sort((a, b) => {
-      if (sortOrder === "menor-preco") return getPriceNumber(a.price) - getPriceNumber(b.price);
-      if (sortOrder === "maior-preco") return getPriceNumber(b.price) - getPriceNumber(a.price);
+      if (sortOrder === "menor-preco") {
+        return getPriceNumber(a.price) - getPriceNumber(b.price);
+      }
+
+      if (sortOrder === "maior-preco") {
+        return getPriceNumber(b.price) - getPriceNumber(a.price);
+      }
 
       return 0;
     });
@@ -49,24 +54,21 @@ const LancamentosPage = () => {
       <main className="flex-1">
         <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
           <div className="!mb-4 flex items-center !gap-2 text-sm text-zinc-500">
-            <Link
-              href="/"
-              className="transition-all duration-200 hover:text-black"
-            >
+            <Link href="/" className="transition-all duration-200 hover:text-black">
               Início
             </Link>
 
             <span>›</span>
 
             <Link
-              href="/lancamentos"
+              href="/masculino"
               className="transition-all duration-200 hover:text-black"
             >
-              Lançamentos
+              Masculino
             </Link>
           </div>
 
-          <PromoBannerLancamentos />
+          <PromoBannerMasculino />
 
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] !gap-8">
             <ProductFilters
@@ -100,4 +102,4 @@ const LancamentosPage = () => {
   );
 };
 
-export default LancamentosPage;
+export default MasculinoPage;

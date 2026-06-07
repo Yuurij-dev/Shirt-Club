@@ -21,7 +21,7 @@ const CheckoutContent = () => {
           Adicione produtos ao carrinho antes de preencher o checkout.
         </p>
         <Link
-          href="/lancamentos"
+          href="/masculino"
           className="!mt-6 inline-flex h-12 items-center justify-center rounded-lg bg-black !px-6 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
         >
           VER PRODUTOS

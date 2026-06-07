@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { launchProducts } from "@/app/data/products";
+import { masculineProducts } from "@/app/data/products";
 import ProductFilters from "./ProductFilters";
 import ProductGrid from "./ProductGrid";
 
@@ -17,7 +17,7 @@ const ProductSection = () => {
   const [maxPrice, setMaxPrice] = useState(599.9);
   const [sortOrder, setSortOrder] = useState("recentes");
 
-  const filteredProducts = launchProducts
+  const filteredProducts = masculineProducts
     .filter((product) => {
       const matchCategory =
         selectedCategory === "Todas" || product.category === selectedCategory;

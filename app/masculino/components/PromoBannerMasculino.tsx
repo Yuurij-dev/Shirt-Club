@@ -1,7 +1,7 @@
 import Image from "next/image";
 import promoBanner from "public/assets/promo-banner.png";
 
-const PromoBannerLancamentos = () => {
+const PromoBannerMasculino = () => {
   return (
     <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
       <div
@@ -19,7 +19,7 @@ const PromoBannerLancamentos = () => {
       >
         <Image
           src={promoBanner}
-          alt="Nova coleção 25/26"
+          alt="Coleção masculina Shirt Club"
           fill
           priority
           className="
@@ -54,7 +54,7 @@ const PromoBannerLancamentos = () => {
                 sm:text-5xl
               "
             >
-              NOVA COLEÇÃO 25/26
+              MASCULINO
             </h2>
 
             <div className="!mt-2 flex flex-col gap-4 sm:!mt-4 sm:flex-row sm:gap-10">
@@ -62,9 +62,7 @@ const PromoBannerLancamentos = () => {
                 <p className="text-xs font-bold uppercase sm:text-sm">
                   FRETE GRÁTIS
                 </p>
-                <span className="text-xs text-zinc-300">
-                  Para todo Brasil
-                </span>
+                <span className="text-xs text-zinc-300">Para todo Brasil</span>
               </div>
 
               <div>
@@ -83,4 +81,4 @@ const PromoBannerLancamentos = () => {
   );
 };
 
-export default PromoBannerLancamentos;
+export default PromoBannerMasculino;

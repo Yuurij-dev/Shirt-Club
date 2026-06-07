@@ -24,7 +24,7 @@ const CartContent = () => {
             Adicione produtos ao carrinho para finalizar sua compra.
           </p>
           <Link
-            href="/lancamentos"
+            href="/masculino"
             className="!mt-6 inline-flex h-12 items-center justify-center rounded-lg bg-black !px-6 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
           >
             CONTINUAR COMPRANDO
@@ -49,7 +49,7 @@ const CartContent = () => {
         </div>
 
         <Link
-          href="/lancamentos"
+          href="/masculino"
           className="inline-flex items-center !gap-2 text-sm font-bold transition-all duration-200 hover:text-zinc-600"
         >
           <ArrowLeft size={18} />

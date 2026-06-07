@@ -43,6 +43,11 @@ const ProductPage = async ({ params }: ProductPageProps) => {
     notFound();
   }
 
+  const productCategoryHref =
+    product.category === "Retrô" ? "/retro" : "/masculino";
+  const productCategoryLabel =
+    product.category === "Retrô" ? product.category : "Masculino";
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -54,10 +59,10 @@ const ProductPage = async ({ params }: ProductPageProps) => {
           </Link>
           <span>›</span>
           <Link
-            href={product.category === "Retrô" ? "/retro" : "/lancamentos"}
+            href={productCategoryHref}
             className="transition-all duration-200 hover:text-black"
           >
-            {product.category}
+            {productCategoryLabel}
           </Link>
           <span>›</span>
           <span className="text-zinc-900">{product.name}</span>

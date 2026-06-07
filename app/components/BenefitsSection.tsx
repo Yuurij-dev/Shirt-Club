@@ -22,7 +22,7 @@ const benefits: Benefit[] = [
     icon: Globe2,
   },
   {
-    title: "LANÇAMENTOS",
+    title: "MASCULINO",
     icon: Sparkles,
   },
   {

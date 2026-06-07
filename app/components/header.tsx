@@ -12,7 +12,7 @@ const links = [
   { name: "INÍCIO", href: "/" },
   { name: "TIMES", href: "/times" },
   { name: "SELEÇÕES", href: "/selecoes" },
-  { name: "LANÇAMENTOS", href: "/lancamentos" },
+  { name: "MASCULINO", href: "/masculino" },
   { name: "RETRO", href: "/retro" },
   { name: "PERSONALIZE", href: "/personalize" },
 ];

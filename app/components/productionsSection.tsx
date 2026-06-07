@@ -8,10 +8,10 @@ const ProductsSection = () => {
       <div className="container !mx-auto">
         <div className="!mb-6 !mt-6 flex items-center justify-between">
           <h2 className="font-[family-name:var(--font-bebas)] text-3xl text-zinc-950 sm:text-4xl">
-            LANÇAMENTOS
+            MASCULINO
           </h2>
 
-          <Link href="/lancamentos" className="text-xs font-medium text-zinc-700 hover:underline sm:text-sm">
+          <Link href="/masculino" className="text-xs font-medium text-zinc-700 hover:underline sm:text-sm">
             Ver todos ›
           </Link>
         </div>
