@@ -98,6 +98,44 @@ como pago. Não depende da tela de sucesso do front-end.
 O campo `paid_notified_at` evita envio duplicado. Se uma notificação falhar, o
 erro é registrado no console, mas o fluxo do pedido continua.
 
+## Atualização automática de pagamentos
+
+O sistema possui uma rota de reconciliação para verificar pedidos pendentes sem
+depender do botão manual do admin:
+
+```http
+GET /api/cron/reconcile-payments
+```
+
+Configure no `.env.local` e na Vercel:
+
+```env
+CRON_SECRET=troque_essa_chave_do_cron
+```
+
+A rota aceita:
+
+```http
+Authorization: Bearer CRON_SECRET
+```
+
+ou:
+
+```http
+x-cron-secret: CRON_SECRET
+```
+
+O arquivo `vercel.json` agenda essa verificação a cada 5 minutos em produção.
+Enquanto o painel admin estiver aberto, ele também faz uma checagem automática
+periódica sem precisar clicar no botão `Atualizar`.
+
+Para testar localmente:
+
+```bash
+curl http://localhost:3000/api/cron/reconcile-payments \
+  -H "Authorization: Bearer troque_essa_chave_do_cron"
+```
+
 ## Banco de dados
 
 Os schemas SQL ficam na pasta `database`.

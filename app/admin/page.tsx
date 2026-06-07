@@ -272,6 +272,29 @@ const AdminPage = () => {
     }
   }, [loadOrders, orders.unpaid]);
 
+  const autoReconcileOrders = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/orders/reconcile-pending", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setIsAuthenticated(false);
+        }
+        return;
+      }
+
+      const data = (await response.json()) as { updated?: number };
+
+      if (data.updated && data.updated > 0) {
+        await loadOrders();
+      }
+    } catch (error) {
+      console.error("Não foi possível reconciliar pedidos automaticamente", error);
+    }
+  }, [loadOrders]);
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -290,6 +313,18 @@ const AdminPage = () => {
 
     void checkSession();
   }, [fetchCoupons, fetchOrders]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const intervalId = window.setInterval(() => {
+      void autoReconcileOrders();
+    }, 30000);
+
+    void autoReconcileOrders();
+
+    return () => window.clearInterval(intervalId);
+  }, [autoReconcileOrders, isAuthenticated]);
 
   const allOrders = useMemo(() => {
     return [...orders.unpaid, ...orders.paid].sort((first, second) => {
