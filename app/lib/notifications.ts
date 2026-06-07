@@ -92,7 +92,13 @@ const sendPaidEmail = async (order: StoredOrder) => {
   const from = process.env.RESEND_FROM_EMAIL;
   const customer = getCustomer(order);
 
-  if (!apiKey || !from || !customer.email) {
+  if (!apiKey || !from) {
+    console.info("Email de pedido pago ignorado: Resend não configurado");
+    return false;
+  }
+
+  if (!customer.email) {
+    console.info("Email de pedido pago ignorado: cliente sem e-mail");
     return false;
   }
 
@@ -129,7 +135,13 @@ const sendPaidWhatsapp = async (order: StoredOrder) => {
   const customer = getCustomer(order);
   const to = getBrazilPhoneNumber(customer);
 
-  if (!token || !phoneNumberId || !to) {
+  if (!token || !phoneNumberId) {
+    console.info("WhatsApp de pedido pago ignorado: Cloud API não configurada");
+    return false;
+  }
+
+  if (!to) {
+    console.info("WhatsApp de pedido pago ignorado: cliente sem WhatsApp");
     return false;
   }
 
@@ -190,17 +202,22 @@ export const notifyOrderPaid = async (order: StoredOrder) => {
     sendPaidWhatsapp(order),
   ]);
 
-  let attemptedNotification = false;
+  let sentNotification = false;
 
   results.forEach((result) => {
     if (result.status === "fulfilled") {
-      attemptedNotification = attemptedNotification || result.value;
+      sentNotification = sentNotification || result.value;
       return;
     }
 
-    attemptedNotification = true;
-    console.error("Erro ao enviar notificacao de pedido pago", result.reason);
+    console.error("Erro ao enviar notificação de pedido pago", result.reason);
   });
 
-  return attemptedNotification;
+  if (!sentNotification) {
+    console.info("Nenhuma notificação de pedido pago foi enviada", {
+      orderId: order.id,
+    });
+  }
+
+  return sentNotification;
 };

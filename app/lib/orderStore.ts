@@ -147,7 +147,6 @@ const shouldNotifyPaidOrder = ({
 }) => {
   return Boolean(
     previousOrder &&
-      previousOrder.status !== "paid" &&
       nextStatus === "paid" &&
       !previousOrder.paidNotifiedAt
   );
@@ -182,14 +181,17 @@ const listSupabaseOrders = async () => {
   return orders.map(toStoredOrder);
 };
 
-const markSupabaseOrderAsPaidNotified = async (orderId: string) => {
+const markSupabaseOrderAsPaidNotified = async (
+  orderId: string,
+  notifiedAt = new Date().toISOString()
+) => {
   const response = await fetch(
     `${process.env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`,
     {
       method: "PATCH",
       headers: getSupabaseHeaders(),
       body: JSON.stringify({
-        paid_notified_at: new Date().toISOString(),
+        paid_notified_at: notifiedAt,
       }),
     }
   );
@@ -244,9 +246,9 @@ const updateSupabaseOrderStatus = async ({
       paymentId,
       updatedAt,
     };
-    const attemptedNotification = await notifyOrderPaid(paidOrder);
+    const sentNotification = await notifyOrderPaid(paidOrder);
 
-    if (attemptedNotification) {
+    if (sentNotification) {
       await markSupabaseOrderAsPaidNotified(orderId);
     }
   }
@@ -325,9 +327,9 @@ export const updateOrderStatus = async ({
       paymentId,
       updatedAt,
     };
-    const attemptedNotification = await notifyOrderPaid(paidOrder);
+    const sentNotification = await notifyOrderPaid(paidOrder);
 
-    if (attemptedNotification) {
+    if (sentNotification) {
       await writeLocalOrders(
         updatedOrders.map((order) => {
           if (order.id !== orderId) return order;
@@ -340,6 +342,28 @@ export const updateOrderStatus = async ({
       );
     }
   }
+};
+
+export const markOrderAsPaidNotified = async (orderId: string) => {
+  const notifiedAt = new Date().toISOString();
+
+  if (hasSupabaseConfig()) {
+    await markSupabaseOrderAsPaidNotified(orderId, notifiedAt);
+    return;
+  }
+
+  const orders = await readLocalOrders();
+
+  await writeLocalOrders(
+    orders.map((order) => {
+      if (order.id !== orderId) return order;
+
+      return {
+        ...order,
+        paidNotifiedAt: notifiedAt,
+      };
+    })
+  );
 };
 
 const updateSupabaseOrderDeliveryStatus = async ({

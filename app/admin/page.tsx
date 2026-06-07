@@ -2461,7 +2461,7 @@ const DashboardPanel = ({
       <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-950 sm:text-3xl">
-            Olá, Admin!
+            Olá, Admin!👋
           </h1>
           <p className="!mt-1 text-sm text-zinc-500">
             Aqui está o resumo da sua loja hoje.
