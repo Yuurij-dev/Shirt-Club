@@ -1072,6 +1072,9 @@ const DeliveryOrderRow = ({
   ) => Promise<void>;
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<
+    AdminOrder["deliveryStatus"] | null
+  >(null);
   const deliveryStatus = order.deliveryStatus || "not_separated";
 
   const handleChange = async (nextStatus: AdminOrder["deliveryStatus"]) => {
@@ -1079,6 +1082,7 @@ const DeliveryOrderRow = ({
 
     try {
       await onStatusChange(order.id, nextStatus);
+      setPendingStatus(null);
     } finally {
       setIsUpdating(false);
     }
@@ -1120,9 +1124,23 @@ const DeliveryOrderRow = ({
         <DeliveryStatusSelect
           value={deliveryStatus}
           isUpdating={isUpdating}
-          onChange={handleChange}
+          onChange={(nextStatus) => {
+            if (nextStatus === deliveryStatus) return;
+            setPendingStatus(nextStatus);
+          }}
         />
       </div>
+
+      {pendingStatus && (
+        <DeliveryStatusConfirmModal
+          order={order}
+          currentStatus={deliveryStatus}
+          nextStatus={pendingStatus}
+          isUpdating={isUpdating}
+          onCancel={() => setPendingStatus(null)}
+          onConfirm={() => handleChange(pendingStatus)}
+        />
+      )}
     </article>
   );
 };
@@ -1156,7 +1174,7 @@ const DeliveryStatusSelect = ({
 }: {
   value: AdminOrder["deliveryStatus"];
   isUpdating: boolean;
-  onChange: (value: AdminOrder["deliveryStatus"]) => Promise<void>;
+  onChange: (value: AdminOrder["deliveryStatus"]) => void;
 }) => {
   return (
     <select
@@ -1173,6 +1191,88 @@ const DeliveryStatusSelect = ({
         </option>
       ))}
     </select>
+  );
+};
+
+const DeliveryStatusConfirmModal = ({
+  order,
+  currentStatus,
+  nextStatus,
+  isUpdating,
+  onCancel,
+  onConfirm,
+}: {
+  order: AdminOrder;
+  currentStatus: AdminOrder["deliveryStatus"];
+  nextStatus: AdminOrder["deliveryStatus"];
+  isUpdating: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 !p-4">
+      <section className="w-full max-w-md rounded-xl border border-zinc-200 bg-white !p-5 shadow-2xl">
+        <div className="flex items-start !gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-950">
+            <Truck size={20} />
+          </span>
+          <div>
+            <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
+              Alterar entrega
+            </h2>
+            <p className="!mt-2 text-sm leading-relaxed text-zinc-600">
+              Tem certeza que deseja alterar o pedido{" "}
+              <strong className="text-zinc-950">{order.id}</strong> de{" "}
+              <strong className="text-zinc-950">
+                {deliveryStatusLabels[currentStatus]}
+              </strong>{" "}
+              para{" "}
+              <strong className="text-zinc-950">
+                {deliveryStatusLabels[nextStatus]}
+              </strong>
+              ?
+            </p>
+          </div>
+        </div>
+
+        <div className="!mt-5 rounded-lg bg-zinc-50 !p-3 text-xs text-zinc-600">
+          <p>
+            Cliente:{" "}
+            <strong className="text-zinc-950">
+              {order.customer?.name || "Cliente sem nome"}
+            </strong>
+          </p>
+          <p className="!mt-1">
+            Essa alteração será usada para acompanhar a preparação e envio do
+            pedido.
+          </p>
+          <p className="!mt-2 font-medium text-zinc-700">
+            Obs: essa ação poderá gerar uma mensagem de atualização para o
+            cliente.
+          </p>
+        </div>
+
+        <div className="!mt-6 flex flex-col-reverse !gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isUpdating}
+            className="h-11 cursor-pointer rounded-lg border border-zinc-200 !px-5 text-sm font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            CANCELAR
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isUpdating}
+            className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isUpdating && <RefreshCw size={16} className="animate-spin" />}
+            ALTERAR STATUS
+          </button>
+        </div>
+      </section>
+    </div>
   );
 };
 
