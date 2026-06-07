@@ -273,6 +273,7 @@ export const POST = async (request: Request) => {
           }
         : null,
       status: "unpaid" as const,
+      deliveryStatus: "not_separated" as const,
       total,
       createdAt: now,
       updatedAt: now,

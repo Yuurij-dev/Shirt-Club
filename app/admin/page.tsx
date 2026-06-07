@@ -22,6 +22,7 @@ import {
   Store,
   TicketPercent,
   Trash2,
+  Truck,
   Users,
 } from "lucide-react";
 import Image from "next/image";
@@ -51,6 +52,12 @@ type AdminOrder = {
     size?: string;
   }>;
   status: "unpaid" | "paid";
+  deliveryStatus:
+    | "not_separated"
+    | "separated"
+    | "shipped"
+    | "delivered"
+    | "canceled";
   total: number;
   createdAt: string;
   preferenceId?: string | null;
@@ -65,6 +72,7 @@ type OrdersResponse = {
 type AdminSection =
   | "dashboard"
   | "orders"
+  | "deliveries"
   | "products"
   | "clients"
   | "coupons"
@@ -72,12 +80,34 @@ type AdminSection =
   | "settings";
 
 type OrderFilter = "all" | "paid" | "unpaid";
+type DeliveryFilter =
+  | "all"
+  | AdminOrder["deliveryStatus"];
 type CouponFilter = "all" | "active" | "scheduled" | "expired";
 type DashboardPeriod = 7 | 30 | 90;
 
 type CouponsResponse = {
   coupons: Coupon[];
 };
+
+const deliveryStatusLabels: Record<AdminOrder["deliveryStatus"], string> = {
+  not_separated: "Não separado",
+  separated: "Separado",
+  shipped: "Enviado",
+  delivered: "Entregue",
+  canceled: "Cancelado",
+};
+
+const deliveryStatusOptions: Array<{
+  value: AdminOrder["deliveryStatus"];
+  label: string;
+}> = [
+  { value: "not_separated", label: deliveryStatusLabels.not_separated },
+  { value: "separated", label: deliveryStatusLabels.separated },
+  { value: "shipped", label: deliveryStatusLabels.shipped },
+  { value: "delivered", label: deliveryStatusLabels.delivered },
+  { value: "canceled", label: deliveryStatusLabels.canceled },
+];
 
 const reconcileOrderPayment = async (order: AdminOrder) => {
   const response = await fetch("/api/admin/orders/reconcile", {
@@ -139,6 +169,7 @@ const AdminPage = () => {
   const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const [activeSection, setActiveSection] = useState<AdminSection>("orders");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
   const [couponFilter, setCouponFilter] = useState<CouponFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -291,6 +322,33 @@ const AdminPage = () => {
     });
   }, [allOrders, orderFilter, searchTerm]);
 
+  const visibleDeliveryOrders = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return allOrders.filter((order) => {
+      if (order.status !== "paid") return false;
+
+      const deliveryStatus = order.deliveryStatus || "not_separated";
+      const matchesStatus =
+        deliveryFilter === "all" || deliveryStatus === deliveryFilter;
+      const searchableText = [
+        order.id,
+        order.customer?.name,
+        order.customer?.email,
+        order.customer?.whatsapp,
+        order.customer?.city,
+        getAddressLine(order),
+        getCityLine(order),
+        order.items.map((item) => item.title).join(" "),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return matchesStatus && searchableText.includes(normalizedSearch);
+    });
+  }, [allOrders, deliveryFilter, searchTerm]);
+
   useEffect(() => {
     if (visibleOrders.length === 0) {
       setSelectedOrderId(null);
@@ -364,6 +422,38 @@ const AdminPage = () => {
     setIsAuthenticated(false);
     setOrders({ unpaid: [], paid: [] });
     setCoupons([]);
+  };
+
+  const handleDeliveryStatusChange = async (
+    orderId: string,
+    deliveryStatus: AdminOrder["deliveryStatus"]
+  ) => {
+    try {
+      const response = await fetch("/api/admin/orders/delivery-status", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId,
+          deliveryStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error || "Não foi possível atualizar a entrega");
+      }
+
+      toast.success("Status de entrega atualizado");
+      await loadOrders();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar a entrega"
+      );
+    }
   };
 
   if (isLoadingSession) {
@@ -471,6 +561,18 @@ const AdminPage = () => {
               />
             )}
 
+            {activeSection === "deliveries" && (
+              <DeliveriesPanel
+                allOrders={orders.paid}
+                visibleOrders={visibleDeliveryOrders}
+                deliveryFilter={deliveryFilter}
+                isLoadingOrders={isLoadingOrders}
+                onFilterChange={setDeliveryFilter}
+                onStatusChange={handleDeliveryStatusChange}
+                onRefresh={fetchOrders}
+              />
+            )}
+
             {activeSection === "coupons" && (
               <CouponsPanel
                 coupons={coupons}
@@ -485,6 +587,7 @@ const AdminPage = () => {
 
             {activeSection !== "orders" &&
               activeSection !== "dashboard" &&
+              activeSection !== "deliveries" &&
               activeSection !== "coupons" && (
               <ComingSoonPanel section={activeSection} />
             )}
@@ -516,6 +619,7 @@ const AdminSidebar = ({
   }> = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "orders", label: "Pedidos", icon: ShoppingBag, badge: totalOrders },
+    { id: "deliveries", label: "Entregas", icon: Truck },
     { id: "products", label: "Produtos", icon: Package },
     { id: "clients", label: "Clientes", icon: Users },
     { id: "coupons", label: "Cupons", icon: Gift },
@@ -624,7 +728,11 @@ const AdminTopbar = ({
   onLogout: () => Promise<void>;
 }) => {
   const placeholder =
-    activeSection === "coupons" ? "Buscar cupons..." : "Buscar pedidos...";
+    activeSection === "coupons"
+      ? "Buscar cupons..."
+      : activeSection === "deliveries"
+        ? "Buscar entregas..."
+        : "Buscar pedidos...";
 
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
@@ -787,6 +895,284 @@ const OrdersPanel = ({
         </div>
       </div>
     </>
+  );
+};
+
+const DeliveriesPanel = ({
+  allOrders,
+  visibleOrders,
+  deliveryFilter,
+  isLoadingOrders,
+  onFilterChange,
+  onStatusChange,
+  onRefresh,
+}: {
+  allOrders: AdminOrder[];
+  visibleOrders: AdminOrder[];
+  deliveryFilter: DeliveryFilter;
+  isLoadingOrders: boolean;
+  onFilterChange: (filter: DeliveryFilter) => void;
+  onStatusChange: (
+    orderId: string,
+    deliveryStatus: AdminOrder["deliveryStatus"]
+  ) => Promise<void>;
+  onRefresh: () => Promise<void>;
+}) => {
+  const getCount = (status: AdminOrder["deliveryStatus"]) => {
+    return allOrders.filter((order) => {
+      return (order.deliveryStatus || "not_separated") === status;
+    }).length;
+  };
+
+  return (
+    <>
+      <div className="flex flex-col !gap-1">
+        <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
+          Entregas
+        </h1>
+        <p className="text-sm text-zinc-500">
+          Acompanhe separação, envio e conclusão dos pedidos.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 !gap-3 xl:grid-cols-5">
+        <MetricCard
+          title="Não separados"
+          value={String(getCount("not_separated"))}
+          helper="Aguardando separação"
+          icon={Package}
+          tone="warning"
+        />
+        <MetricCard
+          title="Separados"
+          value={String(getCount("separated"))}
+          helper="Prontos para envio"
+          icon={ShoppingBag}
+        />
+        <MetricCard
+          title="Enviados"
+          value={String(getCount("shipped"))}
+          helper="Em transporte"
+          icon={Truck}
+        />
+        <MetricCard
+          title="Entregues"
+          value={String(getCount("delivered"))}
+          helper="Finalizados"
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <MetricCard
+          title="Cancelados"
+          value={String(getCount("canceled"))}
+          helper="Fora da entrega"
+          icon={Trash2}
+        />
+      </div>
+
+      <section className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex flex-col !gap-4 border-b border-zinc-100 !p-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-wrap !gap-2">
+            <FilterButton
+              label="Todos"
+              count={allOrders.length}
+              active={deliveryFilter === "all"}
+              onClick={() => onFilterChange("all")}
+            />
+            <FilterButton
+              label="Não separados"
+              count={getCount("not_separated")}
+              active={deliveryFilter === "not_separated"}
+              onClick={() => onFilterChange("not_separated")}
+            />
+            <FilterButton
+              label="Separados"
+              count={getCount("separated")}
+              active={deliveryFilter === "separated"}
+              onClick={() => onFilterChange("separated")}
+            />
+            <FilterButton
+              label="Enviados"
+              count={getCount("shipped")}
+              active={deliveryFilter === "shipped"}
+              onClick={() => onFilterChange("shipped")}
+            />
+            <FilterButton
+              label="Entregues"
+              count={getCount("delivered")}
+              active={deliveryFilter === "delivered"}
+              onClick={() => onFilterChange("delivered")}
+            />
+            <FilterButton
+              label="Cancelados"
+              count={getCount("canceled")}
+              active={deliveryFilter === "canceled"}
+              onClick={() => onFilterChange("canceled")}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoadingOrders}
+            className="inline-flex h-10 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 !px-3 text-xs font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              size={16}
+              className={isLoadingOrders ? "animate-spin" : ""}
+            />
+            ATUALIZAR
+          </button>
+        </div>
+
+        {visibleOrders.length === 0 ? (
+          <div className="!p-10 text-center">
+            <Truck className="mx-auto text-zinc-400" size={38} />
+            <p className="!mt-3 text-sm font-bold text-zinc-700">
+              Nenhuma entrega encontrada.
+            </p>
+            <p className="!mt-1 text-xs text-zinc-500">
+              Ajuste os filtros ou busque por outro pedido.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden">
+            <div className="hidden grid-cols-[1fr_1.2fr_1.2fr_0.9fr_1fr] border-b border-zinc-100 !px-4 !py-3 text-xs font-bold uppercase text-zinc-500 xl:grid">
+              <span>Pedido</span>
+              <span>Cliente</span>
+              <span>Endereço</span>
+              <span>Pagamento</span>
+              <span>Status de entrega</span>
+            </div>
+
+            <div className="divide-y divide-zinc-100">
+              {visibleOrders.map((order) => (
+                <DeliveryOrderRow
+                  key={order.id}
+                  order={order}
+                  onStatusChange={onStatusChange}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+    </>
+  );
+};
+
+const DeliveryOrderRow = ({
+  order,
+  onStatusChange,
+}: {
+  order: AdminOrder;
+  onStatusChange: (
+    orderId: string,
+    deliveryStatus: AdminOrder["deliveryStatus"]
+  ) => Promise<void>;
+}) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const deliveryStatus = order.deliveryStatus || "not_separated";
+
+  const handleChange = async (nextStatus: AdminOrder["deliveryStatus"]) => {
+    setIsUpdating(true);
+
+    try {
+      await onStatusChange(order.id, nextStatus);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <article className="grid grid-cols-1 !gap-4 !px-4 !py-4 xl:grid-cols-[1fr_1.2fr_1.2fr_0.9fr_1fr] xl:items-center">
+      <div>
+        <strong className="block text-sm text-zinc-950">{order.id}</strong>
+        <span className="text-xs text-zinc-500">
+          {getOrderItemsCount(order)} item
+          {getOrderItemsCount(order) === 1 ? "" : "s"} • {getOrderDate(order)}
+        </span>
+      </div>
+
+      <div>
+        <p className="text-sm font-bold text-zinc-800">
+          {order.customer?.name || "Cliente sem nome"}
+        </p>
+        <p className="text-xs text-zinc-500">{order.customer?.email}</p>
+        <p className="text-xs text-zinc-500">{order.customer?.whatsapp}</p>
+      </div>
+
+      <div className="rounded-lg bg-zinc-50 !p-3 xl:bg-transparent xl:!p-0">
+        <p className="text-xs font-bold text-zinc-700">
+          {getAddressLine(order) || "-"}
+        </p>
+        <p className="text-xs text-zinc-500">{getCityLine(order) || "-"}</p>
+        <p className="text-xs text-zinc-500">CEP: {order.customer?.cep || "-"}</p>
+      </div>
+
+      <div className="flex items-center !gap-2">
+        <OrderStatusBadge status={order.status} />
+        <strong className="text-sm text-zinc-950">{formatPrice(order.total)}</strong>
+      </div>
+
+      <div className="flex flex-col !gap-2">
+        <DeliveryStatusBadge status={deliveryStatus} />
+        <DeliveryStatusSelect
+          value={deliveryStatus}
+          isUpdating={isUpdating}
+          onChange={handleChange}
+        />
+      </div>
+    </article>
+  );
+};
+
+const DeliveryStatusBadge = ({
+  status,
+}: {
+  status: AdminOrder["deliveryStatus"];
+}) => {
+  const styles: Record<AdminOrder["deliveryStatus"], string> = {
+    not_separated: "bg-amber-50 text-amber-700",
+    separated: "bg-blue-50 text-blue-700",
+    shipped: "bg-violet-50 text-violet-700",
+    delivered: "bg-emerald-50 text-emerald-700",
+    canceled: "bg-red-50 text-red-700",
+  };
+
+  return (
+    <span
+      className={`inline-flex w-fit rounded-full !px-2.5 !py-1 text-xs font-bold ${styles[status]}`}
+    >
+      {deliveryStatusLabels[status]}
+    </span>
+  );
+};
+
+const DeliveryStatusSelect = ({
+  value,
+  isUpdating,
+  onChange,
+}: {
+  value: AdminOrder["deliveryStatus"];
+  isUpdating: boolean;
+  onChange: (value: AdminOrder["deliveryStatus"]) => Promise<void>;
+}) => {
+  return (
+    <select
+      value={value}
+      disabled={isUpdating}
+      onChange={(event) => {
+        void onChange(event.target.value as AdminOrder["deliveryStatus"]);
+      }}
+      className="h-10 cursor-pointer rounded-lg border border-zinc-200 bg-white !px-3 text-xs font-bold outline-none transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {deliveryStatusOptions.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   );
 };
 
@@ -1068,6 +1454,11 @@ const OrderDetailPanel = ({
           <p className="text-xs text-zinc-600">{getAddressLine(order) || "-"}</p>
           <p className="text-xs text-zinc-600">{getCityLine(order) || "-"}</p>
           <p className="text-xs text-zinc-600">CEP: {order.customer?.cep || "-"}</p>
+          <div className="!mt-3">
+            <DeliveryStatusBadge
+              status={order.deliveryStatus || "not_separated"}
+            />
+          </div>
           {order.customer?.notes && (
             <p className="text-xs text-zinc-500">
               Observações: {order.customer.notes}
@@ -1174,6 +1565,11 @@ const OrderCard = ({
               {order.customer.notes}
             </span>
           )}
+          <div className="!mt-2">
+            <DeliveryStatusBadge
+              status={order.deliveryStatus || "not_separated"}
+            />
+          </div>
         </div>
       </div>
 
@@ -2904,7 +3300,7 @@ const getDashboardDateRange = () => {
 
 const ComingSoonPanel = ({ section }: { section: AdminSection }) => {
   const content: Record<
-    Exclude<AdminSection, "dashboard" | "orders">,
+    Exclude<AdminSection, "dashboard" | "orders" | "deliveries">,
     { title: string; description: string; icon: typeof Package }
   > = {
     products: {
