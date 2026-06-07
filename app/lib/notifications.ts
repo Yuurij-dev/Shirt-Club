@@ -60,28 +60,28 @@ const createPaidOrderMessage = (order: StoredOrder) => {
   return {
     subject: `Pedido ${order.id} confirmado - Shirt Club`,
     text: [
-      `Olá, ${customerName}!`,
+      `Fala, ${customerName}! \u2705`,
       "",
-      `Recebemos o pagamento do seu pedido ${order.id}.`,
-      `Total: ${formatPrice(order.total)}`,
+      `Seu pedido #${order.id} foi confirmado com sucesso.`,
+      "",
+      `Valor: ${formatPrice(order.total)}`,
       "",
       "Itens:",
       items,
       "",
-      "Vamos separar sua compra e enviar as próximas atualizações por e-mail e WhatsApp.",
-      "",
-      "Obrigado por comprar na Shirt Club.",
+      "Obrigado por comprar com a gente! \u{1f64c}",
+      "Seu pedido j\u00e1 entrou na nossa fila de prepara\u00e7\u00e3o. Em breve voc\u00ea receber\u00e1 novas atualiza\u00e7\u00f5es. \u{1f4e6}",
     ].join("\n"),
     html: `
       <div style="font-family: Arial, sans-serif; color: #111; line-height: 1.5;">
-        <h1 style="font-size: 24px; margin: 0 0 12px;">Pedido confirmado</h1>
-        <p>Olá, <strong>${customerName}</strong>!</p>
-        <p>Recebemos o pagamento do seu pedido <strong>${order.id}</strong>.</p>
-        <p><strong>Total:</strong> ${formatPrice(order.total)}</p>
+        <h1 style="font-size: 24px; margin: 0 0 12px;">Pedido confirmado &#9989;</h1>
+        <p>Fala, <strong>${customerName}</strong>!</p>
+        <p>Seu pedido <strong>#${order.id}</strong> foi confirmado com sucesso.</p>
+        <p><strong>Valor:</strong> ${formatPrice(order.total)}</p>
         <p><strong>Itens:</strong></p>
         <pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${items}</pre>
-        <p>Vamos separar sua compra e enviar as próximas atualizações por e-mail e WhatsApp.</p>
-        <p>Obrigado por comprar na <strong>Shirt Club</strong>.</p>
+        <p>Obrigado por comprar com a gente! &#128588;</p>
+        <p>Seu pedido j&aacute; entrou na nossa fila de prepara&ccedil;&atilde;o. Em breve voc&ecirc; receber&aacute; novas atualiza&ccedil;&otilde;es. &#128230;</p>
       </div>
     `,
   };
