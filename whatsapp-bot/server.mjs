@@ -133,6 +133,47 @@ const buildOrderPaidMessage = ({ customerName, orderId, total }) => {
   ].join("\n");
 };
 
+const buildDeliveryStatusMessage = ({ message }) => {
+  return message || "Em breve voce recebera novas atualizacoes.";
+};
+
+const sendWhatsappText = async ({ phone, orderId, text }) => {
+  const rawJid = `${phone}@s.whatsapp.net`;
+  const matchingNumbers = await socket.onWhatsApp(rawJid);
+  const contact = matchingNumbers?.[0];
+
+  if (!contact?.exists) {
+    console.warn("Numero nao encontrado no WhatsApp", {
+      phone,
+      orderId,
+    });
+
+    return {
+      ok: false,
+      statusCode: 400,
+      body: {
+        error: "Numero nao encontrado no WhatsApp",
+        phone,
+      },
+    };
+  }
+
+  const jid = contact.jid || rawJid;
+  const result = await socket.sendMessage(jid, {
+    text,
+  });
+
+  return {
+    ok: true,
+    statusCode: 200,
+    body: {
+      ok: true,
+      jid,
+      messageId: result?.key?.id,
+    },
+  };
+};
+
 const server = http.createServer(async (request, response) => {
   if (request.method === "GET" && request.url === "/health") {
     sendJson(response, 200, {
@@ -142,7 +183,12 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (request.method !== "POST" || request.url !== "/send-order-paid") {
+  const isOrderPaidRoute =
+    request.method === "POST" && request.url === "/send-order-paid";
+  const isDeliveryStatusRoute =
+    request.method === "POST" && request.url === "/send-delivery-status";
+
+  if (!isOrderPaidRoute && !isDeliveryStatusRoute) {
     sendJson(response, 404, { error: "Rota nao encontrada" });
     return;
   }
@@ -161,47 +207,50 @@ const server = http.createServer(async (request, response) => {
     const body = await readJsonBody(request);
     const phone = normalizePhone(body.phone);
 
-    if (!phone || !body.orderId || !body.total) {
+    if (!phone || !body.orderId) {
       sendJson(response, 400, {
-        error: "phone, orderId e total sao obrigatorios",
+        error: "phone e orderId sao obrigatorios",
       });
       return;
     }
 
-    const rawJid = `${phone}@s.whatsapp.net`;
-    const matchingNumbers = await socket.onWhatsApp(rawJid);
-    const contact = matchingNumbers?.[0];
-
-    if (!contact?.exists) {
-      console.warn("Numero nao encontrado no WhatsApp", {
-        phone,
-        orderId: body.orderId,
-      });
+    if (isOrderPaidRoute && !body.total) {
       sendJson(response, 400, {
-        error: "Numero nao encontrado no WhatsApp",
-        phone,
+        error: "total e obrigatorio",
       });
       return;
     }
 
-    const jid = contact.jid || rawJid;
-    const message = buildOrderPaidMessage(body);
-    const result = await socket.sendMessage(jid, {
-      text: message,
-    });
+    if (isDeliveryStatusRoute && !body.status) {
+      sendJson(response, 400, {
+        error: "status e obrigatorio",
+      });
+      return;
+    }
 
-    console.log("Mensagem de pedido pago enviada", {
+    const text = isOrderPaidRoute
+      ? buildOrderPaidMessage(body)
+      : buildDeliveryStatusMessage(body);
+    const result = await sendWhatsappText({
       phone,
-      jid,
       orderId: body.orderId,
-      messageId: result?.key?.id,
+      text,
     });
 
-    sendJson(response, 200, {
-      ok: true,
-      jid,
-      messageId: result?.key?.id,
+    if (!result.ok) {
+      sendJson(response, result.statusCode, result.body);
+      return;
+    }
+
+    console.log("Mensagem enviada", {
+      type: isOrderPaidRoute ? "order_paid" : "delivery_status",
+      phone,
+      jid: result.body.jid,
+      orderId: body.orderId,
+      messageId: result.body.messageId,
     });
+
+    sendJson(response, 200, result.body);
   } catch (error) {
     console.error("Erro ao enviar mensagem de pedido pago", error);
     sendJson(response, 500, {

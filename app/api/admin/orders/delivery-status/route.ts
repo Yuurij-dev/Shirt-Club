@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/app/lib/adminAuth";
+import { notifyOrderDeliveryStatusChanged } from "@/app/lib/notifications";
 import {
   DeliveryStatus,
   listOrders,
@@ -70,6 +71,17 @@ export const PATCH = async (request: Request) => {
       orderId: body.orderId,
       deliveryStatus: body.deliveryStatus,
     });
+
+    if (order.deliveryStatus !== body.deliveryStatus) {
+      await notifyOrderDeliveryStatusChanged(
+        {
+          ...order,
+          deliveryStatus: body.deliveryStatus,
+          updatedAt: new Date().toISOString(),
+        },
+        body.deliveryStatus
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

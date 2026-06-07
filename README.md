@@ -81,6 +81,14 @@ x-bot-secret: WHATSAPP_BOT_SECRET
 
 O cliente recebe uma mensagem no WhatsApp cadastrado no pedido.
 
+Quando o status de entrega muda no admin, o site chama:
+
+```http
+POST http://localhost:3333/send-delivery-status
+```
+
+Esse endpoint usa o mesmo header `x-bot-secret`.
+
 Para testar manualmente:
 
 ```bash
