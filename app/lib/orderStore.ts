@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { incrementCouponUsageByCode } from "@/app/lib/couponStore";
+import { notifyOrderPaid } from "@/app/lib/notifications";
 
 export type OrderStatus = "unpaid" | "paid";
 export type DeliveryStatus =
@@ -20,6 +21,7 @@ export type StoredOrder = {
   total: number;
   preferenceId?: string | null;
   paymentId?: string | null;
+  paidNotifiedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -34,6 +36,7 @@ type SupabaseOrder = {
   total: number;
   preference_id?: string | null;
   payment_id?: string | null;
+  paid_notified_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -72,6 +75,7 @@ const toStoredOrder = (order: SupabaseOrder): StoredOrder => {
     total: order.total,
     preferenceId: order.preference_id,
     paymentId: order.payment_id,
+    paidNotifiedAt: order.paid_notified_at,
     createdAt: order.created_at,
     updatedAt: order.updated_at,
   };
@@ -88,6 +92,7 @@ const toSupabaseOrder = (order: StoredOrder) => {
     total: order.total,
     preference_id: order.preferenceId,
     payment_id: order.paymentId,
+    paid_notified_at: order.paidNotifiedAt ?? null,
     created_at: order.createdAt,
     updated_at: order.updatedAt,
   };
@@ -133,6 +138,21 @@ const registerCouponUsageIfNeeded = async ({
   }
 };
 
+const shouldNotifyPaidOrder = ({
+  previousOrder,
+  nextStatus,
+}: {
+  previousOrder?: StoredOrder | null;
+  nextStatus: OrderStatus;
+}) => {
+  return Boolean(
+    previousOrder &&
+      previousOrder.status !== "paid" &&
+      nextStatus === "paid" &&
+      !previousOrder.paidNotifiedAt
+  );
+};
+
 const createSupabaseOrder = async (order: StoredOrder) => {
   const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/orders`, {
     method: "POST",
@@ -162,6 +182,23 @@ const listSupabaseOrders = async () => {
   return orders.map(toStoredOrder);
 };
 
+const markSupabaseOrderAsPaidNotified = async (orderId: string) => {
+  const response = await fetch(
+    `${process.env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`,
+    {
+      method: "PATCH",
+      headers: getSupabaseHeaders(),
+      body: JSON.stringify({
+        paid_notified_at: new Date().toISOString(),
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    console.error("Não foi possível marcar pedido como notificado");
+  }
+};
+
 const updateSupabaseOrderStatus = async ({
   orderId,
   status,
@@ -174,6 +211,7 @@ const updateSupabaseOrderStatus = async ({
   const existingOrder = (await listSupabaseOrders()).find((order) => {
     return order.id === orderId;
   });
+  const updatedAt = new Date().toISOString();
   const response = await fetch(
     `${process.env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`,
     {
@@ -185,7 +223,7 @@ const updateSupabaseOrderStatus = async ({
         ...(status === "unpaid"
           ? { delivery_status: "not_separated" }
           : {}),
-        updated_at: new Date().toISOString(),
+        updated_at: updatedAt,
       }),
     }
   );
@@ -198,6 +236,20 @@ const updateSupabaseOrderStatus = async ({
     previousOrder: existingOrder,
     nextStatus: status,
   });
+
+  if (shouldNotifyPaidOrder({ previousOrder: existingOrder, nextStatus: status })) {
+    const paidOrder: StoredOrder = {
+      ...existingOrder!,
+      status,
+      paymentId,
+      updatedAt,
+    };
+    const attemptedNotification = await notifyOrderPaid(paidOrder);
+
+    if (attemptedNotification) {
+      await markSupabaseOrderAsPaidNotified(orderId);
+    }
+  }
 };
 
 export const createOrder = async (order: StoredOrder) => {
@@ -244,8 +296,7 @@ export const updateOrderStatus = async ({
   const updatedAt = new Date().toISOString();
   const existingOrder = orders.find((order) => order.id === orderId);
 
-  await writeLocalOrders(
-    orders.map((order) => {
+  const updatedOrders = orders.map((order) => {
       if (order.id !== orderId) return order;
 
       return {
@@ -258,13 +309,37 @@ export const updateOrderStatus = async ({
         paymentId,
         updatedAt,
       };
-    })
-  );
+    });
+
+  await writeLocalOrders(updatedOrders);
 
   await registerCouponUsageIfNeeded({
     previousOrder: existingOrder,
     nextStatus: status,
   });
+
+  if (shouldNotifyPaidOrder({ previousOrder: existingOrder, nextStatus: status })) {
+    const paidOrder: StoredOrder = {
+      ...existingOrder!,
+      status,
+      paymentId,
+      updatedAt,
+    };
+    const attemptedNotification = await notifyOrderPaid(paidOrder);
+
+    if (attemptedNotification) {
+      await writeLocalOrders(
+        updatedOrders.map((order) => {
+          if (order.id !== orderId) return order;
+
+          return {
+            ...order,
+            paidNotifiedAt: new Date().toISOString(),
+          };
+        })
+      );
+    }
+  }
 };
 
 const updateSupabaseOrderDeliveryStatus = async ({
