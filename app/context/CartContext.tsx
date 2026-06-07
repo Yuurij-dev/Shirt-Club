@@ -37,7 +37,7 @@ type CartContextType = {
   addItem: (item: AddItemInput) => void;
   removeItem: (productId: string, size: string) => void;
   updateQuantity: (productId: string, size: string, quantity: number) => void;
-  applyCoupon: (code: string) => Promise<boolean>;
+  applyCoupon: (code: string) => Promise<CouponApplyResult>;
   removeCoupon: () => void;
   clearCart: () => void;
 };
@@ -51,6 +51,11 @@ type AppliedCoupon = {
   coupon: Coupon;
   discount: number;
   total: number;
+};
+
+export type CouponApplyResult = {
+  applied: boolean;
+  message?: string;
 };
 
 type CouponValidationResponse = {
@@ -269,8 +274,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const result = (await response.json()) as CouponValidationResponse;
 
     if (!response.ok || !result.valid || !result.coupon) {
-      toast.error(result.error || "Cupom inválido");
-      return false;
+      return {
+        applied: false,
+        message: result.error || "Cupom inv\u00e1lido",
+      };
     }
 
     setAppliedCoupon({
@@ -278,14 +285,15 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       discount: result.discount || 0,
       total: result.total || Math.max(0, subtotal - (result.discount || 0)),
     });
-    toast.success("Cupom aplicado com sucesso");
 
-    return true;
+    return {
+      applied: true,
+      message: "Cupom aplicado com sucesso",
+    };
   };
 
   const removeCoupon = () => {
     setAppliedCoupon(null);
-    toast.info("Cupom removido");
   };
 
   return (
