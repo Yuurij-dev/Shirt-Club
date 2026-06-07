@@ -8,9 +8,12 @@ const isAuthorizedCronRequest = (request: Request) => {
 
   const authorization = request.headers.get("authorization");
   const cronSecretHeader = request.headers.get("x-cron-secret");
+  const cronSecretQuery = new URL(request.url).searchParams.get("secret");
 
   return (
-    authorization === `Bearer ${cronSecret}` || cronSecretHeader === cronSecret
+    authorization === `Bearer ${cronSecret}` ||
+    cronSecretHeader === cronSecret ||
+    cronSecretQuery === cronSecret
   );
 };
 

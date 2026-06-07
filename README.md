@@ -125,7 +125,17 @@ ou:
 x-cron-secret: CRON_SECRET
 ```
 
-O arquivo `vercel.json` agenda essa verificação a cada 5 minutos em produção.
+O arquivo `vercel.json` agenda essa verificação uma vez por dia para ser
+compatível com o limite do plano Hobby da Vercel. Para rodar a cada 5 minutos,
+use Vercel Pro ou um cron externo, como cron-job.org ou UptimeRobot, chamando a
+rota com o segredo.
+
+Exemplo com segredo na URL para cron externo:
+
+```txt
+https://seu-site.vercel.app/api/cron/reconcile-payments?secret=troque_essa_chave_do_cron
+```
+
 Enquanto o painel admin estiver aberto, ele também faz uma checagem automática
 periódica sem precisar clicar no botão `Atualizar`.
 
