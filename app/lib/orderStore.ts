@@ -3,6 +3,12 @@ import path from "path";
 import { incrementCouponUsageByCode } from "@/app/lib/couponStore";
 
 export type OrderStatus = "unpaid" | "paid";
+export type DeliveryStatus =
+  | "not_separated"
+  | "separated"
+  | "shipped"
+  | "delivered"
+  | "canceled";
 
 export type StoredOrder = {
   id: string;
@@ -10,6 +16,7 @@ export type StoredOrder = {
   items: unknown[];
   coupon?: unknown | null;
   status: OrderStatus;
+  deliveryStatus: DeliveryStatus;
   total: number;
   preferenceId?: string | null;
   paymentId?: string | null;
@@ -23,6 +30,7 @@ type SupabaseOrder = {
   items: unknown[];
   coupon?: unknown | null;
   status: OrderStatus;
+  delivery_status?: DeliveryStatus | null;
   total: number;
   preference_id?: string | null;
   payment_id?: string | null;
@@ -57,6 +65,10 @@ const toStoredOrder = (order: SupabaseOrder): StoredOrder => {
     items: order.items,
     coupon: order.coupon,
     status: order.status,
+    deliveryStatus:
+      order.status === "paid"
+        ? order.delivery_status || "not_separated"
+        : "not_separated",
     total: order.total,
     preferenceId: order.preference_id,
     paymentId: order.payment_id,
@@ -72,6 +84,7 @@ const toSupabaseOrder = (order: StoredOrder) => {
     items: order.items,
     coupon: order.coupon ?? null,
     status: order.status,
+    delivery_status: order.deliveryStatus || "not_separated",
     total: order.total,
     preference_id: order.preferenceId,
     payment_id: order.paymentId,
@@ -169,6 +182,9 @@ const updateSupabaseOrderStatus = async ({
       body: JSON.stringify({
         status,
         payment_id: paymentId,
+        ...(status === "unpaid"
+          ? { delivery_status: "not_separated" }
+          : {}),
         updated_at: new Date().toISOString(),
       }),
     }
@@ -199,7 +215,15 @@ export const listOrders = async () => {
     return listSupabaseOrders();
   }
 
-  return readLocalOrders();
+  const orders = await readLocalOrders();
+
+  return orders.map((order) => ({
+    ...order,
+    deliveryStatus:
+      order.status === "paid"
+        ? order.deliveryStatus || "not_separated"
+        : "not_separated",
+  }));
 };
 
 export const updateOrderStatus = async ({
@@ -227,6 +251,10 @@ export const updateOrderStatus = async ({
       return {
         ...order,
         status,
+        deliveryStatus:
+          status === "unpaid"
+            ? "not_separated"
+            : order.deliveryStatus || "not_separated",
         paymentId,
         updatedAt,
       };
@@ -238,6 +266,59 @@ export const updateOrderStatus = async ({
     nextStatus: status,
   });
 };
+
+const updateSupabaseOrderDeliveryStatus = async ({
+  orderId,
+  deliveryStatus,
+}: {
+  orderId: string;
+  deliveryStatus: DeliveryStatus;
+}) => {
+  const response = await fetch(
+    `${process.env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`,
+    {
+      method: "PATCH",
+      headers: getSupabaseHeaders(),
+      body: JSON.stringify({
+        delivery_status: deliveryStatus,
+        updated_at: new Date().toISOString(),
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Não foi possível atualizar a entrega no Supabase");
+  }
+};
+
+export const updateOrderDeliveryStatus = async ({
+  orderId,
+  deliveryStatus,
+}: {
+  orderId: string;
+  deliveryStatus: DeliveryStatus;
+}) => {
+  if (hasSupabaseConfig()) {
+    await updateSupabaseOrderDeliveryStatus({ orderId, deliveryStatus });
+    return;
+  }
+
+  const orders = await readLocalOrders();
+  const updatedAt = new Date().toISOString();
+
+  await writeLocalOrders(
+    orders.map((order) => {
+      if (order.id !== orderId) return order;
+
+      return {
+        ...order,
+        deliveryStatus,
+        updatedAt,
+      };
+    })
+  );
+};
+
 export const updateOrderStatusByPreferenceId = async ({
   preferenceId,
   status,

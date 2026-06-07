@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { useCart } from "@/app/context/CartContext";
+import CartCouponCard from "@/app/carrinho/components/CartCouponCard";
 import CheckoutOrderSummary from "./CheckoutOrderSummary";
 import CustomerDataForm from "./CustomerDataForm";
 
@@ -57,14 +58,17 @@ const CheckoutContent = () => {
           total={total}
           couponCode={appliedCoupon?.coupon.code || null}
         />
-        <CheckoutOrderSummary
-          items={items}
-          subtotal={subtotal}
-          discount={discount}
-          total={total}
-          couponCode={appliedCoupon?.coupon.code || null}
-          totalItems={totalItems}
-        />
+        <aside className="hidden h-fit flex-col !gap-4 lg:sticky lg:top-6 lg:flex">
+          <CartCouponCard />
+          <CheckoutOrderSummary
+            items={items}
+            subtotal={subtotal}
+            discount={discount}
+            total={total}
+            couponCode={appliedCoupon?.coupon.code || null}
+            totalItems={totalItems}
+          />
+        </aside>
       </section>
     </>
   );

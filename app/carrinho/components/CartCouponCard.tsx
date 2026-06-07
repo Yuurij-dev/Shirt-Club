@@ -32,6 +32,12 @@ const CartCouponCard = () => {
           type="text"
           value={couponCode}
           onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void handleCoupon();
+            }
+          }}
           placeholder="Digite seu cupom"
           className="h-12 min-w-0 flex-1 rounded-l-md border border-zinc-200 bg-white !px-4 text-sm font-bold outline-none"
         />
