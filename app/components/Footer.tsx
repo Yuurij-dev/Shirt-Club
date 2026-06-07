@@ -48,6 +48,7 @@ const categoryLinks: FooterLink[] = [
   { label: "Times", href: "/times" },
   { label: "Seleções", href: "/selecoes" },
   { label: "Masculino", href: "/masculino" },
+  { label: "Feminino", href: "/feminino" },
   { label: "Retro", href: "/retro" },
   { label: "Personalize", href: "/personalize" },
 ];

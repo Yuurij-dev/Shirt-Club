@@ -13,6 +13,7 @@ const links = [
   { name: "TIMES", href: "/times" },
   { name: "SELEÇÕES", href: "/selecoes" },
   { name: "MASCULINO", href: "/masculino" },
+  { name: "FEMININO", href: "/feminino" },
   { name: "RETRO", href: "/retro" },
   { name: "PERSONALIZE", href: "/personalize" },
 ];

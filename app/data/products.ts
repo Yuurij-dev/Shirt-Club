@@ -2,6 +2,7 @@ export type Product = {
   id: string;
   name: string;
   category: string;
+  gender?: "masculino" | "feminino";
   team: string;
   brand?: string;
   season?: string;
@@ -324,6 +325,90 @@ export const products: Product[] = [
       "Corte regular",
     ],
   },
+  {
+    id: "camisa-flamengo-home-24-25-feminina",
+    name: "Camisa Flamengo Home 24/25 Feminina",
+    category: "Camisas",
+    gender: "feminino",
+    team: "Flamengo",
+    brand: "Adidas",
+    season: "Home 24/25",
+    price: "R$ 189,90",
+    image: "/products/flamengo-home.png",
+    images: ["/products/flamengo-home.png", "/products/flamengo-home.png"],
+    badge: "NOVO",
+    description:
+      "Camisa Flamengo Home 24/25 Feminina com tecido leve, acabamento premium e modelagem pensada para vestir com conforto.",
+    details: [
+      "Escudo do Flamengo aplicado no peito",
+      "Modelagem feminina",
+      "Tecido leve com toque macio",
+      "Acabamento premium",
+    ],
+  },
+  {
+    id: "camisa-real-madrid-home-24-25-feminina",
+    name: "Camisa Real Madrid Home 24/25 Feminina",
+    category: "Camisas",
+    gender: "feminino",
+    team: "Real Madrid",
+    brand: "Adidas",
+    season: "Home 24/25",
+    price: "R$ 189,90",
+    image: "/products/real-madrid-home.png",
+    images: ["/products/real-madrid-home.png", "/products/real-madrid-home.png"],
+    badge: "NOVO",
+    description:
+      "Camisa Real Madrid Home 24/25 Feminina com visual clássico, tecido confortável e acabamento premium.",
+    details: [
+      "Escudo do Real Madrid aplicado no peito",
+      "Modelagem feminina",
+      "Tecido respirável",
+      "Corte confortável",
+    ],
+  },
+  {
+    id: "camisa-palmeiras-home-24-25-feminina",
+    name: "Camisa Palmeiras Home 24/25 Feminina",
+    category: "Camisas",
+    gender: "feminino",
+    team: "Palmeiras",
+    brand: "Puma",
+    season: "Home 24/25",
+    price: "R$ 189,90",
+    image: "/products/palmeiras-home.png",
+    images: ["/products/palmeiras-home.png", "/products/palmeiras-home.png"],
+    badge: "NOVO",
+    description:
+      "Camisa Palmeiras Home 24/25 Feminina com tecido leve, modelagem confortável e acabamento premium.",
+    details: [
+      "Escudo do Palmeiras aplicado no peito",
+      "Modelagem feminina",
+      "Tecido leve e respirável",
+      "Acabamento premium",
+    ],
+  },
+  {
+    id: "camisa-barcelona-home-24-25-feminina",
+    name: "Camisa Barcelona Home 24/25 Feminina",
+    category: "Camisas",
+    gender: "feminino",
+    team: "Barcelona",
+    brand: "Nike",
+    season: "Home 24/25",
+    price: "R$ 189,90",
+    image: "/products/barcelona-home.png",
+    images: ["/products/barcelona-home.png", "/products/barcelona-home.png"],
+    badge: "NOVO",
+    description:
+      "Camisa Barcelona Home 24/25 Feminina com as cores tradicionais do clube, tecido macio e acabamento premium.",
+    details: [
+      "Escudo do Barcelona aplicado no peito",
+      "Modelagem feminina",
+      "Visual clássico da temporada",
+      "Corte confortável",
+    ],
+  },
 ];
 
 export const getProductById = (id: string) => {
@@ -336,12 +421,20 @@ export const getProductsByIds = (ids: string[]) => {
     .filter((product): product is Product => Boolean(product));
 };
 
+const getProductGender = (product: Product) => {
+  return product.gender || "masculino";
+};
+
 export const masculineProducts = getProductsByIds([
   "camisa-real-madrid-home-24-25",
   "camisa-flamengo-home-24-25",
   "camisa-corinthians-home-24-25",
   "camisa-palmeiras-home-24-25",
-]);
+]).filter((product) => getProductGender(product) === "masculino");
+
+export const feminineProducts = products.filter((product) => {
+  return getProductGender(product) === "feminino";
+});
 
 export const homeProducts = getProductsByIds([
   "camisa-flamengo-home-24-25",

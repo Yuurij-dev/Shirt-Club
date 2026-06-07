@@ -44,9 +44,17 @@ const ProductPage = async ({ params }: ProductPageProps) => {
   }
 
   const productCategoryHref =
-    product.category === "Retrô" ? "/retro" : "/masculino";
+    product.category === "Retr?"
+      ? "/retro"
+      : product.gender === "feminino"
+        ? "/feminino"
+        : "/masculino";
   const productCategoryLabel =
-    product.category === "Retrô" ? product.category : "Masculino";
+    product.category === "Retr?"
+      ? product.category
+      : product.gender === "feminino"
+        ? "Feminino"
+        : "Masculino";
 
   return (
     <div className="flex min-h-screen flex-col">
