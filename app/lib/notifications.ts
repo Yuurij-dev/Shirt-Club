@@ -127,70 +127,38 @@ const sendPaidEmail = async (order: StoredOrder) => {
 };
 
 const sendPaidWhatsapp = async (order: StoredOrder) => {
-  const token = process.env.WHATSAPP_CLOUD_API_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const templateName = process.env.WHATSAPP_ORDER_PAID_TEMPLATE_NAME;
-  const templateLanguage =
-    process.env.WHATSAPP_TEMPLATE_LANGUAGE || "pt_BR";
+  const botUrl = process.env.WHATSAPP_BOT_URL;
+  const botSecret = process.env.WHATSAPP_BOT_SECRET;
   const customer = getCustomer(order);
-  const to = getBrazilPhoneNumber(customer);
+  const phone = getBrazilPhoneNumber(customer);
 
-  if (!token || !phoneNumberId) {
-    console.info("WhatsApp de pedido pago ignorado: Cloud API não configurada");
+  if (!botUrl || !botSecret) {
+    console.info("WhatsApp de pedido pago ignorado: bot Baileys não configurado");
     return false;
   }
 
-  if (!to) {
+  if (!phone) {
     console.info("WhatsApp de pedido pago ignorado: cliente sem WhatsApp");
     return false;
   }
 
-  const endpoint = `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`;
-  const message = createPaidOrderMessage(order);
-  const body = templateName
-    ? {
-        messaging_product: "whatsapp",
-        to,
-        type: "template",
-        template: {
-          name: templateName,
-          language: {
-            code: templateLanguage,
-          },
-          components: [
-            {
-              type: "body",
-              parameters: [
-                { type: "text", text: customer.name || "cliente" },
-                { type: "text", text: order.id },
-                { type: "text", text: formatPrice(order.total) },
-              ],
-            },
-          ],
-        },
-      }
-    : {
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: {
-          preview_url: false,
-          body: message.text,
-        },
-      };
-
-  const response = await fetch(endpoint, {
+  const response = await fetch(`${botUrl.replace(/\/$/, "")}/send-order-paid`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      "x-bot-secret": botSecret,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      phone,
+      customerName: customer.name || "cliente",
+      orderId: order.id,
+      total: formatPrice(order.total),
+    }),
   });
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
-    throw new Error(`WhatsApp error: ${response.status} ${errorText}`);
+    throw new Error(`Baileys bot error: ${response.status} ${errorText}`);
   }
 
   return true;
