@@ -1,0 +1,191 @@
+import { formatPrice } from "@/app/utils/price";
+import type { StoredOrder } from "@/app/lib/orderStore";
+
+type NotificationCustomer = {
+  name?: string;
+  email?: string;
+  whatsapp?: string;
+  whatsappDigits?: string;
+};
+
+type NotificationItem = {
+  title?: string;
+  quantity?: number;
+  size?: string;
+};
+
+const getCustomer = (order: StoredOrder): NotificationCustomer => {
+  return order.customer && typeof order.customer === "object"
+    ? (order.customer as NotificationCustomer)
+    : {};
+};
+
+const getItems = (order: StoredOrder): NotificationItem[] => {
+  return Array.isArray(order.items) ? (order.items as NotificationItem[]) : [];
+};
+
+const onlyDigits = (value?: string) => {
+  return (value || "").replace(/\D/g, "");
+};
+
+const getBrazilPhoneNumber = (customer: NotificationCustomer) => {
+  const digits = onlyDigits(customer.whatsappDigits || customer.whatsapp);
+
+  if (!digits) return null;
+  if (digits.startsWith("55")) return digits;
+
+  return `55${digits}`;
+};
+
+const getOrderItemsText = (order: StoredOrder) => {
+  const items = getItems(order);
+
+  if (items.length === 0) return "Itens do pedido";
+
+  return items
+    .map((item) => {
+      const quantity = item.quantity || 1;
+      const size = item.size ? ` - Tam. ${item.size}` : "";
+
+      return `${quantity}x ${item.title || "Produto"}${size}`;
+    })
+    .join("\n");
+};
+
+const createPaidOrderMessage = (order: StoredOrder) => {
+  const customer = getCustomer(order);
+  const customerName = customer.name || "cliente";
+  const items = getOrderItemsText(order);
+
+  return {
+    subject: `Pedido ${order.id} confirmado - Shirt Club`,
+    text: [
+      `Fala, ${customerName}! \u2705`,
+      "",
+      `Seu pedido #${order.id} foi confirmado com sucesso.`,
+      "",
+      `Valor: ${formatPrice(order.total)}`,
+      "",
+      "Itens:",
+      items,
+      "",
+      "Obrigado por comprar com a gente! \u{1f64c}",
+      "Seu pedido j\u00e1 entrou na nossa fila de prepara\u00e7\u00e3o. Em breve voc\u00ea receber\u00e1 novas atualiza\u00e7\u00f5es. \u{1f4e6}",
+    ].join("\n"),
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #111; line-height: 1.5;">
+        <h1 style="font-size: 24px; margin: 0 0 12px;">Pedido confirmado &#9989;</h1>
+        <p>Fala, <strong>${customerName}</strong>!</p>
+        <p>Seu pedido <strong>#${order.id}</strong> foi confirmado com sucesso.</p>
+        <p><strong>Valor:</strong> ${formatPrice(order.total)}</p>
+        <p><strong>Itens:</strong></p>
+        <pre style="font-family: Arial, sans-serif; white-space: pre-wrap;">${items}</pre>
+        <p>Obrigado por comprar com a gente! &#128588;</p>
+        <p>Seu pedido j&aacute; entrou na nossa fila de prepara&ccedil;&atilde;o. Em breve voc&ecirc; receber&aacute; novas atualiza&ccedil;&otilde;es. &#128230;</p>
+      </div>
+    `,
+  };
+};
+
+const sendPaidEmail = async (order: StoredOrder) => {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  const customer = getCustomer(order);
+
+  if (!apiKey || !from) {
+    console.info("Email de pedido pago ignorado: Resend não configurado");
+    return false;
+  }
+
+  if (!customer.email) {
+    console.info("Email de pedido pago ignorado: cliente sem e-mail");
+    return false;
+  }
+
+  const message = createPaidOrderMessage(order);
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: customer.email,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`Resend error: ${response.status} ${errorText}`);
+  }
+
+  return true;
+};
+
+const sendPaidWhatsapp = async (order: StoredOrder) => {
+  const botUrl = process.env.WHATSAPP_BOT_URL;
+  const botSecret = process.env.WHATSAPP_BOT_SECRET;
+  const customer = getCustomer(order);
+  const phone = getBrazilPhoneNumber(customer);
+
+  if (!botUrl || !botSecret) {
+    console.info("WhatsApp de pedido pago ignorado: bot Baileys não configurado");
+    return false;
+  }
+
+  if (!phone) {
+    console.info("WhatsApp de pedido pago ignorado: cliente sem WhatsApp");
+    return false;
+  }
+
+  const response = await fetch(`${botUrl.replace(/\/$/, "")}/send-order-paid`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-bot-secret": botSecret,
+    },
+    body: JSON.stringify({
+      phone,
+      customerName: customer.name || "cliente",
+      orderId: order.id,
+      total: formatPrice(order.total),
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`Baileys bot error: ${response.status} ${errorText}`);
+  }
+
+  return true;
+};
+
+export const notifyOrderPaid = async (order: StoredOrder) => {
+  const results = await Promise.allSettled([
+    sendPaidEmail(order),
+    sendPaidWhatsapp(order),
+  ]);
+
+  let sentNotification = false;
+
+  results.forEach((result) => {
+    if (result.status === "fulfilled") {
+      sentNotification = sentNotification || result.value;
+      return;
+    }
+
+    console.error("Erro ao enviar notificação de pedido pago", result.reason);
+  });
+
+  if (!sentNotification) {
+    console.info("Nenhuma notificação de pedido pago foi enviada", {
+      orderId: order.id,
+    });
+  }
+
+  return sentNotification;
+};

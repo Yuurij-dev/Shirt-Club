@@ -1,19 +1,10 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/app/lib/adminAuth";
-import {
-  updateOrderStatus,
-  updateOrderStatusByPreferenceId,
-} from "@/app/lib/orderStore";
-import { getAsaasPayment, isAsaasPaymentPaid } from "@/app/lib/asaas";
-import {
-  getMercadoPagoPayment,
-  searchMercadoPagoPaymentsByExternalReference,
-} from "@/app/lib/mercadoPago";
+import { reconcileOrderPayment } from "@/app/lib/paymentReconciliation";
+import { listOrders } from "@/app/lib/orderStore";
 
 type ReconcileBody = {
   orderId?: string;
-  preferenceId?: string;
-  paymentId?: string;
 };
 
 export const POST = async (request: Request) => {
@@ -23,82 +14,39 @@ export const POST = async (request: Request) => {
 
   const body = (await request.json()) as ReconcileBody;
 
-  if (body.paymentId?.startsWith("pay_")) {
-    const asaasPayment = body.paymentId
-      ? await getAsaasPayment(body.paymentId)
-      : null;
-
-    if (asaasPayment && isAsaasPaymentPaid(asaasPayment.status)) {
-      const orderId = asaasPayment.externalReference || body.orderId;
-
-      if (!orderId) {
-        throw new Error("Pedido não encontrado para esse pagamento Asaas");
-      }
-
-      await updateOrderStatus({
-        orderId,
-        status: "paid",
-        paymentId: asaasPayment.id,
-      });
-
-      return NextResponse.json({
-        updated: true,
-        paymentId: asaasPayment.id,
-      });
-    }
-
+  if (!body.orderId) {
     return NextResponse.json(
-      {
-        updated: false,
-        message: "Nenhum pagamento aprovado encontrado",
-      },
+      { error: "Pedido é obrigatório" },
+      { status: 400 }
+    );
+  }
+
+  const orders = await listOrders();
+  const order = orders.find((currentOrder) => currentOrder.id === body.orderId);
+
+  if (!order) {
+    return NextResponse.json(
+      { error: "Pedido não encontrado" },
       { status: 404 }
     );
   }
 
-  const payments = body.paymentId
-    ? [await getMercadoPagoPayment(body.paymentId)].filter(Boolean)
-    : body.orderId
-      ? await searchMercadoPagoPaymentsByExternalReference(body.orderId)
-      : [];
+  const result = await reconcileOrderPayment(order);
 
-  const approvedPayment = payments.find((payment) => {
-    return payment?.status === "approved";
-  });
-
-  if (approvedPayment?.external_reference) {
-    await updateOrderStatus({
-      orderId: approvedPayment.external_reference,
-      status: "paid",
-      paymentId: String(approvedPayment.id),
-    });
-
-    return NextResponse.json({
-      updated: true,
-      paymentId: approvedPayment.id,
-    });
-  }
-
-  if (!approvedPayment) {
+  if (!result.updated) {
     return NextResponse.json(
       {
         updated: false,
         message: "Nenhum pagamento aprovado encontrado",
+        reason: result.reason,
       },
       { status: 404 }
     );
-  }
-
-  if (body.preferenceId) {
-    await updateOrderStatusByPreferenceId({
-      preferenceId: body.preferenceId,
-      status: "paid",
-      paymentId: String(approvedPayment.id),
-    });
   }
 
   return NextResponse.json({
     updated: true,
-    paymentId: approvedPayment.id,
+    paymentId: result.paymentId,
+    reason: result.reason,
   });
 };
