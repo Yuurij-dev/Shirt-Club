@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { BannerPage, BannerPosition } from "@/app/data/banners";
 import { listActiveBanners } from "@/app/lib/bannerStore";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const bannerPages: BannerPage[] = [
   "home",
   "masculino",

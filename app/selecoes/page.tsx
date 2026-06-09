@@ -1,15 +1,28 @@
 import Link from "next/link";
+import CategoryBannerCarousel from "../components/CategoryBannerCarousel";
 import Footer from "../components/Footer";
 import Header from "../components/header";
 import InstagramSection from "../components/InstagramSection";
 import NewsletterSection from "../components/NewsletterSection";
-import PromoBannerTimes from "../times/components/PromoBannerTimes";
 import StoreHighlights from "../components/StoreHighlights";
+import { StoreBanner } from "../data/banners";
 import SelectionsGrid from "./components/SelectionsGrid";
 
 export const metadata = {
   title: "Seleções | Shirt Club",
   description: "Camisas das principais seleções do mundo.",
+};
+
+const fallbackSelecoesBanner: StoreBanner = {
+  id: "selecoes-hero-default",
+  name: "Banner padrão seleções",
+  page: "selecoes",
+  position: "hero",
+  desktopImageUrl: "/assets/banner/bannerTeams.png",
+  title: "SELEÇÕES",
+  linkUrl: "/selecoes",
+  isActive: true,
+  sortOrder: 1,
 };
 
 const SelecoesPage = () => {
@@ -48,7 +61,12 @@ const SelecoesPage = () => {
             </p>
           </div>
 
-          <PromoBannerTimes />
+          <CategoryBannerCarousel
+            page="selecoes"
+            fallbackBanner={fallbackSelecoesBanner}
+            heading="SELEÇÕES"
+          />
+
           <SelectionsGrid />
           <StoreHighlights />
           <NewsletterSection />

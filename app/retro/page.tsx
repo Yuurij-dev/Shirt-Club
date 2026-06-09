@@ -5,27 +5,11 @@ import Header from "../components/header";
 import InstagramSection from "../components/InstagramSection";
 import NewsletterSection from "../components/NewsletterSection";
 import StoreHighlights from "../components/StoreHighlights";
-import { StoreBanner } from "../data/banners";
 import { listActiveBanners } from "../lib/bannerStore";
 import HistoricMoments from "./components/HistoricMoments";
 import MostWantedCarousel from "./components/MostWantedCarousel";
 import RetroProductsGrid from "./components/RetroProductsGrid";
 import RetroPromoBanner from "./components/RetroPromoBanner";
-
-const fallbackHeroBanners: StoreBanner[] = [
-  {
-    id: "retro-hero-default",
-    name: "Banner padrão retrô",
-    page: "retro",
-    position: "hero",
-    desktopImageUrl: "/assets/banner/bannerRetro.png",
-    title: "MAIS QUE\nUMA CAMISA,\nUMA HISTÓRIA.",
-    description: "Camisas dos maiores times do mundo com qualidade premium.",
-    linkUrl: "/retro",
-    isActive: true,
-    sortOrder: 1,
-  },
-];
 
 const Retro = async () => {
   const [heroBanners, promoBanners] = await Promise.all([
@@ -38,9 +22,6 @@ const Retro = async () => {
       position: "promo",
     }),
   ]);
-
-  const visibleHeroBanners =
-    heroBanners.length > 0 ? heroBanners : fallbackHeroBanners;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -68,7 +49,7 @@ const Retro = async () => {
             </div>
           </div>
 
-          <BannerCarousel banners={visibleHeroBanners} />
+          <BannerCarousel banners={heroBanners} />
 
           <div className="!mt-10">
             <RetroProductsGrid />

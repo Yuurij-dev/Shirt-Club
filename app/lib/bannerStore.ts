@@ -27,6 +27,7 @@ type SupabaseBanner = {
 };
 
 const localBannersFile = path.join(process.cwd(), ".data", "banners.json");
+const publicDirectory = path.join(process.cwd(), "public");
 
 const hasSupabaseConfig = () => {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -101,6 +102,59 @@ const sortBanners = (banners: StoreBanner[]) => {
   });
 };
 
+const isRemoteImageUrl = (imageUrl: string) => {
+  return imageUrl.startsWith("http://") || imageUrl.startsWith("https://");
+};
+
+const isPublicImageUrl = (imageUrl: string) => {
+  return imageUrl.startsWith("/") && !imageUrl.startsWith("//");
+};
+
+const getPublicImagePath = (imageUrl: string) => {
+  const normalizedImageUrl = imageUrl.split("?")[0].replace(/^\/+/, "");
+
+  return path.resolve(publicDirectory, normalizedImageUrl);
+};
+
+const isSafePublicImagePath = (imagePath: string) => {
+  const relativePath = path.relative(publicDirectory, imagePath);
+
+  return Boolean(relativePath) && !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
+};
+
+const publicImageExists = async (imageUrl?: string) => {
+  if (!imageUrl || isRemoteImageUrl(imageUrl)) return true;
+  if (!isPublicImageUrl(imageUrl)) return false;
+
+  const imagePath = getPublicImagePath(imageUrl);
+
+  if (!isSafePublicImagePath(imagePath)) return false;
+
+  try {
+    const stats = await fs.stat(imagePath);
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+};
+
+const validateBannerImages = async (banner: Omit<StoreBanner, "id"> | StoreBanner) => {
+  if (!(await publicImageExists(banner.desktopImageUrl))) {
+    throw new Error("Imagem desktop não encontrada em public");
+  }
+
+  if (banner.mobileImageUrl && !(await publicImageExists(banner.mobileImageUrl))) {
+    throw new Error("Imagem mobile não encontrada em public");
+  }
+};
+
+const bannerImagesExist = async (banner: StoreBanner) => {
+  return (
+    (await publicImageExists(banner.desktopImageUrl)) &&
+    (await publicImageExists(banner.mobileImageUrl))
+  );
+};
+
 const readLocalBanners = async (): Promise<StoreBanner[]> => {
   try {
     const file = await fs.readFile(localBannersFile, "utf-8");
@@ -122,6 +176,7 @@ const listSupabaseBanners = async () => {
     `${process.env.SUPABASE_URL}/rest/v1/banners?select=*&order=sort_order.asc`,
     {
       headers: getSupabaseHeaders(),
+      cache: "no-store",
     }
   );
 
@@ -138,6 +193,7 @@ const writeSupabaseBanner = async (banner: StoreBanner) => {
   const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/banners`, {
     method: "POST",
     headers: getSupabaseHeaders(),
+    cache: "no-store",
     body: JSON.stringify(toSupabaseBanner(banner)),
   });
 
@@ -152,6 +208,7 @@ const patchSupabaseBanner = async (banner: StoreBanner) => {
     {
       method: "PATCH",
       headers: getSupabaseHeaders(),
+      cache: "no-store",
       body: JSON.stringify({
         ...toSupabaseBanner(banner),
         updated_at: new Date().toISOString(),
@@ -170,6 +227,7 @@ const removeSupabaseBanner = async (id: string) => {
     {
       method: "DELETE",
       headers: getSupabaseHeaders(),
+      cache: "no-store",
     }
   );
 
@@ -195,14 +253,21 @@ export const listActiveBanners = async ({
 }) => {
   const banners = await listBanners();
 
-  return sortBanners(
-    banners.filter((banner) => {
+  const activeBanners = banners.filter((banner) => {
       return (
         banner.page === page &&
         banner.position === position &&
         isBannerActiveNow(banner)
       );
+    });
+  const validatedBanners = await Promise.all(
+    activeBanners.map(async (banner) => {
+      return (await bannerImagesExist(banner)) ? banner : null;
     })
+  );
+
+  return sortBanners(
+    validatedBanners.filter((banner): banner is StoreBanner => Boolean(banner))
   );
 };
 
@@ -217,6 +282,8 @@ export const createBanner = async (banner: Omit<StoreBanner, "id">) => {
   if (!payload.desktopImageUrl) {
     throw new Error("Informe a imagem desktop do banner");
   }
+
+  await validateBannerImages(payload);
 
   const newBanner: StoreBanner = {
     ...payload,
@@ -251,6 +318,8 @@ export const updateBanner = async ({
     ...normalizeBannerPayload(banner),
     id,
   };
+
+  await validateBannerImages(updatedBanner);
 
   if (hasSupabaseConfig()) {
     await patchSupabaseBanner(updatedBanner);

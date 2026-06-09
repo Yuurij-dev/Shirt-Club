@@ -2,19 +2,32 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import CategoryBannerCarousel from "../components/CategoryBannerCarousel";
 import Footer from "../components/Footer";
 import Header from "../components/header";
-import PromoBannerMasculino from "./components/PromoBannerMasculino";
 import ProductFilters from "./components/ProductFilters";
 import ProductGrid from "./components/ProductGrid";
 import StoreHighlights from "../components/StoreHighlights";
 import NewsletterSection from "../components/NewsletterSection";
+import { StoreBanner } from "../data/banners";
 import { masculineProducts } from "../data/products";
 
 const getPriceNumber = (price: string | number) => {
   if (typeof price === "number") return price;
 
   return Number(price.replace("R$ ", "").replace(".", "").replace(",", "."));
+};
+
+const fallbackMasculinoBanner: StoreBanner = {
+  id: "masculino-hero-default",
+  name: "Banner padrão masculino",
+  page: "masculino",
+  position: "hero",
+  desktopImageUrl: "/assets/banner/promo-banner-masculino.png",
+  title: "MASCULINO",
+  linkUrl: "/masculino",
+  isActive: true,
+  sortOrder: 1,
 };
 
 const MasculinoPage = () => {
@@ -68,7 +81,11 @@ const MasculinoPage = () => {
             </Link>
           </div>
 
-          <PromoBannerMasculino />
+          <CategoryBannerCarousel
+            page="masculino"
+            fallbackBanner={fallbackMasculinoBanner}
+            heading="MASCULINO"
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] !gap-8">
             <ProductFilters

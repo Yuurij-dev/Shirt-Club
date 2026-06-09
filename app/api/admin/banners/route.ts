@@ -8,6 +8,9 @@ import {
   updateBanner,
 } from "@/app/lib/bannerStore";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const bannerPages: BannerPage[] = [
   "home",
   "masculino",

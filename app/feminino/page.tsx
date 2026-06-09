@@ -2,19 +2,32 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import CategoryBannerCarousel from "../components/CategoryBannerCarousel";
 import Footer from "../components/Footer";
 import Header from "../components/header";
-import PromoBannerFeminino from "./components/PromoBannerFeminino";
 import ProductFilters from "./components/ProductFilters";
 import ProductGrid from "./components/ProductGrid";
 import StoreHighlights from "../components/StoreHighlights";
 import NewsletterSection from "../components/NewsletterSection";
+import { StoreBanner } from "../data/banners";
 import { feminineProducts } from "../data/products";
 
 const getPriceNumber = (price: string | number) => {
   if (typeof price === "number") return price;
 
   return Number(price.replace("R$ ", "").replace(".", "").replace(",", "."));
+};
+
+const fallbackFemininoBanner: StoreBanner = {
+  id: "feminino-hero-default",
+  name: "Banner padrão feminino",
+  page: "feminino",
+  position: "hero",
+  desktopImageUrl: "/assets/banner/promo-banner-feminino.png",
+  title: "FEMININO",
+  linkUrl: "/feminino",
+  isActive: true,
+  sortOrder: 1,
 };
 
 const FemininoPage = () => {
@@ -68,7 +81,11 @@ const FemininoPage = () => {
             </Link>
           </div>
 
-          <PromoBannerFeminino />
+          <CategoryBannerCarousel
+            page="feminino"
+            fallbackBanner={fallbackFemininoBanner}
+            heading="FEMININO"
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] !gap-8">
             <ProductFilters

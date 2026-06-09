@@ -10,7 +10,7 @@ const RetroPromoBanner = () => {
             relative
             h-[180px]
             overflow-hidden
-            rounded-2xl
+            rounded-lg
             bg-black
 
             sm:h-[220px]

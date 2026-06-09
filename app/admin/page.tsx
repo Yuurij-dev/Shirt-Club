@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3,
   CalendarDays,
@@ -1920,6 +1920,7 @@ const BannersPanel = ({
     emptyBannerForm
   );
   const [isSaving, setIsSaving] = useState(false);
+  const bannerFormRef = useRef<HTMLFormElement | null>(null);
 
   const activeBanners = banners.filter((banner) => banner.isActive);
   const homeHeroBanners = banners.filter((banner) => {
@@ -1946,6 +1947,17 @@ const BannersPanel = ({
           }
         : emptyBannerForm
     );
+  };
+
+  const handleEditBanner = (banner: StoreBanner) => {
+    fillForm(banner);
+
+    window.requestAnimationFrame(() => {
+      bannerFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   };
 
   const updateFormField = <Key extends keyof Omit<StoreBanner, "id">>(
@@ -2061,8 +2073,9 @@ const BannersPanel = ({
       </div>
 
       <form
+        ref={bannerFormRef}
         onSubmit={handleSubmit}
-        className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm"
+        className="scroll-mt-24 rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm"
       >
         <div className="flex items-start justify-between !gap-4">
           <div>
@@ -2245,7 +2258,7 @@ const BannersPanel = ({
                   <div className="flex items-center !gap-2 lg:justify-end">
                     <button
                       type="button"
-                      onClick={() => fillForm(banner)}
+                      onClick={() => handleEditBanner(banner)}
                       className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-zinc-200"
                       aria-label="Editar banner"
                     >
