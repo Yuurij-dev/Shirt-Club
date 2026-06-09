@@ -50,15 +50,6 @@ const SelecoesPage = () => {
                 Seleções
               </Link>
             </div>
-
-            <h1 className="font-[family-name:var(--font-bebas)] text-5xl leading-none text-zinc-950">
-              SELEÇÕES
-            </h1>
-
-            <p className="!mt-5 max-w-[420px] text-base text-zinc-700">
-              Encontre camisas das maiores seleções do mundo. Qualidade premium
-              para vestir sua paixão pelo futebol.
-            </p>
           </div>
 
           <CategoryBannerCarousel
@@ -66,7 +57,11 @@ const SelecoesPage = () => {
             fallbackBanner={fallbackSelecoesBanner}
             heading="SELEÇÕES"
           />
-
+          <div>
+            <p className="!mt-5 max-w-[450px] text-base text-zinc-700">
+              Encontre camisas das maiores seleções do mundo. Qualidade premium para vestir sua paixão pelo futebol.
+            </p>
+          </div>
           <SelectionsGrid />
           <StoreHighlights />
           <NewsletterSection />

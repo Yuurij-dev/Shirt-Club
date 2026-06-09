@@ -16,12 +16,27 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
   }, [banners]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [bannerRatios, setBannerRatios] = useState<Record<string, number>>({});
+  const [isMobile, setIsMobile] = useState(false);
 
   const hasMultipleBanners = visibleBanners.length > 1;
   const normalizedActiveIndex =
     visibleBanners.length > 0 ? activeIndex % visibleBanners.length : 0;
   const activeBanner = visibleBanners[normalizedActiveIndex];
-  const activeRatio = activeBanner ? bannerRatios[activeBanner.id] || 1.875 : 1.875;
+  const activeRatioKey =
+    activeBanner && isMobile && activeBanner.mobileImageUrl
+      ? `${activeBanner.id}:mobile`
+      : `${activeBanner?.id}:desktop`;
+  const activeRatio = activeBanner ? bannerRatios[activeRatioKey] || 1.875 : 1.875;
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 639px)");
+    const handleViewportChange = () => setIsMobile(mediaQuery.matches);
+
+    handleViewportChange();
+    mediaQuery.addEventListener("change", handleViewportChange);
+
+    return () => mediaQuery.removeEventListener("change", handleViewportChange);
+  }, []);
 
   useEffect(() => {
     if (!hasMultipleBanners) return;
@@ -51,7 +66,7 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
 
   const content = (
     <div
-      className="relative w-full max-w-[1600px] overflow-hidden bg-zinc-100 transition-[aspect-ratio] duration-300"
+      className="relative w-full max-w-[1600px] overflow-hidden rounded-lg bg-zinc-100 transition-[aspect-ratio] duration-300"
       style={{ aspectRatio: activeRatio }}
     >
       {visibleBanners.map((banner, index) => {
@@ -78,11 +93,12 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
                   if (!image.naturalWidth || !image.naturalHeight) return;
 
                   setBannerRatios((currentRatios) => {
-                    if (currentRatios[banner.id]) return currentRatios;
+                    const ratioKey = `${banner.id}:mobile`;
+                    if (currentRatios[ratioKey]) return currentRatios;
 
                     return {
                       ...currentRatios,
-                      [banner.id]: image.naturalWidth / image.naturalHeight,
+                      [ratioKey]: image.naturalWidth / image.naturalHeight,
                     };
                   });
                 }}
@@ -103,11 +119,12 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
                 if (!image.naturalWidth || !image.naturalHeight) return;
 
                 setBannerRatios((currentRatios) => {
-                  if (currentRatios[banner.id]) return currentRatios;
+                  const ratioKey = `${banner.id}:desktop`;
+                  if (currentRatios[ratioKey]) return currentRatios;
 
                   return {
                     ...currentRatios,
-                    [banner.id]: image.naturalWidth / image.naturalHeight,
+                    [ratioKey]: image.naturalWidth / image.naturalHeight,
                   };
                 });
               }}

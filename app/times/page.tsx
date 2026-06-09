@@ -45,15 +45,6 @@ const Times = () => {
                 Times
               </Link>
             </div>
-
-            <h1 className="font-[family-name:var(--font-bebas)] text-5xl leading-none text-zinc-950">
-              TIMES
-            </h1>
-
-            <p className="!mt-5 max-w-[360px] text-base text-zinc-700">
-              Encontre camisas dos seus times do coração. Qualidade premium
-              para torcer com estilo.
-            </p>
           </div>
 
           <CategoryBannerCarousel
@@ -61,6 +52,13 @@ const Times = () => {
             fallbackBanner={fallbackTimesBanner}
             heading="TIMES"
           />
+
+          <div>
+            <p className="!mt-5 max-w-[450px] text-base text-zinc-700">
+              Encontre camisas dos seus times do coração. Qualidade premium
+              para torcer com estilo.
+            </p>
+          </div>
 
           <TeamsGrid />
           <StoreHighlights />
