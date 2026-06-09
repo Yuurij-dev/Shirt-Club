@@ -1,33 +1,55 @@
-"use client";
-
-import Banner from "../components/Banner";
-import Header from "../components/header";
-import bannerRetro from "public/assets/bannerRetro.png";
-
-import RetroProductsGrid from "./components/RetroProductsGrid";
-import HistoricMoments from "./components/HistoricMoments";
-import RetroPromoBanner from "./components/RetroPromoBanner";
-import MostWantedCarousel from "./components/MostWantedCarousel";
-
-import StoreHighlights from "../components/StoreHighlights";
-import NewsletterSection from "../components/NewsletterSection";
-import InstagramSection from "../components/InstagramSection";
-import Footer from "../components/Footer";
-
 import Link from "next/link";
+import BannerCarousel from "../components/BannerCarousel";
+import Footer from "../components/Footer";
+import Header from "../components/header";
+import InstagramSection from "../components/InstagramSection";
+import NewsletterSection from "../components/NewsletterSection";
+import StoreHighlights from "../components/StoreHighlights";
+import { StoreBanner } from "../data/banners";
+import { listActiveBanners } from "../lib/bannerStore";
+import HistoricMoments from "./components/HistoricMoments";
+import MostWantedCarousel from "./components/MostWantedCarousel";
+import RetroProductsGrid from "./components/RetroProductsGrid";
+import RetroPromoBanner from "./components/RetroPromoBanner";
 
-const Retro = () => {
+const fallbackHeroBanners: StoreBanner[] = [
+  {
+    id: "retro-hero-default",
+    name: "Banner padrão retrô",
+    page: "retro",
+    position: "hero",
+    desktopImageUrl: "/assets/banner/bannerRetro.png",
+    title: "MAIS QUE\nUMA CAMISA,\nUMA HISTÓRIA.",
+    description: "Camisas dos maiores times do mundo com qualidade premium.",
+    linkUrl: "/retro",
+    isActive: true,
+    sortOrder: 1,
+  },
+];
+
+const Retro = async () => {
+  const [heroBanners, promoBanners] = await Promise.all([
+    listActiveBanners({
+      page: "retro",
+      position: "hero",
+    }),
+    listActiveBanners({
+      page: "retro",
+      position: "promo",
+    }),
+  ]);
+
+  const visibleHeroBanners =
+    heroBanners.length > 0 ? heroBanners : fallbackHeroBanners;
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
 
       <main className="flex-1">
         <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
-          
-          {/* BREADCRUMB */}
           <div className="!mb-6">
             <div className="!mb-4 flex items-center !gap-2 text-sm text-zinc-500">
-              
               <Link
                 href="/"
                 className="transition-all duration-200 hover:text-black"
@@ -41,54 +63,44 @@ const Retro = () => {
                 href="/retro"
                 className="transition-all duration-200 hover:text-black"
               >
-                Retro
+                Retrô
               </Link>
-
             </div>
           </div>
 
-          {/* BANNER */}
-          <Banner
-            image={bannerRetro}
-            title={`MAIS QUE\nUMA CAMISA,\nUMA HISTÓRIA.`}
-            description="Camisas dos maiores times do mundo com qualidade premium."
-          />
+          <BannerCarousel banners={visibleHeroBanners} />
 
-          {/* PRODUTOS */}
           <div className="!mt-10">
             <RetroProductsGrid />
           </div>
 
-          {/* MOMENTOS HISTÓRICOS */}
           <div className="!mt-16">
             <HistoricMoments />
           </div>
 
-          {/* BANNER PROMOCIONAL */}
           <div className="!mt-16">
-            <RetroPromoBanner />
+            {promoBanners.length > 0 ? (
+              <BannerCarousel banners={promoBanners} />
+            ) : (
+              <RetroPromoBanner />
+            )}
           </div>
 
-          {/* CARROSSEL */}
           <div className="!mt-16">
             <MostWantedCarousel />
           </div>
 
-          {/* BENEFÍCIOS */}
           <div className="!mt-16">
             <StoreHighlights />
           </div>
 
-          {/* NEWSLETTER */}
           <div className="!mt-16">
             <NewsletterSection />
           </div>
 
-          {/* INSTAGRAM */}
           <div className="!mt-16">
             <InstagramSection />
           </div>
-
         </section>
       </main>
 

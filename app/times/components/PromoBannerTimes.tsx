@@ -1,5 +1,5 @@
 import Image from "next/image";
-import promoBanner from "public/assets/promo-banner.png";
+import promoBanner from "public/assets/banner/promo-banner.png";
 
 const PromoBannerTimes = () => {
   return (

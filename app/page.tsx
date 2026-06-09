@@ -1,6 +1,5 @@
-import Banner from "./components/Banner";
-import homeBanner from "public/assets/BannerHome.png"
-import BenefitsSection from "./components/BenefitsSection"
+import BannerCarousel from "./components/BannerCarousel";
+import BenefitsSection from "./components/BenefitsSection";
 import Footer from "./components/Footer";
 import Header from "./components/header";
 import InstagramSection from "./components/InstagramSection";
@@ -10,28 +9,34 @@ import ProductsSection from "./components/productionsSection";
 import PromoBanner from "./components/PromoBanner";
 import StoreHighlights from "./components/StoreHighlights";
 import TeamsSection from "./components/TeamsSection";
+import { listActiveBanners } from "./lib/bannerStore";
 
-const Home = () => {
+const Home = async () => {
+  const heroBanners = await listActiveBanners({
+    page: "home",
+    position: "hero",
+  });
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
         <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
-          <Banner image={homeBanner} title={`MAIS QUE\nUMA CAMISA,\nUMA HISTÓRIA.`} description="Camisas dos maiores times do mundo com qualidade premium."/>
-          <BenefitsSection/>
-          <ProductsSection/>
-          <PromoBanner/>
-          <TeamsSection/>
-          <ProductCarouselSection/>
-          <StoreHighlights/>
-          <NewsletterSection/>
-          <InstagramSection/>
+          <BannerCarousel banners={heroBanners} />
+          <BenefitsSection />
+          <ProductsSection />
+          <PromoBanner />
+          <TeamsSection />
+          <ProductCarouselSection />
+          <StoreHighlights />
+          <NewsletterSection />
+          <InstagramSection />
         </section>
       </main>
-      
-      <Footer/>
+
+      <Footer />
     </div>
   );
-}
- 
+};
+
 export default Home;

@@ -10,9 +10,12 @@ import {
   Copy,
   Clock3,
   Gift,
+  ImageIcon,
   LayoutDashboard,
   LogOut,
   Package,
+  Pencil,
+  Plus,
   RefreshCw,
   Search,
   Settings,
@@ -27,6 +30,13 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import {
+  bannerPageLabels,
+  bannerPositionLabels,
+  BannerPage,
+  BannerPosition,
+  StoreBanner,
+} from "../data/banners";
 import { Coupon, CouponType, getCouponStatus } from "../data/coupons";
 import { products } from "../data/products";
 import { formatPrice, getPriceNumber } from "../utils/price";
@@ -76,6 +86,7 @@ type AdminSection =
   | "products"
   | "clients"
   | "coupons"
+  | "banners"
   | "reviews"
   | "settings";
 
@@ -89,6 +100,17 @@ type DashboardPeriod = 7 | 30 | 90;
 type CouponsResponse = {
   coupons: Coupon[];
 };
+
+type BannersResponse = {
+  banners: StoreBanner[];
+};
+
+const bannerPageOptions = Object.entries(bannerPageLabels) as Array<
+  [BannerPage, string]
+>;
+const bannerPositionOptions = Object.entries(bannerPositionLabels) as Array<
+  [BannerPosition, string]
+>;
 
 const deliveryStatusLabels: Record<AdminOrder["deliveryStatus"], string> = {
   not_separated: "Não separado",
@@ -167,6 +189,7 @@ const AdminPage = () => {
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+  const [isLoadingBanners, setIsLoadingBanners] = useState(false);
   const [activeSection, setActiveSection] = useState<AdminSection>("orders");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
@@ -174,6 +197,7 @@ const AdminPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [banners, setBanners] = useState<StoreBanner[]>([]);
   const [orders, setOrders] = useState<OrdersResponse>({
     unpaid: [],
     paid: [],
@@ -234,6 +258,34 @@ const AdminPage = () => {
       setIsLoadingCoupons(false);
     }
   }, [loadCoupons]);
+
+  const loadBanners = useCallback(async () => {
+    const response = await fetch("/api/admin/banners");
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+      }
+      return null;
+    }
+
+    const data = (await response.json()) as BannersResponse;
+    setBanners(data.banners);
+
+    return data.banners;
+  }, []);
+
+  const fetchBanners = useCallback(async () => {
+    setIsLoadingBanners(true);
+
+    try {
+      await loadBanners();
+    } catch {
+      toast.error("Não foi possível buscar os banners");
+    } finally {
+      setIsLoadingBanners(false);
+    }
+  }, [loadBanners]);
 
   const refreshAndReconcileOrders = useCallback(async () => {
     setIsLoadingOrders(true);
@@ -304,7 +356,7 @@ const AdminPage = () => {
         setIsAuthenticated(data.authenticated);
 
         if (data.authenticated) {
-          await Promise.all([fetchOrders(), fetchCoupons()]);
+          await Promise.all([fetchOrders(), fetchCoupons(), fetchBanners()]);
         }
       } finally {
         setIsLoadingSession(false);
@@ -312,7 +364,7 @@ const AdminPage = () => {
     };
 
     void checkSession();
-  }, [fetchCoupons, fetchOrders]);
+  }, [fetchBanners, fetchCoupons, fetchOrders]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -417,6 +469,25 @@ const AdminPage = () => {
     });
   }, [couponFilter, coupons, searchTerm]);
 
+  const visibleBanners = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return banners.filter((banner) => {
+      const searchableText = [
+        banner.name,
+        banner.page,
+        banner.position,
+        banner.title,
+        banner.desktopImageUrl,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedSearch);
+    });
+  }, [banners, searchTerm]);
+
   const paidTotal = orders.paid.reduce((total, order) => total + order.total, 0);
   const pendingTotal = orders.unpaid.reduce(
     (total, order) => total + order.total,
@@ -446,7 +517,7 @@ const AdminPage = () => {
     }
 
     setIsAuthenticated(true);
-    await Promise.all([fetchOrders(), fetchCoupons()]);
+    await Promise.all([fetchOrders(), fetchCoupons(), fetchBanners()]);
   };
 
   const handleLogout = async () => {
@@ -457,6 +528,7 @@ const AdminPage = () => {
     setIsAuthenticated(false);
     setOrders({ unpaid: [], paid: [] });
     setCoupons([]);
+    setBanners([]);
   };
 
   const handleDeliveryStatusChange = async (
@@ -620,10 +692,20 @@ const AdminPage = () => {
               />
             )}
 
+            {activeSection === "banners" && (
+              <BannersPanel
+                banners={banners}
+                visibleBanners={visibleBanners}
+                isLoadingBanners={isLoadingBanners}
+                onRefresh={fetchBanners}
+              />
+            )}
+
             {activeSection !== "orders" &&
               activeSection !== "dashboard" &&
               activeSection !== "deliveries" &&
-              activeSection !== "coupons" && (
+              activeSection !== "coupons" &&
+              activeSection !== "banners" && (
               <ComingSoonPanel section={activeSection} />
             )}
           </div>
@@ -658,6 +740,7 @@ const AdminSidebar = ({
     { id: "products", label: "Produtos", icon: Package },
     { id: "clients", label: "Clientes", icon: Users },
     { id: "coupons", label: "Cupons", icon: Gift },
+    { id: "banners", label: "Banners", icon: ImageIcon },
     { id: "reviews", label: "Avaliações", icon: Star },
     { id: "settings", label: "Configurações", icon: Settings },
   ];
@@ -1777,6 +1860,478 @@ const OrderPaymentButton = ({
       <RefreshCw size={16} className={isReconciling ? "animate-spin" : ""} />
       VERIFICAR PAGAMENTO
     </button>
+  );
+};
+
+const emptyBannerForm: Omit<StoreBanner, "id"> = {
+  name: "",
+  page: "home",
+  position: "hero",
+  desktopImageUrl: "",
+  mobileImageUrl: "",
+  title: "",
+  description: "",
+  linkUrl: "",
+  isActive: true,
+  sortOrder: 1,
+  startsAt: "",
+  endsAt: "",
+};
+
+const bannerAssetBasePath = "/assets/banner/";
+
+const getBannerImageInputValue = (imageUrl?: string) => {
+  if (!imageUrl) return "";
+
+  return imageUrl.startsWith(bannerAssetBasePath)
+    ? imageUrl.replace(bannerAssetBasePath, "")
+    : imageUrl;
+};
+
+const resolveBannerImageUrl = (imageUrl?: string) => {
+  const trimmedImageUrl = imageUrl?.trim();
+
+  if (!trimmedImageUrl) return "";
+
+  if (
+    trimmedImageUrl.startsWith("/") ||
+    trimmedImageUrl.startsWith("http://") ||
+    trimmedImageUrl.startsWith("https://")
+  ) {
+    return trimmedImageUrl;
+  }
+
+  return `${bannerAssetBasePath}${trimmedImageUrl}`;
+};
+
+const BannersPanel = ({
+  banners,
+  visibleBanners,
+  isLoadingBanners,
+  onRefresh,
+}: {
+  banners: StoreBanner[];
+  visibleBanners: StoreBanner[];
+  isLoadingBanners: boolean;
+  onRefresh: () => Promise<void>;
+}) => {
+  const [editingBanner, setEditingBanner] = useState<StoreBanner | null>(null);
+  const [formData, setFormData] = useState<Omit<StoreBanner, "id">>(
+    emptyBannerForm
+  );
+  const [isSaving, setIsSaving] = useState(false);
+
+  const activeBanners = banners.filter((banner) => banner.isActive);
+  const homeHeroBanners = banners.filter((banner) => {
+    return banner.page === "home" && banner.position === "hero";
+  });
+
+  const fillForm = (banner: StoreBanner | null) => {
+    setEditingBanner(banner);
+    setFormData(
+      banner
+        ? {
+            name: banner.name,
+            page: banner.page,
+            position: banner.position,
+            desktopImageUrl: getBannerImageInputValue(banner.desktopImageUrl),
+            mobileImageUrl: getBannerImageInputValue(banner.mobileImageUrl),
+            title: banner.title || "",
+            description: banner.description || "",
+            linkUrl: banner.linkUrl || "",
+            isActive: banner.isActive,
+            sortOrder: banner.sortOrder,
+            startsAt: banner.startsAt || "",
+            endsAt: banner.endsAt || "",
+          }
+        : emptyBannerForm
+    );
+  };
+
+  const updateFormField = <Key extends keyof Omit<StoreBanner, "id">>(
+    key: Key,
+    value: Omit<StoreBanner, "id">[Key]
+  ) => {
+    setFormData((currentData) => ({
+      ...currentData,
+      [key]: value,
+    }));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/admin/banners", {
+        method: editingBanner ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          id: editingBanner?.id,
+          desktopImageUrl: resolveBannerImageUrl(formData.desktopImageUrl),
+          mobileImageUrl: resolveBannerImageUrl(formData.mobileImageUrl),
+          sortOrder: Number(formData.sortOrder || 0),
+        }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        toast.error(data.error || "Não foi possível salvar o banner");
+        return;
+      }
+
+      toast.success(editingBanner ? "Banner atualizado" : "Banner criado");
+      fillForm(null);
+      await onRefresh();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (banner: StoreBanner) => {
+    const confirmed = window.confirm(
+      `Remover o banner ${banner.name}? Essa ação não pode ser desfeita.`
+    );
+
+    if (!confirmed) return;
+
+    const response = await fetch("/api/admin/banners", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: banner.id }),
+    });
+    const data = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      toast.error(data.error || "Não foi possível remover o banner");
+      return;
+    }
+
+    toast.success("Banner removido");
+    await onRefresh();
+  };
+
+  return (
+    <section className="flex flex-col !gap-5">
+      <div className="flex flex-col !gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-[family-name:var(--font-bebas)] text-5xl">
+            Banners
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Controle quais imagens aparecem nas páginas da loja.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => fillForm(null)}
+          className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-sm font-bold text-white"
+        >
+          <Plus size={16} />
+          Novo banner
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 !gap-4 md:grid-cols-3">
+        <MetricCard
+          title="Total de banners"
+          value={String(banners.length)}
+          helper="Banners cadastrados"
+          icon={ImageIcon}
+        />
+        <MetricCard
+          title="Banners ativos"
+          value={String(activeBanners.length)}
+          helper="Disponíveis no site"
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <MetricCard
+          title="Home hero"
+          value={String(homeHeroBanners.length)}
+          helper="Slides no carrossel inicial"
+          icon={LayoutDashboard}
+        />
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm"
+      >
+        <div className="flex items-start justify-between !gap-4">
+          <div>
+            <h2 className="font-[family-name:var(--font-bebas)] text-4xl">
+              {editingBanner ? "Editar banner" : "Novo banner"}
+            </h2>
+            <p className="text-sm text-zinc-500">
+              Use URLs do public, Supabase Storage ou qualquer imagem pública.
+            </p>
+          </div>
+
+          {editingBanner && (
+            <button
+              type="button"
+              onClick={() => fillForm(null)}
+              className="h-10 cursor-pointer rounded-lg border border-zinc-200 !px-4 text-xs font-bold"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+
+        <div className="!mt-5 grid grid-cols-1 !gap-4 lg:grid-cols-4">
+          <AdminTextField
+            label="Nome"
+            value={formData.name}
+            onChange={(value) => updateFormField("name", value)}
+          />
+          <AdminSelectField
+            label="Página"
+            value={formData.page}
+            options={bannerPageOptions}
+            onChange={(value) => updateFormField("page", value as BannerPage)}
+          />
+          <AdminSelectField
+            label="Posição"
+            value={formData.position}
+            options={bannerPositionOptions}
+            onChange={(value) =>
+              updateFormField("position", value as BannerPosition)
+            }
+          />
+          <AdminTextField
+            label="Ordem"
+            type="number"
+            value={String(formData.sortOrder)}
+            onChange={(value) => updateFormField("sortOrder", Number(value))}
+          />
+          <div className="lg:col-span-2">
+            <AdminTextField
+              label="Imagem desktop"
+              value={formData.desktopImageUrl}
+              onChange={(value) => updateFormField("desktopImageUrl", value)}
+              placeholder="BannerHome.png"
+              prefix={bannerAssetBasePath}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <AdminTextField
+              label="Imagem mobile"
+              value={formData.mobileImageUrl || ""}
+              onChange={(value) => updateFormField("mobileImageUrl", value)}
+              placeholder="Opcional, ex: BannerHome-mobile.png"
+              prefix={bannerAssetBasePath}
+            />
+          </div>
+          <AdminTextField
+            label="Título"
+            value={formData.title || ""}
+            onChange={(value) => updateFormField("title", value)}
+          />
+          <AdminTextField
+            label="Descrição"
+            value={formData.description || ""}
+            onChange={(value) => updateFormField("description", value)}
+          />
+          <AdminTextField
+            label="Link"
+            value={formData.linkUrl || ""}
+            onChange={(value) => updateFormField("linkUrl", value)}
+            placeholder="/masculino"
+          />
+          <label className="flex h-[74px] items-center !gap-3 rounded-lg border border-zinc-200 !px-4 text-sm font-bold">
+            <input
+              type="checkbox"
+              checked={formData.isActive}
+              onChange={(event) =>
+                updateFormField("isActive", event.target.checked)
+              }
+              className="h-4 w-4 accent-black"
+            />
+            Ativo
+          </label>
+          <AdminTextField
+            label="Início"
+            type="date"
+            value={formData.startsAt || ""}
+            onChange={(value) => updateFormField("startsAt", value)}
+          />
+          <AdminTextField
+            label="Fim"
+            type="date"
+            value={formData.endsAt || ""}
+            onChange={(value) => updateFormField("endsAt", value)}
+          />
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="h-[74px] cursor-pointer rounded-lg bg-black text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 lg:col-span-2"
+          >
+            {isSaving ? "Salvando..." : "Salvar banner"}
+          </button>
+        </div>
+      </form>
+
+      <div className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold">Banners cadastrados</h2>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoadingBanners}
+            className="inline-flex h-10 cursor-pointer items-center !gap-2 rounded-lg border border-zinc-200 !px-4 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw size={15} className={isLoadingBanners ? "animate-spin" : ""} />
+            Atualizar
+          </button>
+        </div>
+
+        <div className="!mt-4 overflow-hidden rounded-lg border border-zinc-100">
+          {visibleBanners.length === 0 ? (
+            <div className="!p-8 text-center text-sm text-zinc-500">
+              Nenhum banner encontrado.
+            </div>
+          ) : (
+            <div className="divide-y divide-zinc-100">
+              {visibleBanners.map((banner) => (
+                <div
+                  key={banner.id}
+                  className="grid grid-cols-1 !gap-4 !p-4 lg:grid-cols-[180px_1fr_auto]"
+                >
+                  <div className="relative h-28 overflow-hidden rounded-lg bg-zinc-100">
+                    <Image
+                      src={banner.desktopImageUrl}
+                      alt={banner.name}
+                      fill
+                      sizes="180px"
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex flex-wrap items-center !gap-2">
+                      <h3 className="font-bold">{banner.name}</h3>
+                      <span
+                        className={`rounded-full !px-2 !py-1 text-[11px] font-bold ${
+                          banner.isActive
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-zinc-100 text-zinc-500"
+                        }`}
+                      >
+                        {banner.isActive ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
+                    <p className="!mt-1 text-sm text-zinc-500">
+                      {bannerPageLabels[banner.page]} •{" "}
+                      {bannerPositionLabels[banner.position]} • Ordem{" "}
+                      {banner.sortOrder}
+                    </p>
+                    {banner.title && (
+                      <p className="!mt-2 text-sm font-semibold text-zinc-800">
+                        {banner.title}
+                      </p>
+                    )}
+                    <p className="!mt-1 break-all text-xs text-zinc-500">
+                      {banner.desktopImageUrl}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center !gap-2 lg:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => fillForm(banner)}
+                      className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-zinc-200"
+                      aria-label="Editar banner"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(banner)}
+                      className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-red-200 text-red-600"
+                      aria-label="Remover banner"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const AdminTextField = ({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  prefix,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  prefix?: string;
+}) => {
+  return (
+    <label className="flex flex-col !gap-2 text-xs font-bold uppercase text-zinc-500">
+      {label}
+      <span className="flex h-11 overflow-hidden rounded-lg border border-zinc-200 bg-white focus-within:border-black">
+        {prefix && (
+          <span className="flex items-center border-r border-zinc-200 bg-zinc-50 !px-3 text-sm font-semibold normal-case text-zinc-500">
+            {prefix}
+          </span>
+        )}
+        <input
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-w-0 flex-1 !px-3 text-sm font-semibold normal-case text-zinc-950 outline-none"
+        />
+      </span>
+    </label>
+  );
+};
+
+const AdminSelectField = ({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<[string, string]>;
+  onChange: (value: string) => void;
+}) => {
+  return (
+    <label className="flex flex-col !gap-2 text-xs font-bold uppercase text-zinc-500">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 cursor-pointer rounded-lg border border-zinc-200 !px-3 text-sm font-semibold normal-case text-zinc-950 outline-none focus:border-black"
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 };
 
@@ -3435,7 +3990,7 @@ const getDashboardDateRange = () => {
 
 const ComingSoonPanel = ({ section }: { section: AdminSection }) => {
   const content: Record<
-    Exclude<AdminSection, "dashboard" | "orders" | "deliveries">,
+    Exclude<AdminSection, "dashboard" | "orders" | "deliveries" | "banners">,
     { title: string; description: string; icon: typeof Package }
   > = {
     products: {

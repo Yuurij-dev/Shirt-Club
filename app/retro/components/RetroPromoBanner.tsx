@@ -1,5 +1,5 @@
 import Image from "next/image";
-import retroPromoBannerImg from "public/assets/retro-promo-banner.png"
+import retroPromoBannerImg from "public/assets/banner/retro-promo-banner.png"
 
 const RetroPromoBanner = () => {
   return (
