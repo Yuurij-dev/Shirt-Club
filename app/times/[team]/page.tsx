@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import CategoryBannerCarousel from "@/app/components/CategoryBannerCarousel";
 import EntityProductsSection from "@/app/components/EntityProductsSection";
 import Footer from "@/app/components/Footer";
 import Header from "@/app/components/header";
 import NewsletterSection from "@/app/components/NewsletterSection";
 import StoreHighlights from "@/app/components/StoreHighlights";
+import { StoreBanner } from "@/app/data/banners";
 import { getTeamBySlug, teams } from "@/app/data/teams";
 import { getProductsByOwner } from "@/app/utils/inventory";
 
@@ -12,6 +14,18 @@ type TeamPageProps = {
   params: Promise<{
     team: string;
   }>;
+};
+
+const fallbackTimesBanner: StoreBanner = {
+  id: "times-hero-default",
+  name: "Banner padrão times",
+  page: "times",
+  position: "hero",
+  desktopImageUrl: "/assets/banner/bannerTeams.png",
+  title: "TIMES",
+  linkUrl: "/times",
+  isActive: true,
+  sortOrder: 1,
 };
 
 export const generateStaticParams = () => {
@@ -65,6 +79,12 @@ const TeamPage = async ({ params }: TeamPageProps) => {
           <span>›</span>
           <span className="text-zinc-900">{team.name}</span>
         </nav>
+
+        <CategoryBannerCarousel
+          page="times"
+          fallbackBanner={fallbackTimesBanner}
+          heading="TIMES"
+        />
 
         <EntityProductsSection
           title={team.name.toUpperCase()}

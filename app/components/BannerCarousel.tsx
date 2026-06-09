@@ -55,7 +55,6 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
       style={{ aspectRatio: activeRatio }}
     >
       {visibleBanners.map((banner, index) => {
-        const imageUrl = banner.mobileImageUrl || banner.desktopImageUrl;
         const isActive = index === normalizedActiveIndex;
 
         return (
@@ -66,13 +65,39 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
             }`}
             aria-hidden={!isActive}
           >
+            {banner.mobileImageUrl && (
+              <Image
+                src={banner.mobileImageUrl}
+                alt={banner.name}
+                priority={index === 0}
+                fill
+                sizes="100vw"
+                className="object-contain object-center sm:hidden"
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  if (!image.naturalWidth || !image.naturalHeight) return;
+
+                  setBannerRatios((currentRatios) => {
+                    if (currentRatios[banner.id]) return currentRatios;
+
+                    return {
+                      ...currentRatios,
+                      [banner.id]: image.naturalWidth / image.naturalHeight,
+                    };
+                  });
+                }}
+              />
+            )}
+
             <Image
-              src={imageUrl}
+              src={banner.desktopImageUrl}
               alt={banner.name}
-              priority={index === 0}
+              priority={index === 0 && !banner.mobileImageUrl}
               fill
               sizes="(min-width: 1600px) 1600px, 100vw"
-              className="object-contain object-center"
+              className={`object-contain object-center ${
+                banner.mobileImageUrl ? "hidden sm:block" : "block"
+              }`}
               onLoad={(event) => {
                 const image = event.currentTarget;
                 if (!image.naturalWidth || !image.naturalHeight) return;

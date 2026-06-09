@@ -95,9 +95,8 @@ const CategoryBannerCarousel = ({
 
   return (
     <section className="!py-8">
-      <div className="relative !mx-auto aspect-[16/9] w-full max-w-[1180px] overflow-hidden rounded-lg bg-white sm:aspect-[32/9]">
+      <div className="relative !mx-auto aspect-[4/5] w-full max-w-[1180px] overflow-hidden rounded-lg bg-white sm:aspect-[32/9]">
         {visibleBanners.map((banner, index) => {
-          const imageUrl = banner.mobileImageUrl || banner.desktopImageUrl;
           const isActive = index === normalizedActiveIndex;
 
           return (
@@ -108,13 +107,26 @@ const CategoryBannerCarousel = ({
               }`}
               aria-hidden={!isActive}
             >
+              {banner.mobileImageUrl && (
+                <Image
+                  src={banner.mobileImageUrl}
+                  alt={banner.name}
+                  fill
+                  priority={index === 0}
+                  sizes="100vw"
+                  className="object-cover object-center sm:hidden"
+                />
+              )}
+
               <Image
-                src={imageUrl}
+                src={banner.desktopImageUrl}
                 alt={banner.name}
                 fill
-                priority={index === 0}
-                sizes="(min-width: 1600px) 1600px, 100vw"
-                className="object-contain object-center"
+                priority={index === 0 && !banner.mobileImageUrl}
+                sizes="(min-width: 1600px) 1180px, 100vw"
+                className={`object-contain object-center ${
+                  banner.mobileImageUrl ? "hidden sm:block" : "block"
+                }`}
               />
             </div>
           );

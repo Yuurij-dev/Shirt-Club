@@ -1,20 +1,31 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import CategoryBannerCarousel from "@/app/components/CategoryBannerCarousel";
 import EntityProductsSection from "@/app/components/EntityProductsSection";
 import Footer from "@/app/components/Footer";
 import Header from "@/app/components/header";
 import NewsletterSection from "@/app/components/NewsletterSection";
 import StoreHighlights from "@/app/components/StoreHighlights";
-import {
-  getSelectionBySlug,
-  selections,
-} from "@/app/data/selections";
+import { StoreBanner } from "@/app/data/banners";
+import { getSelectionBySlug, selections } from "@/app/data/selections";
 import { getProductsByOwner } from "@/app/utils/inventory";
 
 type SelectionPageProps = {
   params: Promise<{
     selecao: string;
   }>;
+};
+
+const fallbackSelecoesBanner: StoreBanner = {
+  id: "selecoes-hero-default",
+  name: "Banner padrão seleções",
+  page: "selecoes",
+  position: "hero",
+  desktopImageUrl: "/assets/banner/bannerTeams.png",
+  title: "SELEÇÕES",
+  linkUrl: "/selecoes",
+  isActive: true,
+  sortOrder: 1,
 };
 
 export const generateStaticParams = () => {
@@ -68,6 +79,12 @@ const SelectionPage = async ({ params }: SelectionPageProps) => {
           <span>›</span>
           <span className="text-zinc-900">{selection.name}</span>
         </nav>
+
+        <CategoryBannerCarousel
+          page="selecoes"
+          fallbackBanner={fallbackSelecoesBanner}
+          heading="SELEÇÕES"
+        />
 
         <EntityProductsSection
           title={selection.name.toUpperCase()}
