@@ -3,13 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { type Product } from "@/app/data/products";
 import {
   continents,
   selections,
+  type Selection,
   type Continent,
 } from "@/app/data/selections";
-import { getProductCountByOwner } from "@/app/utils/inventory";
+import { getProductCountByOwner, productMatchesOwner } from "@/app/utils/inventory";
 
 const getInitials = (name: string) => {
   return name
@@ -20,11 +22,40 @@ const getInitials = (name: string) => {
     .toUpperCase();
 };
 
+const getSelectionProductCount = (
+  selection: Selection,
+  products: Product[] | null
+) => {
+  if (!products) return getProductCountByOwner(selection, "selection");
+
+  return products.filter((product) =>
+    productMatchesOwner(product, selection, "selection")
+  ).length;
+};
+
 const SelectionsGrid = () => {
   const [selectedContinent, setSelectedContinent] =
     useState<Continent>("Todos");
   const [sortBy, setSortBy] = useState("mais-vendidos");
   const [showFilters, setShowFilters] = useState(false);
+  const [activeProducts, setActiveProducts] = useState<Product[] | null>(null);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const response = await fetch("/api/products", { cache: "no-store" });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { products?: Product[] };
+        setActiveProducts(data.products || []);
+      } catch {
+        setActiveProducts(null);
+      }
+    };
+
+    void loadProducts();
+  }, []);
 
   const filteredSelections = useMemo(() => {
     let filtered =
@@ -36,13 +67,17 @@ const SelectionsGrid = () => {
 
     if (sortBy === "mais-vendidos") {
       filtered = [...filtered].sort(
-        (a, b) => getProductCountByOwner(b) - getProductCountByOwner(a)
+        (a, b) =>
+          getSelectionProductCount(b, activeProducts) -
+          getSelectionProductCount(a, activeProducts)
       );
     }
 
     if (sortBy === "menos-vendidos") {
       filtered = [...filtered].sort(
-        (a, b) => getProductCountByOwner(a) - getProductCountByOwner(b)
+        (a, b) =>
+          getSelectionProductCount(a, activeProducts) -
+          getSelectionProductCount(b, activeProducts)
       );
     }
 
@@ -51,7 +86,7 @@ const SelectionsGrid = () => {
     }
 
     return filtered;
-  }, [selectedContinent, sortBy]);
+  }, [activeProducts, selectedContinent, sortBy]);
 
   return (
     <section className="w-full bg-white !px-4 !py-8 sm:!px-6 lg:!px-0">
@@ -126,7 +161,7 @@ const SelectionsGrid = () => {
               </h3>
 
               <p className="!mt-1 text-sm text-zinc-500">
-                {getProductCountByOwner(selection)} produtos
+                {getSelectionProductCount(selection, activeProducts)} produtos
               </p>
             </Link>
           ))}

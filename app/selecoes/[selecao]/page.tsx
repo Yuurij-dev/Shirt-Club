@@ -9,6 +9,7 @@ import StoreHighlights from "@/app/components/StoreHighlights";
 import { StoreBanner } from "@/app/data/banners";
 import { getSelectionBySlug, selections } from "@/app/data/selections";
 import { listProducts } from "@/app/lib/productStore";
+import { productMatchesOwner } from "@/app/utils/inventory";
 
 type SelectionPageProps = {
   params: Promise<{
@@ -61,9 +62,8 @@ const SelectionPage = async ({ params }: SelectionPageProps) => {
     notFound();
   }
 
-  const ownerName = selection.productTeam || selection.name;
   const selectionProducts = (await listProducts({ includeInactive: false })).filter(
-    (product) => product.team === ownerName
+    (product) => productMatchesOwner(product, selection, "selection")
   );
 
   return (
