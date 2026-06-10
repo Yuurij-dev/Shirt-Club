@@ -1,6 +1,14 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   BarChart3,
   CalendarDays,
@@ -38,7 +46,7 @@ import {
   StoreBanner,
 } from "../data/banners";
 import { Coupon, CouponType, getCouponStatus } from "../data/coupons";
-import { products } from "../data/products";
+import { products, type Product } from "../data/products";
 import { formatPrice, getPriceNumber } from "../utils/price";
 
 type AdminOrder = {
@@ -103,6 +111,10 @@ type CouponsResponse = {
 
 type BannersResponse = {
   banners: StoreBanner[];
+};
+
+type ProductsResponse = {
+  products: Product[];
 };
 
 const bannerPageOptions = Object.entries(bannerPageLabels) as Array<
@@ -190,14 +202,17 @@ const AdminPage = () => {
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const [isLoadingBanners, setIsLoadingBanners] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [activeSection, setActiveSection] = useState<AdminSection>("orders");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
   const [couponFilter, setCouponFilter] = useState<CouponFilter>("all");
+  const [productCountryFilter, setProductCountryFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [banners, setBanners] = useState<StoreBanner[]>([]);
+  const [productCatalog, setProductCatalog] = useState<Product[]>(products);
   const [orders, setOrders] = useState<OrdersResponse>({
     unpaid: [],
     paid: [],
@@ -287,6 +302,34 @@ const AdminPage = () => {
     }
   }, [loadBanners]);
 
+  const loadProducts = useCallback(async () => {
+    const response = await fetch("/api/admin/products");
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+      }
+      return null;
+    }
+
+    const data = (await response.json()) as ProductsResponse;
+    setProductCatalog(data.products);
+
+    return data.products;
+  }, []);
+
+  const fetchProducts = useCallback(async () => {
+    setIsLoadingProducts(true);
+
+    try {
+      await loadProducts();
+    } catch {
+      toast.error("Não foi possível buscar os produtos");
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, [loadProducts]);
+
   const refreshAndReconcileOrders = useCallback(async () => {
     setIsLoadingOrders(true);
 
@@ -356,7 +399,12 @@ const AdminPage = () => {
         setIsAuthenticated(data.authenticated);
 
         if (data.authenticated) {
-          await Promise.all([fetchOrders(), fetchCoupons(), fetchBanners()]);
+          await Promise.all([
+            fetchOrders(),
+            fetchCoupons(),
+            fetchBanners(),
+            fetchProducts(),
+          ]);
         }
       } finally {
         setIsLoadingSession(false);
@@ -364,7 +412,7 @@ const AdminPage = () => {
     };
 
     void checkSession();
-  }, [fetchBanners, fetchCoupons, fetchOrders]);
+  }, [fetchBanners, fetchCoupons, fetchOrders, fetchProducts]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -488,6 +536,40 @@ const AdminPage = () => {
     });
   }, [banners, searchTerm]);
 
+  const productCountries = useMemo(() => {
+    return Array.from(
+      new Set(
+        productCatalog
+          .map((product) => product.country?.trim())
+          .filter((country): country is string => Boolean(country))
+      )
+    ).sort((first, second) => first.localeCompare(second));
+  }, [productCatalog]);
+
+  const visibleProducts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return productCatalog.filter((product) => {
+      const matchesCountry =
+        productCountryFilter === "all" ||
+        product.country === productCountryFilter;
+      const searchableText = [
+        product.id,
+        product.name,
+        product.team,
+        product.country,
+        product.brand,
+        product.category,
+        product.gender,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return matchesCountry && searchableText.includes(normalizedSearch);
+    });
+  }, [productCatalog, productCountryFilter, searchTerm]);
+
   const paidTotal = orders.paid.reduce((total, order) => total + order.total, 0);
   const pendingTotal = orders.unpaid.reduce(
     (total, order) => total + order.total,
@@ -517,7 +599,7 @@ const AdminPage = () => {
     }
 
     setIsAuthenticated(true);
-    await Promise.all([fetchOrders(), fetchCoupons(), fetchBanners()]);
+    await Promise.all([fetchOrders(), fetchCoupons(), fetchBanners(), fetchProducts()]);
   };
 
   const handleLogout = async () => {
@@ -529,6 +611,7 @@ const AdminPage = () => {
     setOrders({ unpaid: [], paid: [] });
     setCoupons([]);
     setBanners([]);
+    setProductCatalog(products);
   };
 
   const handleDeliveryStatusChange = async (
@@ -701,11 +784,24 @@ const AdminPage = () => {
               />
             )}
 
+            {activeSection === "products" && (
+              <ProductsPanel
+                products={productCatalog}
+                visibleProducts={visibleProducts}
+                countries={productCountries}
+                countryFilter={productCountryFilter}
+                isLoadingProducts={isLoadingProducts}
+                onCountryFilterChange={setProductCountryFilter}
+                onRefresh={fetchProducts}
+              />
+            )}
+
             {activeSection !== "orders" &&
               activeSection !== "dashboard" &&
               activeSection !== "deliveries" &&
               activeSection !== "coupons" &&
-              activeSection !== "banners" && (
+              activeSection !== "banners" &&
+              activeSection !== "products" && (
               <ComingSoonPanel section={activeSection} />
             )}
           </div>
@@ -1862,6 +1958,562 @@ const OrderPaymentButton = ({
     </button>
   );
 };
+
+const emptyProductForm: Product = {
+  id: "",
+  name: "",
+  price: "R$ 0,00",
+  image: "",
+  images: [],
+  category: "Camisas",
+  team: "",
+  brand: "",
+  season: "24/25",
+  description: "",
+  details: [],
+  badge: "NOVO",
+  gender: "masculino",
+  active: true,
+  ownerType: "team",
+  country: "",
+};
+
+const productGenderLabels: Record<NonNullable<Product["gender"]>, string> = {
+  masculino: "Masculino",
+  feminino: "Feminino",
+  unissex: "Unissex",
+};
+
+const productOwnerLabels: Record<NonNullable<Product["ownerType"]>, string> = {
+  team: "Time",
+  selection: "Seleção",
+};
+
+const productImageBasePath = "/products/";
+
+const getProductImageInputValue = (value?: string) => {
+  if (!value) return "";
+  return value.startsWith(productImageBasePath)
+    ? value.slice(productImageBasePath.length)
+    : value;
+};
+
+const normalizeProductImagePath = (value: string) => {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) return "";
+
+  if (trimmedValue.startsWith("/") || trimmedValue.startsWith("http")) {
+    return trimmedValue;
+  }
+
+  return `${productImageBasePath}${trimmedValue}`;
+};
+
+const ProductsPanel = ({
+  products: allProducts,
+  visibleProducts,
+  countries,
+  countryFilter,
+  isLoadingProducts,
+  onCountryFilterChange,
+  onRefresh,
+}: {
+  products: Product[];
+  visibleProducts: Product[];
+  countries: string[];
+  countryFilter: string;
+  isLoadingProducts: boolean;
+  onCountryFilterChange: (country: string) => void;
+  onRefresh: () => Promise<void>;
+}) => {
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isChangingStatus, setIsChangingStatus] = useState<string | null>(null);
+  const productFormRef = useRef<HTMLFormElement | null>(null);
+
+  const activeProductsCount = allProducts.filter((product) => {
+    return product.active !== false;
+  }).length;
+  const inactiveProductsCount = allProducts.length - activeProductsCount;
+
+  const handleEditProduct = (product: Product) => {
+    setIsCreatingProduct(false);
+    setEditingProduct(product);
+    window.requestAnimationFrame(() => {
+      productFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const toggleStatus = async (product: Product) => {
+    setIsChangingStatus(product.id);
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: product.id,
+          active: product.active === false,
+        }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        toast.error(data.error || "Não foi possível alterar o produto");
+        return;
+      }
+
+      toast.success(
+        product.active === false ? "Produto ativado" : "Produto inativado"
+      );
+      await onRefresh();
+    } finally {
+      setIsChangingStatus(null);
+    }
+  };
+
+  const saveProduct = async (product: Product) => {
+    setIsSavingProduct(true);
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(product),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        toast.error(data.error || "Não foi possível salvar o produto");
+        return;
+      }
+
+      toast.success(editingProduct ? "Produto atualizado" : "Produto criado");
+      setEditingProduct(null);
+      setIsCreatingProduct(false);
+      await onRefresh();
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  return (
+    <section className="flex flex-col !gap-5">
+      <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
+            Produtos
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Cadastre, organize imagens e controle quais produtos aparecem na loja.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEditingProduct(null);
+            setIsCreatingProduct((current) => !current);
+            window.requestAnimationFrame(() => {
+              productFormRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            });
+          }}
+          className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+        >
+          <Plus size={17} />
+          NOVO PRODUTO
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 !gap-3 xl:grid-cols-4">
+        <MetricCard
+          title="Total de produtos"
+          value={String(allProducts.length)}
+          helper="Cadastrados"
+          icon={Package}
+        />
+        <MetricCard
+          title="Ativos"
+          value={String(activeProductsCount)}
+          helper="Aparecem na loja"
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <MetricCard
+          title="Inativos"
+          value={String(inactiveProductsCount)}
+          helper="Ocultos da loja"
+          icon={Clock3}
+        />
+        <MetricCard
+          title="Países"
+          value={String(countries.length)}
+          helper="Times e seleções"
+          icon={Store}
+        />
+      </div>
+
+      {(isCreatingProduct || editingProduct) && (
+        <ProductCreateForm
+          key={editingProduct?.id || "new-product"}
+          ref={productFormRef}
+          product={editingProduct}
+          isSaving={isSavingProduct}
+          onCancel={() => {
+            setEditingProduct(null);
+            setIsCreatingProduct(false);
+          }}
+          onSave={saveProduct}
+        />
+      )}
+
+      <div className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+        <div className="flex flex-col !gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center !gap-2">
+            <button
+              type="button"
+              onClick={() => onCountryFilterChange("all")}
+              className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold ${
+                countryFilter === "all"
+                  ? "bg-black text-white"
+                  : "bg-zinc-50 text-zinc-500"
+              }`}
+            >
+              Todos {allProducts.length}
+            </button>
+            <select
+              value={countryFilter}
+              onChange={(event) => onCountryFilterChange(event.target.value)}
+              className="h-10 cursor-pointer rounded-lg border border-zinc-200 !px-3 text-sm font-bold outline-none focus:border-black"
+            >
+              <option value="all">Filtrar por país</option>
+              {countries.map((country) => (
+                <option key={country} value={country}>
+                  {country}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoadingProducts}
+            className="inline-flex h-10 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 !px-3 text-xs font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              size={16}
+              className={isLoadingProducts ? "animate-spin" : ""}
+            />
+            ATUALIZAR
+          </button>
+        </div>
+
+        <div className="!mt-4 overflow-hidden rounded-lg border border-zinc-100">
+          {visibleProducts.length === 0 ? (
+            <div className="!p-8 text-center text-sm text-zinc-500">
+              Nenhum produto encontrado.
+            </div>
+          ) : (
+            <div className="divide-y divide-zinc-100">
+              {visibleProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="grid grid-cols-1 !gap-4 !p-4 lg:grid-cols-[96px_1fr_auto]"
+                >
+                  <div className="relative h-24 overflow-hidden rounded-lg bg-zinc-100">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex flex-wrap items-center !gap-2">
+                      <h3 className="font-bold">{product.name}</h3>
+                      <span
+                        className={`rounded-full !px-2 !py-1 text-[11px] font-bold ${
+                          product.active === false
+                            ? "bg-zinc-100 text-zinc-500"
+                            : "bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        {product.active === false ? "Inativo" : "Ativo"}
+                      </span>
+                    </div>
+                    <p className="!mt-1 text-sm text-zinc-500">
+                      {product.team} • {product.country || "Sem país"} •{" "}
+                      {productGenderLabels[product.gender || "masculino"]} •{" "}
+                      {productOwnerLabels[product.ownerType || "team"]}
+                    </p>
+                    <p className="!mt-1 text-sm font-bold">{product.price}</p>
+                    <p className="!mt-1 break-all text-xs text-zinc-500">
+                      {product.image}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center !gap-2 lg:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleEditProduct(product)}
+                      className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-zinc-200"
+                      aria-label="Editar produto"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void toggleStatus(product)}
+                      disabled={isChangingStatus === product.id}
+                      className={`inline-flex h-10 cursor-pointer items-center justify-center rounded-lg !px-3 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-60 ${
+                        product.active === false
+                          ? "border border-emerald-200 text-emerald-700"
+                          : "border border-zinc-200 text-zinc-700"
+                      }`}
+                    >
+                      {isChangingStatus === product.id
+                        ? "Salvando..."
+                        : product.active === false
+                          ? "Ativar"
+                          : "Inativar"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const ProductCreateForm = forwardRef<HTMLFormElement, {
+  product?: Product | null;
+  isSaving: boolean;
+  onCancel: () => void;
+  onSave: (product: Product) => Promise<void>;
+}>(({
+  product,
+  isSaving,
+  onCancel,
+  onSave,
+}, ref) => {
+  const [formData, setFormData] = useState<Product>(product || emptyProductForm);
+  const [imageInput, setImageInput] = useState(
+    getProductImageInputValue(product?.image)
+  );
+  const [imagesInput, setImagesInput] = useState(
+    product?.images?.map(getProductImageInputValue).join("\n") || ""
+  );
+  const [detailsInput, setDetailsInput] = useState(
+    product?.details?.join("\n") || ""
+  );
+
+  const updateFormField = <Key extends keyof Product>(
+    key: Key,
+    value: Product[Key]
+  ) => {
+    setFormData((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const image = normalizeProductImagePath(imageInput);
+    const images = imagesInput
+      .split(/\n|,/)
+      .map(normalizeProductImagePath)
+      .filter(Boolean);
+    const details = detailsInput
+      .split("\n")
+      .map((detail) => detail.trim())
+      .filter(Boolean);
+
+    await onSave({
+      ...formData,
+      id: formData.id.trim(),
+      image,
+      images: images.length > 0 ? images : [image],
+      details,
+      active: formData.active !== false,
+    });
+  };
+
+  return (
+    <form
+      ref={ref}
+      onSubmit={handleSubmit}
+      className="scroll-mt-24 rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm"
+    >
+      <div className="flex items-start justify-between !gap-4">
+        <div>
+          <h2 className="font-[family-name:var(--font-bebas)] text-4xl">
+            {product ? "Editar produto" : "Novo produto"}
+          </h2>
+          <p className="text-sm text-zinc-500">
+            Use pastas por time ou seleção. Ex: teams/flamengo/flamengo-home.png.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-10 cursor-pointer rounded-lg border border-zinc-200 !px-4 text-xs font-bold"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      <div className="!mt-5 grid grid-cols-1 !gap-4 lg:grid-cols-4">
+        <AdminTextField
+          label="ID / rota"
+          value={formData.id}
+          onChange={(value) => updateFormField("id", value)}
+          placeholder="camisa-flamengo-home-24-25"
+        />
+        <AdminTextField
+          label="Nome"
+          value={formData.name}
+          onChange={(value) => updateFormField("name", value)}
+        />
+        <AdminTextField
+          label="Preço"
+          value={String(formData.price)}
+          onChange={(value) => updateFormField("price", value)}
+          placeholder="R$ 189,90"
+        />
+        <AdminTextField
+          label="Categoria"
+          value={formData.category}
+          onChange={(value) => updateFormField("category", value)}
+        />
+        <AdminTextField
+          label="Time/Seleção"
+          value={formData.team}
+          onChange={(value) => updateFormField("team", value)}
+        />
+        <AdminTextField
+          label="País"
+          value={formData.country || ""}
+          onChange={(value) => updateFormField("country", value)}
+          placeholder="Brasil"
+        />
+        <AdminSelectField
+          label="Dono"
+          value={formData.ownerType || "team"}
+          options={[
+            ["team", "Time"],
+            ["selection", "Seleção"],
+          ]}
+          onChange={(value) =>
+            updateFormField("ownerType", value as Product["ownerType"])
+          }
+        />
+        <AdminSelectField
+          label="Linha"
+          value={formData.gender || "masculino"}
+          options={[
+            ["masculino", "Masculino"],
+            ["feminino", "Feminino"],
+            ["unissex", "Unissex"],
+          ]}
+          onChange={(value) =>
+            updateFormField("gender", value as Product["gender"])
+          }
+        />
+        <AdminTextField
+          label="Marca"
+          value={formData.brand || ""}
+          onChange={(value) => updateFormField("brand", value)}
+          placeholder="Adidas"
+        />
+        <AdminTextField
+          label="Temporada"
+          value={formData.season || ""}
+          onChange={(value) => updateFormField("season", value)}
+          placeholder="24/25"
+        />
+        <AdminTextField
+          label="Badge"
+          value={formData.badge || ""}
+          onChange={(value) => updateFormField("badge", value)}
+          placeholder="NOVO"
+        />
+        <label className="flex h-[74px] items-center !gap-3 rounded-lg border border-zinc-200 !px-4 text-sm font-bold">
+          <input
+            type="checkbox"
+            checked={formData.active !== false}
+            onChange={(event) => updateFormField("active", event.target.checked)}
+            className="h-4 w-4 accent-black"
+          />
+          Ativo
+        </label>
+        <div className="lg:col-span-2">
+          <AdminTextField
+            label="Imagem principal"
+            value={imageInput}
+            onChange={setImageInput}
+            prefix={productImageBasePath}
+            placeholder="teams/flamengo/flamengo-home.png"
+          />
+        </div>
+        <label className="flex flex-col !gap-2 text-xs font-bold uppercase text-zinc-500 lg:col-span-2">
+          Galeria de imagens
+          <textarea
+            value={imagesInput}
+            onChange={(event) => setImagesInput(event.target.value)}
+            placeholder={"teams/flamengo/frente.png\nteams/flamengo/costas.png"}
+            className="min-h-24 rounded-lg border border-zinc-200 !p-3 text-sm font-semibold normal-case text-zinc-950 outline-none focus:border-black"
+          />
+        </label>
+        <label className="flex flex-col !gap-2 text-xs font-bold uppercase text-zinc-500 lg:col-span-2">
+          Descrição
+          <textarea
+            value={formData.description}
+            onChange={(event) =>
+              updateFormField("description", event.target.value)
+            }
+            className="min-h-24 rounded-lg border border-zinc-200 !p-3 text-sm font-semibold normal-case text-zinc-950 outline-none focus:border-black"
+          />
+        </label>
+        <label className="flex flex-col !gap-2 text-xs font-bold uppercase text-zinc-500 lg:col-span-2">
+          Detalhes
+          <textarea
+            value={detailsInput}
+            onChange={(event) => setDetailsInput(event.target.value)}
+            placeholder={"Escudo aplicado no peito\nTecido confortável"}
+            className="min-h-24 rounded-lg border border-zinc-200 !p-3 text-sm font-semibold normal-case text-zinc-950 outline-none focus:border-black"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="h-[74px] cursor-pointer rounded-lg bg-black text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 lg:col-span-4"
+        >
+          {isSaving ? "Salvando..." : "Salvar produto"}
+        </button>
+      </div>
+    </form>
+  );
+});
+
+ProductCreateForm.displayName = "ProductCreateForm";
 
 const emptyBannerForm: Omit<StoreBanner, "id"> = {
   name: "",

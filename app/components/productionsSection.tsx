@@ -1,8 +1,38 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import ProductCard from "./productCard";
-import { homeProducts } from "../data/products";
+import { homeProducts, type Product } from "../data/products";
 
 const ProductsSection = () => {
+  const [products, setProducts] = useState<Product[]>(homeProducts);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const response = await fetch("/api/products", { cache: "no-store" });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { products?: Product[] };
+        const activeProducts = data.products || [];
+
+        setProducts(
+          homeProducts
+            .map((product) =>
+              activeProducts.find((currentProduct) => currentProduct.id === product.id)
+            )
+            .filter((product): product is Product => Boolean(product))
+        );
+      } catch {
+        setProducts(homeProducts);
+      }
+    };
+
+    void loadProducts();
+  }, []);
+
   return (
     <section className="w-full bg-white !px-4 !py-8 sm:!px-6 lg:!px-0">
       <div className="container !mx-auto">
@@ -17,7 +47,7 @@ const ProductsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {homeProducts.map((product) => (
+          {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

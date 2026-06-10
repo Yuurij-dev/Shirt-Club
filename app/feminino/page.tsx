@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import CategoryBannerCarousel from "../components/CategoryBannerCarousel";
 import Footer from "../components/Footer";
@@ -10,7 +10,7 @@ import ProductGrid from "./components/ProductGrid";
 import StoreHighlights from "../components/StoreHighlights";
 import NewsletterSection from "../components/NewsletterSection";
 import { StoreBanner } from "../data/banners";
-import { feminineProducts } from "../data/products";
+import { feminineProducts, type Product } from "../data/products";
 
 const getPriceNumber = (price: string | number) => {
   if (typeof price === "number") return price;
@@ -35,8 +35,32 @@ const FemininoPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [maxPrice, setMaxPrice] = useState(599.9);
   const [sortOrder, setSortOrder] = useState("recentes");
+  const [pageProducts, setPageProducts] = useState<Product[]>(feminineProducts);
 
-  const filteredProducts = feminineProducts
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const response = await fetch("/api/products", { cache: "no-store" });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { products?: Product[] };
+        const products = data.products || [];
+
+        setPageProducts(
+          products.filter((product) => {
+            return product.gender === "feminino";
+          })
+        );
+      } catch {
+        setPageProducts(feminineProducts);
+      }
+    };
+
+    void loadProducts();
+  }, []);
+
+  const filteredProducts = pageProducts
     .filter((product) => {
       const matchCategory =
         selectedCategory === "Todas" || product.category === selectedCategory;

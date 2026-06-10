@@ -1,8 +1,11 @@
-export type Product = {
+﻿export type Product = {
   id: string;
   name: string;
   category: string;
-  gender?: "masculino" | "feminino";
+  gender?: "masculino" | "feminino" | "unissex";
+  active?: boolean;
+  ownerType?: "team" | "selection";
+  country?: string;
   team: string;
   brand?: string;
   season?: string;
@@ -23,16 +26,19 @@ export const products: Product[] = [
     brand: "Adidas",
     season: "Home 24/25",
     price: "R$ 0,01",
-    image: "/products/flamengo-home.png",
+    active: true,
+    ownerType: "team",
+    country: "Brasil",
+    image: "/products/teams/flamengo/flamengo-home.png",
     images: [
-      "/products/flamengo-home.png",
-      "/products/flamengo-home.png",
-      "/products/flamengo-home.png",
-      "/products/flamengo-home.png",
+      "/products/teams/flamengo/flamengo-home.png",
+      "/products/teams/flamengo/flamengo-home.png",
+      "/products/teams/flamengo/flamengo-home.png",
+      "/products/teams/flamengo/flamengo-home.png",
     ],
     badge: "NOVO",
     description:
-      "Camisa Flamengo Home 24/25 feita com tecido leve, confortável e acabamento premium. Ideal para usar no dia a dia, treinos ou para torcer pelo Mengão.",
+      "Camisa Flamengo Home 24/25 feita com tecido leve, confortÃ¡vel e acabamento premium. Ideal para usar no dia a dia, treinos ou para torcer pelo MengÃ£o.",
     details: [
       "Escudo do Flamengo aplicado no peito",
       "Tecido leve com toque macio",
@@ -48,19 +54,22 @@ export const products: Product[] = [
     brand: "Adidas",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/real-madrid-home.png",
+    active: true,
+    ownerType: "team",
+    country: "Espanha",
+    image: "/products/teams/real-madrid/real-madrid-home.png",
     images: [
-      "/products/real-madrid-home.png",
-      "/products/real-madrid-home.png",
-      "/products/real-madrid-home.png",
-      "/products/real-madrid-home.png",
+      "/products/teams/real-madrid/real-madrid-home.png",
+      "/products/teams/real-madrid/real-madrid-home.png",
+      "/products/teams/real-madrid/real-madrid-home.png",
+      "/products/teams/real-madrid/real-madrid-home.png",
     ],
     badge: "NOVO",
     description:
-      "Camisa Real Madrid Home 24/25 Torcedor Adidas, feita com tecido leve, confortável e acabamento premium. Ideal para usar no dia a dia, treinos ou para torcer pelo seu time.",
+      "Camisa Real Madrid Home 24/25 Torcedor Adidas, feita com tecido leve, confortÃ¡vel e acabamento premium. Ideal para usar no dia a dia, treinos ou para torcer pelo seu time.",
     details: [
       "Escudo do Real Madrid aplicado no peito",
-      "Tecnologia respirável para maior conforto",
+      "Tecnologia respirÃ¡vel para maior conforto",
       "Tecido leve que absorve o suor",
       "Corte regular: conforto e liberdade de movimento",
     ],
@@ -73,16 +82,19 @@ export const products: Product[] = [
     brand: "Puma",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/palmeiras-home.png",
-    images: ["/products/palmeiras-home.png", "/products/palmeiras-home.png"],
+    active: true,
+    ownerType: "team",
+    country: "Brasil",
+    image: "/products/teams/palmeiras/palmeiras-home.png",
+    images: ["/products/teams/palmeiras/palmeiras-home.png", "/products/teams/palmeiras/palmeiras-home.png"],
     badge: "NOVO",
     description:
-      "Camisa Palmeiras Home 24/25 com visual clássico, tecido confortável e acabamento premium para acompanhar todos os momentos da temporada.",
+      "Camisa Palmeiras Home 24/25 com visual clÃ¡ssico, tecido confortÃ¡vel e acabamento premium para acompanhar todos os momentos da temporada.",
     details: [
       "Escudo do Palmeiras aplicado no peito",
-      "Tecido leve e respirável",
+      "Tecido leve e respirÃ¡vel",
       "Acabamento premium",
-      "Modelagem confortável",
+      "Modelagem confortÃ¡vel",
     ],
   },
   {
@@ -93,15 +105,18 @@ export const products: Product[] = [
     brand: "Nike",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/barcelona-home.png",
-    images: ["/products/barcelona-home.png", "/products/barcelona-home.png"],
+    active: true,
+    ownerType: "team",
+    country: "Espanha",
+    image: "/products/teams/barcelona/barcelona-home.png",
+    images: ["/products/teams/barcelona/barcelona-home.png", "/products/teams/barcelona/barcelona-home.png"],
     badge: "NOVO",
     description:
       "Camisa Barcelona Home 24/25 com as cores tradicionais do clube, acabamento premium e tecido macio para torcer com estilo.",
     details: [
       "Escudo do Barcelona aplicado no peito",
-      "Tecido confortável",
-      "Visual clássico da temporada",
+      "Tecido confortÃ¡vel",
+      "Visual clÃ¡ssico da temporada",
       "Corte regular",
     ],
   },
@@ -113,8 +128,11 @@ export const products: Product[] = [
     brand: "Kappa",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/vasco-home.png",
-    images: ["/products/vasco-home.png", "/products/vasco-home.png"],
+    active: true,
+    ownerType: "team",
+    country: "Brasil",
+    image: "/products/teams/vasco/vasco-home.png",
+    images: ["/products/teams/vasco/vasco-home.png", "/products/teams/vasco/vasco-home.png"],
     badge: "NOVO",
     description:
       "Camisa Vasco Home 24/25 com design tradicional, tecido leve e acabamento premium para o torcedor cruz-maltino.",
@@ -133,93 +151,102 @@ export const products: Product[] = [
     brand: "Nike",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/corinthians-home.png",
-    images: ["/products/corinthians-home.png", "/products/corinthians-home.png"],
+    active: true,
+    ownerType: "team",
+    country: "Brasil",
+    image: "/products/teams/corinthians/corinthians-home.png",
+    images: ["/products/teams/corinthians/corinthians-home.png", "/products/teams/corinthians/corinthians-home.png"],
     badge: "NOVO",
     description:
-      "Camisa Corinthians Home 24/25 com tecido leve, visual clássico e acabamento premium para vestir o Timão.",
+      "Camisa Corinthians Home 24/25 com tecido leve, visual clÃ¡ssico e acabamento premium para vestir o TimÃ£o.",
     details: [
       "Escudo do Corinthians aplicado no peito",
-      "Tecido leve e confortável",
+      "Tecido leve e confortÃ¡vel",
       "Acabamento premium",
       "Corte regular",
     ],
   },
   {
     id: "camisa-flamengo-retro",
-    name: "Camisa Flamengo Retrô",
-    category: "Retrô",
+    name: "Camisa Flamengo RetrÃ´",
+    category: "RetrÃ´",
     team: "Flamengo",
     brand: "Umbro",
-    season: "Retrô",
+    season: "RetrÃ´",
     price: "R$ 179,90",
-    image: "/products/retro/flamengo-retro.png",
-    images: ["/products/retro/flamengo-retro.png", "/products/retro/flamengo-retro.png"],
+    active: true,
+    ownerType: "team",
+    country: "Brasil",
+    image: "/products/teams/flamengo/flamengo-retro.png",
+    images: ["/products/teams/flamengo/flamengo-retro.png", "/products/teams/flamengo/flamengo-retro.png"],
     badge: "RETRO",
     description:
-      "Camisa Flamengo Retrô inspirada em momentos históricos do clube, com visual marcante e acabamento premium.",
+      "Camisa Flamengo RetrÃ´ inspirada em momentos histÃ³ricos do clube, com visual marcante e acabamento premium.",
     details: [
-      "Design retrô inspirado em uniformes clássicos",
-      "Tecido confortável",
+      "Design retrÃ´ inspirado em uniformes clÃ¡ssicos",
+      "Tecido confortÃ¡vel",
       "Acabamento premium",
-      "Ideal para coleção ou uso casual",
+      "Ideal para coleÃ§Ã£o ou uso casual",
     ],
   },
   {
     id: "camisa-barcelona-retro-2015",
-    name: "Camisa Barcelona Retrô 2015",
-    category: "Retrô",
+    name: "Camisa Barcelona RetrÃ´ 2015",
+    category: "RetrÃ´",
     team: "Barcelona",
     brand: "Nike",
-    season: "Retrô 2015",
+    season: "RetrÃ´ 2015",
     price: "R$ 179,90",
-    image: "/products/retro/barcelona-2015.png",
-    images: ["/products/retro/barcelona-2015.png", "/products/retro/barcelona-2015.png"],
+    active: true,
+    ownerType: "team",
+    country: "Espanha",
+    image: "/products/teams/barcelona/barcelona-2015.png",
+    images: ["/products/teams/barcelona/barcelona-2015.png", "/products/teams/barcelona/barcelona-2015.png"],
     badge: "RETRO",
     description:
-      "Camisa Barcelona Retrô 2015 inspirada em uma das temporadas mais lembradas do clube, com tecido confortável e acabamento premium.",
+      "Camisa Barcelona RetrÃ´ 2015 inspirada em uma das temporadas mais lembradas do clube, com tecido confortÃ¡vel e acabamento premium.",
     details: [
       "Design inspirado na temporada 2015",
       "Escudo do Barcelona aplicado",
-      "Tecido confortável",
+      "Tecido confortÃ¡vel",
       "Corte regular",
     ],
   },
   {
     id: "camisa-milan-retro-96-99",
-    name: "Camisa Milan Retrô 96/99",
-    category: "Retrô",
+    name: "Camisa Milan RetrÃ´ 96/99",
+    category: "RetrÃ´",
     team: "Milan",
     brand: "Adidas",
-    season: "Retrô 96/99",
+    season: "RetrÃ´ 96/99",
     price: "R$ 189,90",
-    image: "/products/retro/milan-retro.png",
-    images: ["/products/retro/milan-retro.png", "/products/retro/milan-retro.png"],
+    image: "/products/teams/milan/milan-retro.png",
+    images: ["/products/teams/milan/milan-retro.png", "/products/teams/milan/milan-retro.png"],
     badge: "RETRO",
     description:
-      "Camisa Milan Retrô 96/99 com visual clássico, acabamento premium e inspiração em uma era marcante do futebol italiano.",
+      "Camisa Milan RetrÃ´ 96/99 com visual clÃ¡ssico, acabamento premium e inspiraÃ§Ã£o em uma era marcante do futebol italiano.",
     details: [
-      "Design retrô do Milan",
-      "Tecido confortável",
+      "Design retrÃ´ do Milan",
+      "Tecido confortÃ¡vel",
       "Acabamento premium",
       "Corte regular",
     ],
   },
   {
     id: "camisa-vasco-retro-1997",
-    name: "Camisa Vasco Retrô 1997",
-    category: "Retrô",
+    name: "Camisa Vasco RetrÃ´ 1997",
+    category: "RetrÃ´",
     team: "Vasco",
-    brand: "Retrô",
-    season: "Retrô 1997",
+    brand: "RetrÃ´",
+    season: "RetrÃ´ 1997",
     price: "R$ 179,90",
-    image: "/products/retro/vasco-retro.png",
-    images: ["/products/retro/vasco-retro.png", "/products/retro/vasco-retro.png"],
+    image: "/products/teams/vasco/vasco-retro.png",
+    images: ["/products/teams/vasco/vasco-retro.png", "/products/teams/vasco/vasco-retro.png"],
     badge: "RETRO",
     description:
-      "Camisa Vasco Retrô 1997 inspirada em um uniforme histórico, com visual tradicional e acabamento premium.",
+      "Camisa Vasco RetrÃ´ 1997 inspirada em um uniforme histÃ³rico, com visual tradicional e acabamento premium.",
     details: [
-      "Design retrô do Vasco",
+      "Design retrÃ´ do Vasco",
       "Tecido leve",
       "Acabamento premium",
       "Modelagem regular",
@@ -227,79 +254,79 @@ export const products: Product[] = [
   },
   {
     id: "camisa-milan-retro-2007",
-    name: "Camisa Milan Retrô 2007",
-    category: "Retrô",
+    name: "Camisa Milan RetrÃ´ 2007",
+    category: "RetrÃ´",
     team: "Milan",
     brand: "Adidas",
-    season: "Retrô 2007",
+    season: "RetrÃ´ 2007",
     price: "R$ 229,90",
-    image: "/products/retro/milan-2007.png",
-    images: ["/products/retro/milan-2007.png", "/products/retro/milan-2007.png"],
+    image: "/products/teams/milan/milan-2007.png",
+    images: ["/products/teams/milan/milan-2007.png", "/products/teams/milan/milan-2007.png"],
     badge: "RETRO",
     description:
-      "Camisa Milan Retrô 2007 inspirada em uma temporada histórica, com visual clássico e acabamento premium.",
+      "Camisa Milan RetrÃ´ 2007 inspirada em uma temporada histÃ³rica, com visual clÃ¡ssico e acabamento premium.",
     details: [
-      "Design retrô do Milan",
-      "Tecido macio e confortável",
+      "Design retrÃ´ do Milan",
+      "Tecido macio e confortÃ¡vel",
       "Acabamento premium",
       "Ideal para colecionadores",
     ],
   },
   {
     id: "camisa-brasil-retro-1994",
-    name: "Camisa Brasil Retrô 1994",
-    category: "Retrô",
+    name: "Camisa Brasil RetrÃ´ 1994",
+    category: "RetrÃ´",
     team: "Brasil",
     brand: "Umbro",
-    season: "Retrô 1994",
+    season: "RetrÃ´ 1994",
     price: "R$ 239,90",
-    image: "/products/retro/brasil-1994.png",
-    images: ["/products/retro/brasil-1994.png", "/products/retro/brasil-1994.png"],
+    image: "/products/selections/brasil/brasil-1994.png",
+    images: ["/products/selections/brasil/brasil-1994.png", "/products/selections/brasil/brasil-1994.png"],
     badge: "RETRO",
     description:
-      "Camisa Brasil Retrô 1994 inspirada no tetracampeonato, com visual clássico e acabamento premium.",
+      "Camisa Brasil RetrÃ´ 1994 inspirada no tetracampeonato, com visual clÃ¡ssico e acabamento premium.",
     details: [
       "Design inspirado em 1994",
-      "Tecido confortável",
+      "Tecido confortÃ¡vel",
       "Acabamento premium",
       "Modelagem regular",
     ],
   },
   {
     id: "camisa-vasco-retro-1998",
-    name: "Camisa Vasco Retrô 1998",
-    category: "Retrô",
+    name: "Camisa Vasco RetrÃ´ 1998",
+    category: "RetrÃ´",
     team: "Vasco",
-    brand: "Retrô",
-    season: "Retrô 1998",
+    brand: "RetrÃ´",
+    season: "RetrÃ´ 1998",
     price: "R$ 209,90",
-    image: "/products/retro/vasco-1998.png",
-    images: ["/products/retro/vasco-1998.png", "/products/retro/vasco-1998.png"],
+    image: "/products/teams/vasco/vasco-1998.png",
+    images: ["/products/teams/vasco/vasco-1998.png", "/products/teams/vasco/vasco-1998.png"],
     badge: "RETRO",
     description:
-      "Camisa Vasco Retrô 1998 com visual nostálgico, tecido confortável e acabamento premium.",
+      "Camisa Vasco RetrÃ´ 1998 com visual nostÃ¡lgico, tecido confortÃ¡vel e acabamento premium.",
     details: [
       "Design inspirado em 1998",
-      "Tecido confortável",
+      "Tecido confortÃ¡vel",
       "Acabamento premium",
       "Corte regular",
     ],
   },
   {
     id: "camisa-inter-retro-1998",
-    name: "Camisa Inter Retrô 1998",
-    category: "Retrô",
+    name: "Camisa Inter RetrÃ´ 1998",
+    category: "RetrÃ´",
     team: "Inter",
-    brand: "Retrô",
-    season: "Retrô 1998",
+    brand: "RetrÃ´",
+    season: "RetrÃ´ 1998",
     price: "R$ 209,90",
-    image: "/products/retro/inter-1998.png",
-    images: ["/products/retro/inter-1998.png", "/products/retro/inter-1998.png"],
+    image: "/products/teams/internacional/inter-1998.png",
+    images: ["/products/teams/internacional/inter-1998.png", "/products/teams/internacional/inter-1998.png"],
     badge: "RETRO",
     description:
-      "Camisa Inter Retrô 1998 inspirada em uma fase clássica do clube, com acabamento premium.",
+      "Camisa Inter RetrÃ´ 1998 inspirada em uma fase clÃ¡ssica do clube, com acabamento premium.",
     details: [
-      "Design retrô do Inter",
+      "Design retrÃ´ do Inter",
       "Tecido leve",
       "Acabamento premium",
       "Modelagem regular",
@@ -307,17 +334,17 @@ export const products: Product[] = [
   },
   {
     id: "camisa-flamengo-retro-1981",
-    name: "Camisa Flamengo Retrô 1981",
-    category: "Retrô",
+    name: "Camisa Flamengo RetrÃ´ 1981",
+    category: "RetrÃ´",
     team: "Flamengo",
-    brand: "Retrô",
-    season: "Retrô 1981",
+    brand: "RetrÃ´",
+    season: "RetrÃ´ 1981",
     price: "R$ 219,90",
-    image: "/products/retro/flamengo-1981.png",
-    images: ["/products/retro/flamengo-1981.png", "/products/retro/flamengo-1981.png"],
+    image: "/products/teams/flamengo/flamengo-1981.png",
+    images: ["/products/teams/flamengo/flamengo-1981.png", "/products/teams/flamengo/flamengo-1981.png"],
     badge: "RETRO",
     description:
-      "Camisa Flamengo Retrô 1981 inspirada em uma das fases mais lendárias do clube.",
+      "Camisa Flamengo RetrÃ´ 1981 inspirada em uma das fases mais lendÃ¡rias do clube.",
     details: [
       "Design inspirado em 1981",
       "Tecido leve",
@@ -334,8 +361,8 @@ export const products: Product[] = [
     brand: "Adidas",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/flamengo-home.png",
-    images: ["/products/flamengo-home.png", "/products/flamengo-home.png"],
+    image: "/products/teams/flamengo/flamengo-home.png",
+    images: ["/products/teams/flamengo/flamengo-home.png", "/products/teams/flamengo/flamengo-home.png"],
     badge: "NOVO",
     description:
       "Camisa Flamengo Home 24/25 Feminina com tecido leve, acabamento premium e modelagem pensada para vestir com conforto.",
@@ -355,16 +382,16 @@ export const products: Product[] = [
     brand: "Adidas",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/real-madrid-home.png",
-    images: ["/products/real-madrid-home.png", "/products/real-madrid-home.png"],
+    image: "/products/teams/real-madrid/real-madrid-home.png",
+    images: ["/products/teams/real-madrid/real-madrid-home.png", "/products/teams/real-madrid/real-madrid-home.png"],
     badge: "NOVO",
     description:
-      "Camisa Real Madrid Home 24/25 Feminina com visual clássico, tecido confortável e acabamento premium.",
+      "Camisa Real Madrid Home 24/25 Feminina com visual clÃ¡ssico, tecido confortÃ¡vel e acabamento premium.",
     details: [
       "Escudo do Real Madrid aplicado no peito",
       "Modelagem feminina",
-      "Tecido respirável",
-      "Corte confortável",
+      "Tecido respirÃ¡vel",
+      "Corte confortÃ¡vel",
     ],
   },
   {
@@ -376,15 +403,15 @@ export const products: Product[] = [
     brand: "Puma",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/palmeiras-home.png",
-    images: ["/products/palmeiras-home.png", "/products/palmeiras-home.png"],
+    image: "/products/teams/palmeiras/palmeiras-home.png",
+    images: ["/products/teams/palmeiras/palmeiras-home.png", "/products/teams/palmeiras/palmeiras-home.png"],
     badge: "NOVO",
     description:
-      "Camisa Palmeiras Home 24/25 Feminina com tecido leve, modelagem confortável e acabamento premium.",
+      "Camisa Palmeiras Home 24/25 Feminina com tecido leve, modelagem confortÃ¡vel e acabamento premium.",
     details: [
       "Escudo do Palmeiras aplicado no peito",
       "Modelagem feminina",
-      "Tecido leve e respirável",
+      "Tecido leve e respirÃ¡vel",
       "Acabamento premium",
     ],
   },
@@ -397,23 +424,29 @@ export const products: Product[] = [
     brand: "Nike",
     season: "Home 24/25",
     price: "R$ 189,90",
-    image: "/products/barcelona-home.png",
-    images: ["/products/barcelona-home.png", "/products/barcelona-home.png"],
+    image: "/products/teams/barcelona/barcelona-home.png",
+    images: ["/products/teams/barcelona/barcelona-home.png", "/products/teams/barcelona/barcelona-home.png"],
     badge: "NOVO",
     description:
       "Camisa Barcelona Home 24/25 Feminina com as cores tradicionais do clube, tecido macio e acabamento premium.",
     details: [
       "Escudo do Barcelona aplicado no peito",
       "Modelagem feminina",
-      "Visual clássico da temporada",
-      "Corte confortável",
+      "Visual clÃ¡ssico da temporada",
+      "Corte confortÃ¡vel",
     ],
   },
 ];
 
 export const getProductById = (id: string) => {
+  return products.find((product) => product.id === id && product.active !== false);
+};
+
+export const getAnyProductById = (id: string) => {
   return products.find((product) => product.id === id);
 };
+
+export const activeProducts = products.filter((product) => product.active !== false);
 
 export const getProductsByIds = (ids: string[]) => {
   return ids
@@ -433,7 +466,7 @@ export const masculineProducts = getProductsByIds([
 ]).filter((product) => getProductGender(product) === "masculino");
 
 export const feminineProducts = products.filter((product) => {
-  return getProductGender(product) === "feminino";
+  return product.active !== false && getProductGender(product) === "feminino";
 });
 
 export const homeProducts = getProductsByIds([
@@ -468,3 +501,4 @@ export const mostWantedProducts = getProductsByIds([
   "camisa-vasco-retro-1998",
   "camisa-inter-retro-1998",
 ]);
+

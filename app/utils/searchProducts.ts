@@ -1,4 +1,4 @@
-import { products, type Product } from "../data/products";
+import { activeProducts, type Product } from "../data/products";
 
 export const normalizeSearchText = (text: string) => {
   return text
@@ -13,7 +13,7 @@ export const searchProducts = (query: string): Product[] => {
 
   if (!normalizedQuery) return [];
 
-  return products.filter((product) => {
+  return activeProducts.filter((product) => {
     const searchableText = normalizeSearchText(
       [
         product.name,

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Footer from "@/app/components/Footer";
 import Header from "@/app/components/header";
-import { getProductById, products } from "@/app/data/products";
+import { getStoredProductById, listProducts } from "@/app/lib/productStore";
 import ProductBuyBox from "./components/ProductBuyBox";
 import ProductGallery from "./components/ProductGallery";
 import ProductTabs from "./components/ProductTabs";
@@ -13,7 +13,12 @@ type ProductPageProps = {
   }>;
 };
 
-export const generateStaticParams = () => {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export const generateStaticParams = async () => {
+  const products = await listProducts({ includeInactive: false });
+
   return products.map((product) => ({
     id: product.id,
   }));
@@ -21,9 +26,9 @@ export const generateStaticParams = () => {
 
 export const generateMetadata = async ({ params }: ProductPageProps) => {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await getStoredProductById(id);
 
-  if (!product) {
+  if (!product || product.active === false) {
     return {
       title: "Produto não encontrado | Shirt Club",
     };
@@ -37,9 +42,9 @@ export const generateMetadata = async ({ params }: ProductPageProps) => {
 
 const ProductPage = async ({ params }: ProductPageProps) => {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await getStoredProductById(id);
 
-  if (!product) {
+  if (!product || product.active === false) {
     notFound();
   }
 

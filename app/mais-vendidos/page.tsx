@@ -4,9 +4,20 @@ import Header from "../components/header";
 import NewsletterSection from "../components/NewsletterSection";
 import ProductCard from "../components/productCard";
 import StoreHighlights from "../components/StoreHighlights";
-import { bestSellerProducts } from "../data/products";
+import { bestSellerProducts, type Product } from "../data/products";
+import { listProducts } from "../lib/productStore";
 
-const BestSellersPage = () => {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const BestSellersPage = async () => {
+  const activeProducts = await listProducts({ includeInactive: false });
+  const visibleProducts = bestSellerProducts
+    .map((product) =>
+      activeProducts.find((currentProduct) => currentProduct.id === product.id)
+    )
+    .filter((product): product is Product => Boolean(product));
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -42,7 +53,7 @@ const BestSellersPage = () => {
           </div>
 
           <div className="grid grid-cols-1 !gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {bestSellerProducts.map((product) => (
+            {visibleProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

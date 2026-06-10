@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProductCard from "@/app/components/productCard";
 import { getProductById, type Product } from "@/app/data/products";
 
@@ -84,12 +84,49 @@ const RetroProductsGrid = () => {
   const [selectedFilter, setSelectedFilter] = useState<Filter>("Todos");
   const [sortBy, setSortBy] = useState("mais-vendidos");
   const [showFilters, setShowFilters] = useState(false);
+  const [products, setProducts] = useState<RetroProduct[]>(retroProducts);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const response = await fetch("/api/products", { cache: "no-store" });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { products?: Product[] };
+        const activeProducts = data.products || [];
+
+        setProducts(
+          retroProducts
+            .map((retroProduct) => {
+              const product = activeProducts.find((currentProduct) => {
+                return currentProduct.id === retroProduct.id;
+              });
+
+              if (!product) return null;
+
+              return {
+                ...product,
+                competition: retroProduct.competition,
+                filters: retroProduct.filters,
+                sales: retroProduct.sales,
+              };
+            })
+            .filter((product): product is RetroProduct => Boolean(product))
+        );
+      } catch {
+        setProducts(retroProducts);
+      }
+    };
+
+    void loadProducts();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     let filtered =
       selectedFilter === "Todos"
-        ? retroProducts
-        : retroProducts.filter((product) =>
+        ? products
+        : products.filter((product) =>
             product.filters.includes(selectedFilter)
           );
 
@@ -114,7 +151,7 @@ const RetroProductsGrid = () => {
     }
 
     return filtered;
-  }, [selectedFilter, sortBy]);
+  }, [products, selectedFilter, sortBy]);
 
   return (
     <section className="w-full bg-white !px-4 !py-8 sm:!px-6 lg:!px-0">

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { products } from "@/app/data/products";
 import {
   createAsaasCustomer,
   createAsaasPixPayment,
@@ -7,6 +6,7 @@ import {
 } from "@/app/lib/asaas";
 import { validateCoupon } from "@/app/lib/couponStore";
 import { createOrder, getOrderStoreMode } from "@/app/lib/orderStore";
+import { listProducts } from "@/app/lib/productStore";
 import { getPriceNumber } from "@/app/utils/price";
 
 type CheckoutCustomer = {
@@ -202,8 +202,9 @@ export const POST = async (request: Request) => {
       );
     }
 
+    const activeProducts = await listProducts({ includeInactive: false });
     const orderItems = items.map((item) => {
-      const product = products.find((currentProduct) => {
+      const product = activeProducts.find((currentProduct) => {
         return currentProduct.id === item.productId;
       });
 

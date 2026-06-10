@@ -8,7 +8,7 @@ import NewsletterSection from "@/app/components/NewsletterSection";
 import StoreHighlights from "@/app/components/StoreHighlights";
 import { StoreBanner } from "@/app/data/banners";
 import { getTeamBySlug, teams } from "@/app/data/teams";
-import { getProductsByOwner } from "@/app/utils/inventory";
+import { listProducts } from "@/app/lib/productStore";
 
 type TeamPageProps = {
   params: Promise<{
@@ -34,6 +34,9 @@ export const generateStaticParams = () => {
   }));
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const generateMetadata = async ({ params }: TeamPageProps) => {
   const { team: teamSlug } = await params;
   const team = getTeamBySlug(teamSlug);
@@ -58,7 +61,10 @@ const TeamPage = async ({ params }: TeamPageProps) => {
     notFound();
   }
 
-  const teamProducts = getProductsByOwner(team);
+  const ownerName = team.productTeam || team.name;
+  const teamProducts = (await listProducts({ includeInactive: false })).filter(
+    (product) => product.team === ownerName
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
