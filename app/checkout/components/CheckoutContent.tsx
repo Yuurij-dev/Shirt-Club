@@ -1,14 +1,21 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { useCart } from "@/app/context/CartContext";
+import { getPixDiscount } from "@/app/utils/paymentDiscounts";
 import CartCouponCard from "@/app/carrinho/components/CartCouponCard";
 import CheckoutOrderSummary from "./CheckoutOrderSummary";
-import CustomerDataForm from "./CustomerDataForm";
+import CustomerDataForm, { type PaymentMethod } from "./CustomerDataForm";
 
 const CheckoutContent = () => {
   const { items, subtotal, discount, total, totalItems, appliedCoupon } = useCart();
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
+  const pixDiscount = paymentMethod === "pix" ? getPixDiscount(total) : 0;
+  const checkoutTotal = useMemo(() => {
+    return Math.max(0, total - pixDiscount);
+  }, [pixDiscount, total]);
 
   if (items.length === 0) {
     return (
@@ -55,16 +62,31 @@ const CheckoutContent = () => {
         <CustomerDataForm
           items={items}
           discount={discount}
-          total={total}
+          pixDiscount={pixDiscount}
+          total={checkoutTotal}
           couponCode={appliedCoupon?.coupon.code || null}
+          paymentMethod={paymentMethod}
+          onPaymentMethodChange={setPaymentMethod}
         />
+        <div className="flex flex-col !gap-4 lg:hidden">
+          <CheckoutOrderSummary
+            items={items}
+            subtotal={subtotal}
+            discount={discount}
+            pixDiscount={pixDiscount}
+            total={checkoutTotal}
+            couponCode={appliedCoupon?.coupon.code || null}
+            totalItems={totalItems}
+          />
+        </div>
         <aside className="hidden h-fit flex-col !gap-4 lg:sticky lg:top-6 lg:flex">
           <CartCouponCard />
           <CheckoutOrderSummary
             items={items}
             subtotal={subtotal}
             discount={discount}
-            total={total}
+            pixDiscount={pixDiscount}
+            total={checkoutTotal}
             couponCode={appliedCoupon?.coupon.code || null}
             totalItems={totalItems}
           />

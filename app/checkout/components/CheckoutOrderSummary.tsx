@@ -9,6 +9,7 @@ type CheckoutOrderSummaryProps = {
   items: CartItem[];
   subtotal: number;
   discount: number;
+  pixDiscount: number;
   total: number;
   couponCode: string | null;
   totalItems: number;
@@ -18,6 +19,7 @@ const CheckoutOrderSummary = ({
   items,
   subtotal,
   discount,
+  pixDiscount,
   total,
   couponCode,
   totalItems,
@@ -88,6 +90,13 @@ const CheckoutOrderSummary = ({
           <div className="!mt-3 flex items-center justify-between text-sm text-emerald-700">
             <span>Cupom {couponCode}</span>
             <span>- {formatPrice(discount)}</span>
+          </div>
+        )}
+
+        {pixDiscount > 0 && (
+          <div className="!mt-3 flex items-center justify-between text-sm text-emerald-700">
+            <span>Desconto Pix 5%</span>
+            <span>- {formatPrice(pixDiscount)}</span>
           </div>
         )}
 

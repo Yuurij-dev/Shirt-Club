@@ -18,8 +18,11 @@ import { formatPrice } from "@/app/utils/price";
 type CustomerDataFormProps = {
   items: CartItem[];
   discount: number;
+  pixDiscount: number;
   total: number;
   couponCode: string | null;
+  paymentMethod: PaymentMethod;
+  onPaymentMethodChange: (paymentMethod: PaymentMethod) => void;
 };
 
 type CheckoutFormData = {
@@ -60,7 +63,7 @@ type CheckoutApiResponse = {
   errors?: string[];
 };
 
-type PaymentMethod = "pix" | "mercado_pago";
+export type PaymentMethod = "pix" | "mercado_pago";
 
 const initialFormData: CheckoutFormData = {
   name: "",
@@ -192,8 +195,11 @@ const getFieldError = (
 const CustomerDataForm = ({
   items,
   discount,
+  pixDiscount,
   total,
   couponCode,
+  paymentMethod,
+  onPaymentMethodChange,
 }: CustomerDataFormProps) => {
   const [formData, setFormData] = useState(initialFormData);
   const [touchedFields, setTouchedFields] = useState<
@@ -202,7 +208,6 @@ const CustomerDataForm = ({
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cepLookupError, setCepLookupError] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
 
   const fieldErrors = useMemo(() => {
     return Object.keys(formData).reduce((errors, key) => {
@@ -652,7 +657,7 @@ const CustomerDataForm = ({
         <div className="!mt-5 grid grid-cols-1 !gap-3 sm:grid-cols-2">
           <button
             type="button"
-            onClick={() => setPaymentMethod("pix")}
+            onClick={() => onPaymentMethodChange("pix")}
             className={`
               flex cursor-pointer items-center !gap-3 rounded-lg border !p-4 text-left transition-all duration-200
               ${
@@ -670,14 +675,14 @@ const CustomerDataForm = ({
                   paymentMethod === "pix" ? "text-zinc-300" : "text-zinc-500"
                 }
               >
-                QR Code e copia e cola
+                QR Code e copia e cola (Desconto de 5%)
               </small>
             </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setPaymentMethod("mercado_pago")}
+            onClick={() => onPaymentMethodChange("mercado_pago")}
             className={`
               flex cursor-pointer items-center !gap-3 rounded-lg border !p-4 text-left transition-all duration-200
               ${
@@ -707,6 +712,7 @@ const CustomerDataForm = ({
       <button
         type="submit"
         disabled={isFetchingCep || isSubmitting}
+        title={pixDiscount > 0 ? "Desconto de 5% aplicado no Pix" : undefined}
         className="flex h-14 cursor-pointer items-center justify-center !gap-3 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
       >
         {isSubmitting ? (

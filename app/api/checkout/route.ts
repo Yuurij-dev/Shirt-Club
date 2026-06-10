@@ -7,6 +7,7 @@ import {
 import { validateCoupon } from "@/app/lib/couponStore";
 import { createOrder, getOrderStoreMode } from "@/app/lib/orderStore";
 import { listProducts } from "@/app/lib/productStore";
+import { getPixDiscount } from "@/app/utils/paymentDiscounts";
 import { getPriceNumber } from "@/app/utils/price";
 
 type CheckoutCustomer = {
@@ -238,8 +239,12 @@ export const POST = async (request: Request) => {
       );
     }
 
-    const discount = couponValidation?.discount || 0;
-    const total = Math.max(0, subtotal - discount);
+    const couponDiscount = couponValidation?.discount || 0;
+    const totalBeforePaymentDiscount = Math.max(0, subtotal - couponDiscount);
+    const pixDiscount =
+      paymentMethod === "pix" ? getPixDiscount(totalBeforePaymentDiscount) : 0;
+    const discount = couponDiscount + pixDiscount;
+    const total = Math.max(0, totalBeforePaymentDiscount - pixDiscount);
     const paymentItems =
       discount > 0
         ? [
@@ -269,9 +274,17 @@ export const POST = async (request: Request) => {
       coupon: couponValidation?.coupon
         ? {
             code: couponValidation.coupon.code,
-            discount,
+            discount: couponDiscount,
+            paymentDiscount: pixDiscount,
             subtotal,
           }
+        : pixDiscount > 0
+          ? {
+              code: "PIX",
+              discount: 0,
+              paymentDiscount: pixDiscount,
+              subtotal,
+            }
         : null,
       status: "unpaid" as const,
       deliveryStatus: "not_separated" as const,

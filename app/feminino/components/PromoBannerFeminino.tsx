@@ -67,7 +67,7 @@ const PromoBannerFeminino = () => {
 
               <div>
                 <p className="text-xs font-bold uppercase sm:text-sm">
-                  10% OFF NO PIX
+                  5% OFF NO PIX
                 </p>
                 <span className="text-xs text-zinc-300">
                   Desconto exclusivo
