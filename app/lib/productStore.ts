@@ -25,6 +25,17 @@ type SupabaseProduct = {
 
 const localProductsFile = path.join(process.cwd(), ".data", "products.json");
 
+const getProductPriceNumber = (price: string | number) => {
+  if (typeof price === "number") return price;
+
+  const normalizedPrice = price
+    .replace(/[^\d,.-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  return Number(normalizedPrice);
+};
+
 const hasSupabaseConfig = () => {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 };
@@ -236,6 +247,12 @@ export const upsertProduct = async (product: Product) => {
 
   if (!payload.name) {
     throw new Error("Informe o nome do produto");
+  }
+
+  const priceNumber = getProductPriceNumber(payload.price);
+
+  if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
+    throw new Error("Informe um preÃ§o vÃ¡lido em reais");
   }
 
   if (!payload.image) {

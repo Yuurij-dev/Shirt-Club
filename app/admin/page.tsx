@@ -2010,6 +2010,13 @@ const normalizeProductImagePath = (value: string) => {
   return `${productImageBasePath}${trimmedValue}`;
 };
 
+const formatProductPriceInput = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  const cents = Number(digits || "0") / 100;
+
+  return formatPrice(cents);
+};
+
 const ProductsPanel = ({
   products: allProducts,
   visibleProducts,
@@ -2335,6 +2342,13 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const priceNumber = getPriceNumber(formData.price);
+
+    if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
+      toast.error("Informe um preço válido em reais");
+      return;
+    }
+
     const image = normalizeProductImagePath(imageInput);
     const images = imagesInput
       .split(/\n|,/)
@@ -2348,6 +2362,7 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
     await onSave({
       ...formData,
       id: formData.id.trim(),
+      price: formatPrice(priceNumber),
       image,
       images: images.length > 0 ? images : [image],
       details,
@@ -2395,7 +2410,9 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
         <AdminTextField
           label="Preço"
           value={String(formData.price)}
-          onChange={(value) => updateFormField("price", value)}
+          onChange={(value) =>
+            updateFormField("price", formatProductPriceInput(value))
+          }
           placeholder="R$ 189,90"
         />
         <AdminTextField
