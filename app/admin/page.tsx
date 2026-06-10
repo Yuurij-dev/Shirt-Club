@@ -103,6 +103,7 @@ type DeliveryFilter =
   | "all"
   | AdminOrder["deliveryStatus"];
 type CouponFilter = "all" | "active" | "scheduled" | "expired";
+type ProductOwnerFilter = "all" | "team" | "selection";
 type DashboardPeriod = 7 | 30 | 90;
 
 type CouponsResponse = {
@@ -208,6 +209,8 @@ const AdminPage = () => {
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
   const [couponFilter, setCouponFilter] = useState<CouponFilter>("all");
   const [productCountryFilter, setProductCountryFilter] = useState("all");
+  const [productOwnerFilter, setProductOwnerFilter] =
+    useState<ProductOwnerFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -550,9 +553,12 @@ const AdminPage = () => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
     return productCatalog.filter((product) => {
+      const productOwnerType = product.ownerType || "team";
       const matchesCountry =
         productCountryFilter === "all" ||
         product.country === productCountryFilter;
+      const matchesOwner =
+        productOwnerFilter === "all" || productOwnerType === productOwnerFilter;
       const searchableText = [
         product.id,
         product.name,
@@ -561,14 +567,17 @@ const AdminPage = () => {
         product.brand,
         product.category,
         product.gender,
+        productOwnerType,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
-      return matchesCountry && searchableText.includes(normalizedSearch);
+      return (
+        matchesCountry && matchesOwner && searchableText.includes(normalizedSearch)
+      );
     });
-  }, [productCatalog, productCountryFilter, searchTerm]);
+  }, [productCatalog, productCountryFilter, productOwnerFilter, searchTerm]);
 
   const paidTotal = orders.paid.reduce((total, order) => total + order.total, 0);
   const pendingTotal = orders.unpaid.reduce(
@@ -790,8 +799,10 @@ const AdminPage = () => {
                 visibleProducts={visibleProducts}
                 countries={productCountries}
                 countryFilter={productCountryFilter}
+                ownerFilter={productOwnerFilter}
                 isLoadingProducts={isLoadingProducts}
                 onCountryFilterChange={setProductCountryFilter}
+                onOwnerFilterChange={setProductOwnerFilter}
                 onRefresh={fetchProducts}
               />
             )}
@@ -2022,16 +2033,20 @@ const ProductsPanel = ({
   visibleProducts,
   countries,
   countryFilter,
+  ownerFilter,
   isLoadingProducts,
   onCountryFilterChange,
+  onOwnerFilterChange,
   onRefresh,
 }: {
   products: Product[];
   visibleProducts: Product[];
   countries: string[];
   countryFilter: string;
+  ownerFilter: ProductOwnerFilter;
   isLoadingProducts: boolean;
   onCountryFilterChange: (country: string) => void;
+  onOwnerFilterChange: (owner: ProductOwnerFilter) => void;
   onRefresh: () => Promise<void>;
 }) => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -2044,6 +2059,12 @@ const ProductsPanel = ({
     return product.active !== false;
   }).length;
   const inactiveProductsCount = allProducts.length - activeProductsCount;
+  const teamProductsCount = allProducts.filter((product) => {
+    return (product.ownerType || "team") === "team";
+  }).length;
+  const selectionProductsCount = allProducts.filter((product) => {
+    return product.ownerType === "selection";
+  }).length;
 
   const handleEditProduct = (product: Product) => {
     setIsCreatingProduct(false);
@@ -2191,14 +2212,36 @@ const ProductsPanel = ({
           <div className="flex flex-wrap items-center !gap-2">
             <button
               type="button"
-              onClick={() => onCountryFilterChange("all")}
+              onClick={() => onOwnerFilterChange("all")}
               className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold ${
-                countryFilter === "all"
+                ownerFilter === "all"
                   ? "bg-black text-white"
                   : "bg-zinc-50 text-zinc-500"
               }`}
             >
               Todos {allProducts.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => onOwnerFilterChange("team")}
+              className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold ${
+                ownerFilter === "team"
+                  ? "bg-black text-white"
+                  : "bg-zinc-50 text-zinc-500"
+              }`}
+            >
+              Times {teamProductsCount}
+            </button>
+            <button
+              type="button"
+              onClick={() => onOwnerFilterChange("selection")}
+              className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold ${
+                ownerFilter === "selection"
+                  ? "bg-black text-white"
+                  : "bg-zinc-50 text-zinc-500"
+              }`}
+            >
+              Seleções {selectionProductsCount}
             </button>
             <select
               value={countryFilter}
