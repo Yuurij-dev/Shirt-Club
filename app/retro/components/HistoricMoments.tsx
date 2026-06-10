@@ -10,25 +10,25 @@ const moments = [
   {
     year: "1994",
     title: "Brasil tetra campeão",
-    image: "/moments/brasil-1994.png",
+    image: "/moments/brasil-1994.jpg",
     href: "#",
   },
   {
-    year: "2005",
-    title: "Liverpool milagre de Istambul",
-    image: "/moments/liverpool-2005.png",
+    year: "1998",
+    title: "Vasco campeão da Libertadores",
+    image: "/moments/vasco-1998.png",
     href: "#",
   },
   {
     year: "2007",
     title: "Milan campeão da Champions",
-    image: "/moments/milan-2007.png",
+    image: "/moments/milan-2007.webp",
     href: "#",
   },
   {
     year: "2015",
     title: "Barcelona conquista a tríplice coroa",
-    image: "/moments/barcelona-2015.png",
+    image: "/moments/barcelona-2015.jpg",
     href: "#",
   },
 ];
