@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Lock, ShieldCheck, Zap } from "lucide-react";
+import { useAuth } from "@/app/context/AuthContext";
 import { useCart } from "@/app/context/CartContext";
 import { formatPrice } from "@/app/utils/price";
 
@@ -12,6 +13,7 @@ type CartSummaryProps = {
 
 const CartSummary = ({ subtotal, totalItems }: CartSummaryProps) => {
   const { appliedCoupon, discount, total } = useCart();
+  const { isAuthenticated, loginWithGoogle } = useAuth();
   const installment = total / 12;
 
   return (
@@ -60,13 +62,16 @@ const CartSummary = ({ subtotal, totalItems }: CartSummaryProps) => {
             FINALIZAR COMPRA
           </Link>
 
-          <Link
-            href="/checkout"
-            className="flex h-13 items-center justify-center !gap-3 rounded-lg border border-black bg-white !px-4 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50"
-          >
-            <Zap size={18} />
-            COMPRAR COM 1 CLIQUE
-          </Link>
+          {!isAuthenticated && (
+            <button
+              type="button"
+              onClick={loginWithGoogle}
+              className="flex h-13 cursor-pointer items-center justify-center !gap-3 rounded-lg border border-black bg-white !px-4 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50"
+            >
+              <Zap size={18} />
+              ENTRAR PARA COMPRAR MAIS RÁPIDO
+            </button>
+          )}
         </div>
 
         <div className="!mt-6 flex items-center justify-center !gap-3 text-center">
