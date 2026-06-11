@@ -9,6 +9,7 @@ import {
 
 import { toast } from "sonner";
 import type { Product } from "@/app/data/products";
+import { useAuth } from "./AuthContext";
 
 export type { Product };
 
@@ -27,6 +28,10 @@ export const FavoritesProvider = ({
   children: React.ReactNode;
 }) => {
   const [favorites, setFavorites] = useState<Product[]>([]);
+  const [hasLoadedFavorites, setHasLoadedFavorites] = useState(false);
+  const [hasSyncedCustomerFavorites, setHasSyncedCustomerFavorites] =
+    useState(false);
+  const { accessToken, authFetch } = useAuth();
 
   // CARREGAR FAVORITOS
   useEffect(() => {
@@ -34,8 +39,8 @@ export const FavoritesProvider = ({
       "@shirtclub:favorites"
     );
 
-    if (savedFavorites) {
-      setTimeout(() => {
+    setTimeout(() => {
+      if (savedFavorites) {
         try {
           const parsedFavorites = JSON.parse(savedFavorites) as Product[];
 
@@ -45,17 +50,92 @@ export const FavoritesProvider = ({
         } catch {
           setFavorites([]);
         }
-      }, 0);
-    }
+      }
+
+      setHasLoadedFavorites(true);
+    }, 0);
   }, []);
 
   // SALVAR FAVORITOS
   useEffect(() => {
+    if (!hasLoadedFavorites) return;
+
     localStorage.setItem(
       "@shirtclub:favorites",
       JSON.stringify(favorites)
     );
-  }, [favorites]);
+  }, [favorites, hasLoadedFavorites]);
+
+  useEffect(() => {
+    if (accessToken) return;
+
+    const timeout = window.setTimeout(() => {
+      setHasSyncedCustomerFavorites(false);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!hasLoadedFavorites || !accessToken || hasSyncedCustomerFavorites) return;
+
+    let shouldIgnore = false;
+
+    const syncFavorites = async () => {
+      const response = await authFetch("/api/customer/favorites");
+      if (!response.ok || shouldIgnore) return;
+
+      const data = (await response.json()) as { products?: Product[] };
+      const mergedFavorites = [...(data.products || [])];
+
+      favorites.forEach((favorite) => {
+        if (!mergedFavorites.some((product) => product.id === favorite.id)) {
+          mergedFavorites.push(favorite);
+        }
+      });
+
+      setFavorites(mergedFavorites);
+      setHasSyncedCustomerFavorites(true);
+
+      await authFetch("/api/customer/favorites", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: mergedFavorites }),
+      });
+    };
+
+    void syncFavorites();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [
+    accessToken,
+    authFetch,
+    favorites,
+    hasLoadedFavorites,
+    hasSyncedCustomerFavorites,
+  ]);
+
+  useEffect(() => {
+    if (!hasLoadedFavorites || !accessToken || !hasSyncedCustomerFavorites) return;
+
+    const timeout = window.setTimeout(() => {
+      void authFetch("/api/customer/favorites", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: favorites }),
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    accessToken,
+    authFetch,
+    favorites,
+    hasLoadedFavorites,
+    hasSyncedCustomerFavorites,
+  ]);
 
   // VERIFICAR FAVORITO
   const isFavorite = (productId: string) => {

@@ -25,6 +25,33 @@ npm run dev
 
 Abra `http://localhost:3000`.
 
+## Login com Google
+
+O login do cliente usa o Auth do Supabase com o provedor Google.
+
+No `.env.local`, configure:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+No painel do Supabase, ative o provedor Google em **Authentication > Providers**
+e adicione as URLs de retorno:
+
+```txt
+http://localhost:3000/auth/callback
+https://seu-site.vercel.app/auth/callback
+```
+
+Rode tambem o schema `database/customers.sql`. Ele cria a tabela de clientes e
+as tabelas que salvam carrinho e favoritos por conta.
+
+Com isso, o cliente consegue entrar com Google em `Minha conta`, salvar dados e
+endereco, ver pedidos, e usar carrinho/favoritos sincronizados entre sessoes.
+
 ## WhatsApp com Baileys
 
 O envio de WhatsApp não roda dentro da Vercel. Ele precisa ficar em um processo

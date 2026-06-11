@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import type { Product } from "@/app/data/products";
 import type { Coupon } from "@/app/data/coupons";
 import { getPriceNumber } from "@/app/utils/price";
+import { useAuth } from "./AuthContext";
 
 export type CartItem = {
   product: Product;
@@ -70,6 +71,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [hasLoadedCart, setHasLoadedCart] = useState(false);
+  const [hasSyncedCustomerCart, setHasSyncedCustomerCart] = useState(false);
+  const { accessToken, authFetch } = useAuth();
 
   useEffect(() => {
     setTimeout(() => {
@@ -111,6 +114,110 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     localStorage.setItem(storageKey, JSON.stringify(items));
   }, [hasLoadedCart, items]);
+
+  useEffect(() => {
+    if (accessToken) return;
+
+    const timeout = window.setTimeout(() => {
+      setHasSyncedCustomerCart(false);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!hasLoadedCart || !accessToken || hasSyncedCustomerCart) return;
+
+    let shouldIgnore = false;
+
+    const mergeCartItems = (localItems: CartItem[], remoteItems: CartItem[]) => {
+      const nextItems = [...remoteItems];
+
+      localItems.forEach((localItem) => {
+        const existingIndex = nextItems.findIndex((item) => {
+          return (
+            item.product.id === localItem.product.id &&
+            item.size === localItem.size &&
+            item.customization === localItem.customization
+          );
+        });
+
+        if (existingIndex === -1) {
+          nextItems.push(localItem);
+          return;
+        }
+
+        nextItems[existingIndex] = {
+          ...nextItems[existingIndex],
+          quantity: Math.max(nextItems[existingIndex].quantity, localItem.quantity),
+        };
+      });
+
+      return nextItems.filter((item) => Boolean(item.product?.id) && item.quantity > 0);
+    };
+
+    const syncCustomerCart = async () => {
+      const response = await authFetch("/api/customer/cart");
+      if (!response.ok || shouldIgnore) return;
+
+      const remoteCart = (await response.json()) as {
+        items?: CartItem[];
+        coupon?: AppliedCoupon | null;
+      };
+      const mergedItems = mergeCartItems(items, remoteCart.items || []);
+      const nextCoupon = appliedCoupon || remoteCart.coupon || null;
+
+      setItems(mergedItems);
+      setAppliedCoupon(nextCoupon);
+      setHasSyncedCustomerCart(true);
+
+      await authFetch("/api/customer/cart", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: mergedItems,
+          coupon: nextCoupon,
+        }),
+      });
+    };
+
+    void syncCustomerCart();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [
+    accessToken,
+    appliedCoupon,
+    authFetch,
+    hasLoadedCart,
+    hasSyncedCustomerCart,
+    items,
+  ]);
+
+  useEffect(() => {
+    if (!hasLoadedCart || !accessToken || !hasSyncedCustomerCart) return;
+
+    const timeout = window.setTimeout(() => {
+      void authFetch("/api/customer/cart", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items,
+          coupon: appliedCoupon,
+        }),
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    accessToken,
+    appliedCoupon,
+    authFetch,
+    hasLoadedCart,
+    hasSyncedCustomerCart,
+    items,
+  ]);
 
   useEffect(() => {
     if (!hasLoadedCart) return;

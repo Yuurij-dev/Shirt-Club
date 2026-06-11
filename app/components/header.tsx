@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Menu, Search, ShoppingCart, X } from "lucide-react";
+import { Heart, Menu, Search, ShoppingCart, User, X } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import { useFavorites } from "../context/FavoritesContext";
+import { useAuth } from "../context/AuthContext";
 import SearchDialog from "./SearchDialog";
 
 const links = [
@@ -23,6 +24,7 @@ const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const { totalItems } = useCart();
   const { totalFavorites } = useFavorites();
+  const { isAuthenticated, loginWithGoogle } = useAuth();
 
   return (
     <>
@@ -35,7 +37,7 @@ const Header = () => {
               className="relative block h-16 w-[118px] shrink-0 sm:h-[72px] sm:w-[132px] lg:h-[76px] lg:w-[150px]"
             >
               <Image
-                src="/assets/logo.png"
+                src="/assets/logo2.png"
                 alt="Shirt Club"
                 fill
                 priority
@@ -67,6 +69,20 @@ const Header = () => {
               >
                 <Search className="cursor-pointer text-black" size={22} />
               </button>
+
+              {isAuthenticated ? (
+                <Link href="/minha-conta" aria-label="Minha conta">
+                  <User className="cursor-pointer" size={22} />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={loginWithGoogle}
+                  aria-label="Entrar com Google"
+                >
+                  <User className="cursor-pointer" size={22} />
+                </button>
+              )}
 
               <Link href="/favoritos" className="relative">
                 <Heart className="cursor-pointer" size={22} />

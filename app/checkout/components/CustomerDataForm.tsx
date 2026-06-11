@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   CreditCard,
   ClipboardCheck,
@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import CartCouponCard from "@/app/carrinho/components/CartCouponCard";
 import type { CartItem } from "@/app/context/CartContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { formatPrice } from "@/app/utils/price";
 
 type CustomerDataFormProps = {
@@ -208,6 +209,26 @@ const CustomerDataForm = ({
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cepLookupError, setCepLookupError] = useState("");
+  const { customer, authFetch } = useAuth();
+
+  useEffect(() => {
+    if (!customer) return;
+
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      name: currentFormData.name || customer.name || "",
+      cpf: currentFormData.cpf || formatCpf(customer.cpf || ""),
+      email: currentFormData.email || customer.email || "",
+      whatsapp: currentFormData.whatsapp || formatWhatsapp(customer.whatsapp || ""),
+      cep: currentFormData.cep || formatCep(customer.cep || ""),
+      street: currentFormData.street || customer.street || "",
+      number: currentFormData.number || customer.number || "",
+      complement: currentFormData.complement || customer.complement || "",
+      neighborhood: currentFormData.neighborhood || customer.neighborhood || "",
+      city: currentFormData.city || customer.city || "",
+      state: currentFormData.state || customer.state || "",
+    }));
+  }, [customer]);
 
   const fieldErrors = useMemo(() => {
     return Object.keys(formData).reduce((errors, key) => {
@@ -385,7 +406,7 @@ const CustomerDataForm = ({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/checkout", {
+      const response = await authFetch("/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

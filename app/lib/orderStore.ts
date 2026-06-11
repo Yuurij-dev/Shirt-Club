@@ -19,6 +19,8 @@ export type StoredOrder = {
   status: OrderStatus;
   deliveryStatus: DeliveryStatus;
   total: number;
+  customerId?: string | null;
+  authUserId?: string | null;
   preferenceId?: string | null;
   paymentId?: string | null;
   paidNotifiedAt?: string | null;
@@ -34,6 +36,8 @@ type SupabaseOrder = {
   status: OrderStatus;
   delivery_status?: DeliveryStatus | null;
   total: number;
+  customer_id?: string | null;
+  auth_user_id?: string | null;
   preference_id?: string | null;
   payment_id?: string | null;
   paid_notified_at?: string | null;
@@ -73,6 +77,8 @@ const toStoredOrder = (order: SupabaseOrder): StoredOrder => {
         ? order.delivery_status || "not_separated"
         : "not_separated",
     total: order.total,
+    customerId: order.customer_id,
+    authUserId: order.auth_user_id,
     preferenceId: order.preference_id,
     paymentId: order.payment_id,
     paidNotifiedAt: order.paid_notified_at,
@@ -90,6 +96,8 @@ const toSupabaseOrder = (order: StoredOrder) => {
     status: order.status,
     delivery_status: order.deliveryStatus || "not_separated",
     total: order.total,
+    customer_id: order.customerId ?? null,
+    auth_user_id: order.authUserId ?? null,
     preference_id: order.preferenceId,
     payment_id: order.paymentId,
     paid_notified_at: order.paidNotifiedAt ?? null,

@@ -4,6 +4,8 @@ import {
   createAsaasPixPayment,
   getAsaasPixQrCode,
 } from "@/app/lib/asaas";
+import { getAuthenticatedUser } from "@/app/lib/customerAuth";
+import { upsertCustomerFromUser } from "@/app/lib/customerStore";
 import { validateCoupon } from "@/app/lib/couponStore";
 import { createOrder, getOrderStoreMode } from "@/app/lib/orderStore";
 import { listProducts } from "@/app/lib/productStore";
@@ -187,6 +189,7 @@ export const POST = async (request: Request) => {
     const items = body.items || [];
     const couponCode = body.couponCode?.trim() || "";
     const paymentMethod = body.paymentMethod || "mercado_pago";
+    const authenticatedUser = await getAuthenticatedUser(request);
 
     const customerErrors = getRequiredCustomerErrors(customer);
     if (customerErrors.length > 0) {
@@ -265,6 +268,21 @@ export const POST = async (request: Request) => {
           }));
 
     const orderId = `SC-${Date.now()}`;
+    const customerProfile = authenticatedUser
+      ? await upsertCustomerFromUser(authenticatedUser, {
+          name: customer.name,
+          email: customer.email,
+          whatsapp: customer.whatsappDigits || onlyDigits(customer.whatsapp),
+          cpf: customer.cpfDigits || onlyDigits(customer.cpf),
+          cep: customer.cepDigits || onlyDigits(customer.cep),
+          street: customer.street,
+          number: customer.number,
+          complement: customer.complement,
+          neighborhood: customer.neighborhood,
+          city: customer.city,
+          state: customer.state,
+        })
+      : null;
 
     const now = new Date().toISOString();
     const order = {
@@ -289,6 +307,8 @@ export const POST = async (request: Request) => {
       status: "unpaid" as const,
       deliveryStatus: "not_separated" as const,
       total,
+      customerId: customerProfile?.id || null,
+      authUserId: authenticatedUser?.id || null,
       createdAt: now,
       updatedAt: now,
     };

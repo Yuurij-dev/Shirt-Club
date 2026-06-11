@@ -72,7 +72,7 @@ const escapeHtml = (value: string) => {
 const getLogoUrl = () => {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
 
-  return appUrl ? `${appUrl}/assets/logo.png` : null;
+  return appUrl ? `${appUrl}/assets/logo2.png` : null;
 };
 
 const createPaidOrderMessage = (order: StoredOrder) => {

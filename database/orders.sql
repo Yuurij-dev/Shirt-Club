@@ -8,6 +8,8 @@ create table if not exists public.orders (
   total numeric(10, 2) not null default 0,
   preference_id text,
   payment_id text,
+  customer_id text,
+  auth_user_id text,
   paid_notified_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -22,7 +24,15 @@ alter table public.orders
 alter table public.orders
   add column if not exists paid_notified_at timestamptz;
 
+alter table public.orders
+  add column if not exists customer_id text;
+
+alter table public.orders
+  add column if not exists auth_user_id text;
+
 create index if not exists orders_status_idx on public.orders (status);
 create index if not exists orders_delivery_status_idx on public.orders (delivery_status);
 create index if not exists orders_paid_notified_at_idx on public.orders (paid_notified_at);
 create index if not exists orders_created_at_idx on public.orders (created_at desc);
+create index if not exists orders_customer_id_idx on public.orders (customer_id);
+create index if not exists orders_auth_user_id_idx on public.orders (auth_user_id);

@@ -88,6 +88,25 @@ type OrdersResponse = {
   paid: AdminOrder[];
 };
 
+type AdminCustomer = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
+  cpf?: string | null;
+  cep?: string | null;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  ordersCount: number;
+  paidOrdersCount: number;
+  totalSpent: number;
+  lastOrderAt?: string | null;
+};
+
 type AdminSection =
   | "dashboard"
   | "orders"
@@ -122,6 +141,10 @@ type BannersResponse = {
 
 type ProductsResponse = {
   products: Product[];
+};
+
+type CustomersResponse = {
+  customers: AdminCustomer[];
 };
 
 const bannerPageOptions = Object.entries(bannerPageLabels) as Array<
@@ -210,6 +233,7 @@ const AdminPage = () => {
   const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const [isLoadingBanners, setIsLoadingBanners] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const [activeSection, setActiveSection] = useState<AdminSection>("dashboard");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
@@ -222,6 +246,7 @@ const AdminPage = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [banners, setBanners] = useState<StoreBanner[]>([]);
   const [productCatalog, setProductCatalog] = useState<Product[]>(products);
+  const [customers, setCustomers] = useState<AdminCustomer[]>([]);
   const [orders, setOrders] = useState<OrdersResponse>({
     unpaid: [],
     paid: [],
@@ -339,6 +364,34 @@ const AdminPage = () => {
     }
   }, [loadProducts]);
 
+  const loadCustomers = useCallback(async () => {
+    const response = await fetch("/api/admin/customers");
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+      }
+      return [];
+    }
+
+    const data = (await response.json()) as CustomersResponse;
+    setCustomers(data.customers);
+
+    return data.customers;
+  }, []);
+
+  const fetchCustomers = useCallback(async () => {
+    setIsLoadingCustomers(true);
+
+    try {
+      await loadCustomers();
+    } catch {
+      toast.error("Não foi possível buscar os clientes");
+    } finally {
+      setIsLoadingCustomers(false);
+    }
+  }, [loadCustomers]);
+
   const refreshAndReconcileOrders = useCallback(async () => {
     setIsLoadingOrders(true);
 
@@ -413,6 +466,7 @@ const AdminPage = () => {
             fetchCoupons(),
             fetchBanners(),
             fetchProducts(),
+            fetchCustomers(),
           ]);
         }
       } finally {
@@ -421,7 +475,7 @@ const AdminPage = () => {
     };
 
     void checkSession();
-  }, [fetchBanners, fetchCoupons, fetchOrders, fetchProducts]);
+  }, [fetchBanners, fetchCoupons, fetchCustomers, fetchOrders, fetchProducts]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -585,6 +639,27 @@ const AdminPage = () => {
     });
   }, [productCatalog, productCountryFilter, productOwnerFilter, searchTerm]);
 
+  const visibleCustomers = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return customers.filter((customer) => {
+      const searchableText = [
+        customer.name,
+        customer.email,
+        customer.whatsapp,
+        customer.cpf,
+        customer.city,
+        customer.state,
+        customer.street,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedSearch);
+    });
+  }, [customers, searchTerm]);
+
   const paidTotal = orders.paid.reduce((total, order) => total + order.total, 0);
   const pendingTotal = orders.unpaid.reduce(
     (total, order) => total + order.total,
@@ -614,7 +689,13 @@ const AdminPage = () => {
     }
 
     setIsAuthenticated(true);
-    await Promise.all([fetchOrders(), fetchCoupons(), fetchBanners(), fetchProducts()]);
+    await Promise.all([
+      fetchOrders(),
+      fetchCoupons(),
+      fetchBanners(),
+      fetchProducts(),
+      fetchCustomers(),
+    ]);
   };
 
   const handleLogout = async () => {
@@ -627,6 +708,7 @@ const AdminPage = () => {
     setCoupons([]);
     setBanners([]);
     setProductCatalog(products);
+    setCustomers([]);
   };
 
   const handleDeliveryStatusChange = async (
@@ -677,7 +759,7 @@ const AdminPage = () => {
           className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white !p-6 shadow-sm"
         >
           <Image
-            src="/assets/logo.png"
+            src="/assets/logo2.png"
             alt="Shirt Club"
             width={86}
             height={60}
@@ -813,12 +895,22 @@ const AdminPage = () => {
               />
             )}
 
+            {activeSection === "clients" && (
+              <ClientsPanel
+                customers={customers}
+                visibleCustomers={visibleCustomers}
+                isLoadingCustomers={isLoadingCustomers}
+                onRefresh={fetchCustomers}
+              />
+            )}
+
             {activeSection !== "orders" &&
               activeSection !== "dashboard" &&
               activeSection !== "deliveries" &&
               activeSection !== "coupons" &&
               activeSection !== "banners" &&
-              activeSection !== "products" && (
+              activeSection !== "products" &&
+              activeSection !== "clients" && (
               <ComingSoonPanel section={activeSection} />
             )}
           </div>
@@ -862,7 +954,7 @@ const AdminSidebar = ({
     <aside className="flex flex-col border-b border-zinc-800 bg-black text-white lg:sticky lg:top-0 lg:h-screen lg:overflow-hidden lg:border-b-0 lg:border-r">
       <div className="flex items-center justify-between !p-5 lg:block">
         <Image
-          src="/assets/logo.png"
+          src="/assets/logo2.png"
           alt="Shirt Club"
           width={92}
           height={64}
@@ -961,9 +1053,15 @@ const AdminTopbar = ({
   const placeholder =
     activeSection === "coupons"
       ? "Buscar cupons..."
+      : activeSection === "clients"
+        ? "Buscar clientes..."
       : activeSection === "deliveries"
         ? "Buscar entregas..."
-        : "Buscar pedidos...";
+        : activeSection === "products"
+          ? "Buscar produtos..."
+          : activeSection === "banners"
+            ? "Buscar banners..."
+            : "Buscar pedidos...";
 
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
@@ -1973,6 +2071,190 @@ const OrderPaymentButton = ({
       <RefreshCw size={16} className={isReconciling ? "animate-spin" : ""} />
       VERIFICAR PAGAMENTO
     </button>
+  );
+};
+
+const ClientsPanel = ({
+  customers,
+  visibleCustomers,
+  isLoadingCustomers,
+  onRefresh,
+}: {
+  customers: AdminCustomer[];
+  visibleCustomers: AdminCustomer[];
+  isLoadingCustomers: boolean;
+  onRefresh: () => Promise<void>;
+}) => {
+  const customersWithOrders = customers.filter((customer) => {
+    return customer.ordersCount > 0;
+  }).length;
+  const totalOrders = customers.reduce((total, customer) => {
+    return total + customer.ordersCount;
+  }, 0);
+  const totalSpent = customers.reduce((total, customer) => {
+    return total + customer.totalSpent;
+  }, 0);
+
+  return (
+    <>
+      <div className="flex flex-col !gap-1">
+        <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
+          Clientes
+        </h1>
+        <p className="text-sm text-zinc-500">
+          Acompanhe contas cadastradas, contatos e historico de compras.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 !gap-3 xl:grid-cols-4">
+        <MetricCard
+          title="Clientes"
+          value={String(customers.length)}
+          helper="Contas registradas"
+          icon={Users}
+        />
+        <MetricCard
+          title="Com pedidos"
+          value={String(customersWithOrders)}
+          helper="Ja compraram ou tentaram comprar"
+          icon={ShoppingBag}
+          tone="success"
+        />
+        <MetricCard
+          title="Pedidos"
+          value={String(totalOrders)}
+          helper="Total vinculado a clientes"
+          icon={Package}
+        />
+        <MetricCard
+          title="Faturamento"
+          value={formatPrice(totalSpent)}
+          helper="Pedidos pagos"
+          icon={CircleDollarSign}
+          tone="success"
+        />
+      </div>
+
+      <section className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex flex-col !gap-3 border-b border-zinc-100 !p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-bold">Lista de clientes</h2>
+            <p className="text-xs text-zinc-500">
+              Mostrando {visibleCustomers.length} de {customers.length} clientes.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoadingCustomers}
+            className="inline-flex h-10 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 !px-3 text-xs font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              size={16}
+              className={isLoadingCustomers ? "animate-spin" : ""}
+            />
+            ATUALIZAR
+          </button>
+        </div>
+
+        {isLoadingCustomers ? (
+          <div className="grid grid-cols-1 !gap-3 !p-4 lg:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-44 animate-pulse rounded-xl bg-zinc-100"
+              />
+            ))}
+          </div>
+        ) : visibleCustomers.length === 0 ? (
+          <div className="!p-10 text-center">
+            <Users className="mx-auto text-zinc-400" size={38} />
+            <p className="!mt-3 text-sm font-bold text-zinc-700">
+              Nenhum cliente encontrado.
+            </p>
+            <p className="!mt-1 text-xs text-zinc-500">
+              Assim que alguem entrar com Google ou finalizar uma compra, aparece aqui.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 !gap-3 !p-4 xl:grid-cols-2">
+            {visibleCustomers.map((customer) => (
+              <CustomerCard key={customer.id} customer={customer} />
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+};
+
+const CustomerCard = ({ customer }: { customer: AdminCustomer }) => {
+  const address = [customer.street, customer.number, customer.complement]
+    .filter(Boolean)
+    .join(", ");
+  const cityLine = [
+    customer.neighborhood,
+    customer.city && customer.state && `${customer.city} / ${customer.state}`,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  return (
+    <article className="rounded-xl border border-zinc-200 bg-white !p-4 shadow-sm">
+      <div className="flex flex-col !gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-base font-bold text-zinc-950">
+            {customer.name || "Cliente sem nome"}
+          </h3>
+          <p className="text-sm text-zinc-500">{customer.email || "-"}</p>
+          <p className="text-sm text-zinc-500">{customer.whatsapp || "-"}</p>
+        </div>
+        <div className="text-left sm:text-right">
+          <strong className="text-lg text-zinc-950">
+            {formatPrice(customer.totalSpent)}
+          </strong>
+          <p className="text-xs font-bold text-emerald-600">
+            {customer.paidOrdersCount} pedido
+            {customer.paidOrdersCount === 1 ? "" : "s"} pago
+            {customer.paidOrdersCount === 1 ? "" : "s"}
+          </p>
+        </div>
+      </div>
+
+      <div className="!mt-4 grid grid-cols-1 !gap-3 text-sm sm:grid-cols-2">
+        <div className="rounded-lg bg-zinc-50 !p-3">
+          <p className="text-xs font-bold uppercase text-zinc-500">Documento</p>
+          <p className="!mt-1 font-medium text-zinc-800">
+            CPF: {customer.cpf || "-"}
+          </p>
+        </div>
+        <div className="rounded-lg bg-zinc-50 !p-3">
+          <p className="text-xs font-bold uppercase text-zinc-500">Historico</p>
+          <p className="!mt-1 font-medium text-zinc-800">
+            {customer.ordersCount} pedido
+            {customer.ordersCount === 1 ? "" : "s"} no total
+          </p>
+        </div>
+      </div>
+
+      <div className="!mt-3 rounded-lg border border-zinc-100 !p-3 text-sm">
+        <p className="text-xs font-bold uppercase text-zinc-500">Endereco salvo</p>
+        <p className="!mt-1 font-medium text-zinc-800">{address || "-"}</p>
+        <p className="text-zinc-500">{cityLine || "-"}</p>
+        <p className="text-zinc-500">CEP: {customer.cep || "-"}</p>
+      </div>
+
+      <div className="!mt-3 flex flex-wrap items-center justify-between !gap-3 border-t border-zinc-100 !pt-3 text-xs text-zinc-500">
+        <span>ID: {customer.id}</span>
+        <span>
+          Ultimo pedido:{" "}
+          {customer.lastOrderAt
+            ? new Date(customer.lastOrderAt).toLocaleString("pt-BR")
+            : "-"}
+        </span>
+      </div>
+    </article>
   );
 };
 
