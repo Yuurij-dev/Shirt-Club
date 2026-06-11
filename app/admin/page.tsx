@@ -2190,6 +2190,7 @@ const ClientsPanel = ({
 };
 
 const CustomerCard = ({ customer }: { customer: AdminCustomer }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const address = [customer.street, customer.number, customer.complement]
     .filter(Boolean)
     .join(", ");
@@ -2201,15 +2202,30 @@ const CustomerCard = ({ customer }: { customer: AdminCustomer }) => {
     .join(" - ");
 
   return (
-    <article className="rounded-xl border border-zinc-200 bg-white !p-4 shadow-sm">
-      <div className="flex flex-col !gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 className="text-base font-bold text-zinc-950">
-            {customer.name || "Cliente sem nome"}
-          </h3>
-          <p className="text-sm text-zinc-500">{customer.email || "-"}</p>
-          <p className="text-sm text-zinc-500">{customer.whatsapp || "-"}</p>
+    <article className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setIsExpanded((current) => !current)}
+        className="flex w-full cursor-pointer flex-col !gap-3 !p-4 text-left transition-all duration-200 hover:bg-zinc-50 sm:flex-row sm:items-start sm:justify-between"
+      >
+        <div className="flex min-w-0 items-start !gap-3">
+          <ChevronDown
+            size={18}
+            className={`!mt-1 shrink-0 text-zinc-400 transition-transform duration-200 ${
+              isExpanded ? "rotate-180" : ""
+            }`}
+          />
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-bold text-zinc-950">
+              {customer.name || "Cliente sem nome"}
+            </h3>
+            <p className="truncate text-sm text-zinc-500">
+              {customer.email || "-"}
+            </p>
+            <p className="text-sm text-zinc-500">{customer.whatsapp || "-"}</p>
+          </div>
         </div>
+
         <div className="text-left sm:text-right">
           <strong className="text-lg text-zinc-950">
             {formatPrice(customer.totalSpent)}
@@ -2220,40 +2236,50 @@ const CustomerCard = ({ customer }: { customer: AdminCustomer }) => {
             {customer.paidOrdersCount === 1 ? "" : "s"}
           </p>
         </div>
-      </div>
+      </button>
 
-      <div className="!mt-4 grid grid-cols-1 !gap-3 text-sm sm:grid-cols-2">
-        <div className="rounded-lg bg-zinc-50 !p-3">
-          <p className="text-xs font-bold uppercase text-zinc-500">Documento</p>
-          <p className="!mt-1 font-medium text-zinc-800">
-            CPF: {customer.cpf || "-"}
-          </p>
+      {isExpanded && (
+        <div className="border-t border-zinc-100 !p-4">
+          <div className="grid grid-cols-1 !gap-3 text-sm sm:grid-cols-2">
+            <div className="rounded-lg bg-zinc-50 !p-3">
+              <p className="text-xs font-bold uppercase text-zinc-500">
+                Documento
+              </p>
+              <p className="!mt-1 font-medium text-zinc-800">
+                CPF: {customer.cpf || "-"}
+              </p>
+            </div>
+            <div className="rounded-lg bg-zinc-50 !p-3">
+              <p className="text-xs font-bold uppercase text-zinc-500">
+                Historico
+              </p>
+              <p className="!mt-1 font-medium text-zinc-800">
+                {customer.ordersCount} pedido
+                {customer.ordersCount === 1 ? "" : "s"} no total
+              </p>
+            </div>
+          </div>
+
+          <div className="!mt-3 rounded-lg border border-zinc-100 !p-3 text-sm">
+            <p className="text-xs font-bold uppercase text-zinc-500">
+              Endereco salvo
+            </p>
+            <p className="!mt-1 font-medium text-zinc-800">{address || "-"}</p>
+            <p className="text-zinc-500">{cityLine || "-"}</p>
+            <p className="text-zinc-500">CEP: {customer.cep || "-"}</p>
+          </div>
+
+          <div className="!mt-3 flex flex-wrap items-center justify-between !gap-3 border-t border-zinc-100 !pt-3 text-xs text-zinc-500">
+            <span>ID: {customer.id}</span>
+            <span>
+              Ultimo pedido:{" "}
+              {customer.lastOrderAt
+                ? new Date(customer.lastOrderAt).toLocaleString("pt-BR")
+                : "-"}
+            </span>
+          </div>
         </div>
-        <div className="rounded-lg bg-zinc-50 !p-3">
-          <p className="text-xs font-bold uppercase text-zinc-500">Historico</p>
-          <p className="!mt-1 font-medium text-zinc-800">
-            {customer.ordersCount} pedido
-            {customer.ordersCount === 1 ? "" : "s"} no total
-          </p>
-        </div>
-      </div>
-
-      <div className="!mt-3 rounded-lg border border-zinc-100 !p-3 text-sm">
-        <p className="text-xs font-bold uppercase text-zinc-500">Endereco salvo</p>
-        <p className="!mt-1 font-medium text-zinc-800">{address || "-"}</p>
-        <p className="text-zinc-500">{cityLine || "-"}</p>
-        <p className="text-zinc-500">CEP: {customer.cep || "-"}</p>
-      </div>
-
-      <div className="!mt-3 flex flex-wrap items-center justify-between !gap-3 border-t border-zinc-100 !pt-3 text-xs text-zinc-500">
-        <span>ID: {customer.id}</span>
-        <span>
-          Ultimo pedido:{" "}
-          {customer.lastOrderAt
-            ? new Date(customer.lastOrderAt).toLocaleString("pt-BR")
-            : "-"}
-        </span>
-      </div>
+      )}
     </article>
   );
 };

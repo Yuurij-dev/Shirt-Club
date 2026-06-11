@@ -477,6 +477,12 @@ export const homeProducts = getProductsByIds([
   "camisa-corinthians-home-24-25",
 ]);
 
+export const homeSelectionProducts = products
+  .filter((product) => {
+    return product.active !== false && product.ownerType === "selection";
+  })
+  .slice(0, 5);
+
 export const bestSellerProducts = getProductsByIds([
   "camisa-flamengo-home-24-25",
   "camisa-real-madrid-home-24-25",

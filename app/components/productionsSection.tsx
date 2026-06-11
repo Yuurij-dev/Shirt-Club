@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import ProductCard from "./productCard";
-import { homeProducts, type Product } from "../data/products";
+import { homeSelectionProducts, type Product } from "../data/products";
 
 const ProductsSection = () => {
-  const [products, setProducts] = useState<Product[]>(homeProducts);
+  const [products, setProducts] = useState<Product[]>(homeSelectionProducts);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -18,15 +18,13 @@ const ProductsSection = () => {
         const data = (await response.json()) as { products?: Product[] };
         const activeProducts = data.products || [];
 
-        setProducts(
-          homeProducts
-            .map((product) =>
-              activeProducts.find((currentProduct) => currentProduct.id === product.id)
-            )
-            .filter((product): product is Product => Boolean(product))
-        );
+        const selectionProducts = activeProducts
+          .filter((product) => product.ownerType === "selection")
+          .slice(0, 5);
+
+        setProducts(selectionProducts);
       } catch {
-        setProducts(homeProducts);
+        setProducts(homeSelectionProducts);
       }
     };
 
@@ -38,10 +36,10 @@ const ProductsSection = () => {
       <div className="container !mx-auto">
         <div className="!mb-6 !mt-6 flex items-center justify-between">
           <h2 className="font-[family-name:var(--font-bebas)] text-3xl text-zinc-950 sm:text-4xl">
-            MASCULINO
+            SELEÇÕES
           </h2>
 
-          <Link href="/masculino" className="text-xs font-medium text-zinc-700 hover:underline sm:text-sm">
+          <Link href="/selecoes" className="text-xs font-medium text-zinc-700 hover:underline sm:text-sm">
             Ver todos ›
           </Link>
         </div>
