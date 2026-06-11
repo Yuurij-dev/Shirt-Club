@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { products as defaultProducts, type Product } from "@/app/data/products";
+import { withPersonalizedProductCopy } from "@/app/utils/productCopy";
 
 type SupabaseProduct = {
   id: string;
@@ -60,7 +61,7 @@ const sortProducts = (products: Product[]) => {
 };
 
 const toProduct = (product: SupabaseProduct): Product => {
-  return {
+  return withPersonalizedProductCopy({
     id: product.id,
     name: product.name,
     price: String(product.price),
@@ -77,7 +78,7 @@ const toProduct = (product: SupabaseProduct): Product => {
     active: product.active,
     ownerType: product.owner_type || "team",
     country: product.country || undefined,
-  };
+  });
 };
 
 const toSupabaseProduct = (product: Product): SupabaseProduct => {
@@ -152,9 +153,11 @@ const readLocalProducts = async () => {
     const file = await fs.readFile(localProductsFile, "utf-8");
     const localProducts = JSON.parse(file) as Product[];
 
-    return localProducts.length > 0 ? localProducts : defaultProducts;
+    return localProducts.length > 0
+      ? localProducts.map(withPersonalizedProductCopy)
+      : defaultProducts.map(withPersonalizedProductCopy);
   } catch {
-    return defaultProducts;
+    return defaultProducts.map(withPersonalizedProductCopy);
   }
 };
 
@@ -173,7 +176,7 @@ const listSupabaseProducts = async () => {
   );
 
   if (response.status === 404) {
-    return defaultProducts;
+    return defaultProducts.map(withPersonalizedProductCopy);
   }
 
   if (!response.ok) {
@@ -182,7 +185,9 @@ const listSupabaseProducts = async () => {
 
   const products = (await response.json()) as SupabaseProduct[];
 
-  return products.length > 0 ? products.map(toProduct) : defaultProducts;
+  return products.length > 0
+    ? products.map(toProduct)
+    : defaultProducts.map(withPersonalizedProductCopy);
 };
 
 const upsertSupabaseProduct = async (product: Product) => {
