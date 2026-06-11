@@ -3,8 +3,10 @@ import { isAdminAuthenticated } from "@/app/lib/adminAuth";
 import {
   listProducts,
   toggleProductStatus,
+  updateProductPricesByGroup,
   upsertProduct,
 } from "@/app/lib/productStore";
+import type { ProductPriceGroup } from "@/app/lib/productStore";
 import type { Product } from "@/app/data/products";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +46,29 @@ export const PATCH = async (request: Request) => {
   }
 
   try {
-    const body = (await request.json()) as { id?: string; active?: boolean };
+    const body = (await request.json()) as {
+      action?: "bulk-price";
+      group?: ProductPriceGroup;
+      price?: string;
+      id?: string;
+      active?: boolean;
+    };
+
+    if (body.action === "bulk-price") {
+      if (!body.group || !body.price) {
+        return NextResponse.json(
+          { error: "Informe o grupo e o novo preÃ§o" },
+          { status: 400 }
+        );
+      }
+
+      const result = await updateProductPricesByGroup({
+        group: body.group,
+        price: body.price,
+      });
+
+      return NextResponse.json(result);
+    }
 
     if (!body.id) {
       return NextResponse.json(

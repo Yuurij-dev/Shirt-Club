@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { StoreBanner } from "@/app/data/banners";
+import BannerImageLayer from "./BannerImageLayer";
 
 type BannerCarouselProps = {
   banners: StoreBanner[];
@@ -81,15 +81,15 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
             aria-hidden={!isActive}
           >
             {banner.mobileImageUrl && (
-              <Image
+              <BannerImageLayer
                 src={banner.mobileImageUrl}
                 alt={banner.name}
                 priority={index === 0}
-                fill
                 sizes="100vw"
-                className="object-contain object-center sm:hidden"
-                onLoad={(event) => {
-                  const image = event.currentTarget;
+                className="sm:hidden"
+                imageClassName="object-contain object-center"
+                fallbackLabel="Banner indisponivel"
+                onLoad={(image) => {
                   if (!image.naturalWidth || !image.naturalHeight) return;
 
                   setBannerRatios((currentRatios) => {
@@ -105,17 +105,17 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
               />
             )}
 
-            <Image
+            <BannerImageLayer
               src={banner.desktopImageUrl}
               alt={banner.name}
               priority={index === 0 && !banner.mobileImageUrl}
-              fill
               sizes="(min-width: 1600px) 1600px, 100vw"
-              className={`object-contain object-center ${
+              className={banner.mobileImageUrl ? "hidden sm:block" : "block"}
+              imageClassName={`object-contain object-center ${
                 banner.mobileImageUrl ? "hidden sm:block" : "block"
               }`}
-              onLoad={(event) => {
-                const image = event.currentTarget;
+              fallbackLabel="Banner indisponivel"
+              onLoad={(image) => {
                 if (!image.naturalWidth || !image.naturalHeight) return;
 
                 setBannerRatios((currentRatios) => {

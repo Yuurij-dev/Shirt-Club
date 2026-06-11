@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { BannerPage, StoreBanner } from "@/app/data/banners";
+import BannerImageLayer from "./BannerImageLayer";
 
 type CategoryBannerCarouselProps = {
   page: BannerPage;
@@ -108,25 +108,27 @@ const CategoryBannerCarousel = ({
               aria-hidden={!isActive}
             >
               {banner.mobileImageUrl && (
-                <Image
+                <BannerImageLayer
                   src={banner.mobileImageUrl}
                   alt={banner.name}
-                  fill
                   priority={index === 0}
                   sizes="100vw"
-                  className="object-cover object-center sm:hidden"
+                  className="sm:hidden"
+                  imageClassName="object-cover object-center"
+                  fallbackLabel="Banner indisponivel"
                 />
               )}
 
-              <Image
+              <BannerImageLayer
                 src={banner.desktopImageUrl}
                 alt={banner.name}
-                fill
                 priority={index === 0 && !banner.mobileImageUrl}
                 sizes="(min-width: 1600px) 1180px, 100vw"
-                className={`object-contain object-center ${
+                className={banner.mobileImageUrl ? "hidden sm:block" : "block"}
+                imageClassName={`object-contain object-center ${
                   banner.mobileImageUrl ? "hidden sm:block" : "block"
                 }`}
+                fallbackLabel="Banner indisponivel"
               />
             </div>
           );

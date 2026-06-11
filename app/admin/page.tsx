@@ -47,6 +47,7 @@ import {
 } from "../data/banners";
 import { Coupon, CouponType, getCouponStatus } from "../data/coupons";
 import { products, type Product } from "../data/products";
+import type { ProductPriceGroup } from "../lib/productStore";
 import { formatPrice, getPriceNumber } from "../utils/price";
 
 type AdminOrder = {
@@ -105,6 +106,11 @@ type DeliveryFilter =
 type CouponFilter = "all" | "active" | "scheduled" | "expired";
 type ProductOwnerFilter = "all" | "team" | "selection";
 type DashboardPeriod = 7 | 30 | 90;
+type PendingBulkPriceUpdate = {
+  group: ProductPriceGroup;
+  price: string;
+  count: number;
+};
 
 type CouponsResponse = {
   coupons: Coupon[];
@@ -2028,6 +2034,38 @@ const formatProductPriceInput = (value: string) => {
   return formatPrice(cents);
 };
 
+const productPriceGroupLabels: Record<ProductPriceGroup, string> = {
+  shirts: "Camisas",
+  retro: "Retrô",
+  selections: "Seleções",
+};
+
+const isProductRetro = (product: Product) => {
+  const searchableText = [
+    product.id,
+    product.name,
+    product.category,
+    product.season,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return searchableText.includes("retro");
+};
+
+const matchesProductPriceGroup = (
+  product: Product,
+  group: ProductPriceGroup
+) => {
+  if (group === "selections") return product.ownerType === "selection";
+  if (group === "retro") return isProductRetro(product);
+
+  return (product.ownerType || "team") === "team" && !isProductRetro(product);
+};
+
 const ProductsPanel = ({
   products: allProducts,
   visibleProducts,
@@ -2053,6 +2091,12 @@ const ProductsPanel = ({
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isChangingStatus, setIsChangingStatus] = useState<string | null>(null);
+  const [bulkPriceGroup, setBulkPriceGroup] =
+    useState<ProductPriceGroup>("shirts");
+  const [bulkPriceInput, setBulkPriceInput] = useState("");
+  const [pendingBulkPriceUpdate, setPendingBulkPriceUpdate] =
+    useState<PendingBulkPriceUpdate | null>(null);
+  const [isUpdatingBulkPrice, setIsUpdatingBulkPrice] = useState(false);
   const productFormRef = useRef<HTMLFormElement | null>(null);
 
   const activeProductsCount = allProducts.filter((product) => {
@@ -2064,6 +2108,9 @@ const ProductsPanel = ({
   }).length;
   const selectionProductsCount = allProducts.filter((product) => {
     return product.ownerType === "selection";
+  }).length;
+  const bulkPriceTargetCount = allProducts.filter((product) => {
+    return matchesProductPriceGroup(product, bulkPriceGroup);
   }).length;
 
   const handleEditProduct = (product: Product) => {
@@ -2131,6 +2178,64 @@ const ProductsPanel = ({
       await onRefresh();
     } finally {
       setIsSavingProduct(false);
+    }
+  };
+
+  const requestBulkPriceUpdate = () => {
+    const priceNumber = getPriceNumber(bulkPriceInput);
+
+    if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
+      toast.error("Informe um preço válido em reais");
+      return;
+    }
+
+    if (bulkPriceTargetCount === 0) {
+      toast.error("Nenhum produto encontrado para esse grupo");
+      return;
+    }
+
+    setPendingBulkPriceUpdate({
+      group: bulkPriceGroup,
+      price: formatPrice(priceNumber),
+      count: bulkPriceTargetCount,
+    });
+  };
+
+  const confirmBulkPriceUpdate = async () => {
+    if (!pendingBulkPriceUpdate) return;
+
+    setIsUpdatingBulkPrice(true);
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "bulk-price",
+          group: pendingBulkPriceUpdate.group,
+          price: pendingBulkPriceUpdate.price,
+        }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        updatedCount?: number;
+      };
+
+      if (!response.ok) {
+        toast.error(data.error || "Não foi possível atualizar os preços");
+        return;
+      }
+
+      toast.success(
+        `${data.updatedCount || pendingBulkPriceUpdate.count} produtos atualizados`
+      );
+      setBulkPriceInput("");
+      setPendingBulkPriceUpdate(null);
+      await onRefresh();
+    } finally {
+      setIsUpdatingBulkPrice(false);
     }
   };
 
@@ -2206,6 +2311,79 @@ const ProductsPanel = ({
           onSave={saveProduct}
         />
       )}
+
+      <div className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+        <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
+              Preços em massa
+            </h2>
+            <p className="text-sm text-zinc-500">
+              Atualize o preço de camisas, retrôs ou seleções sem editar produto por produto.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 !gap-3 sm:grid-cols-[220px_180px_auto]">
+            <AdminSelectField
+              label="Grupo"
+              value={bulkPriceGroup}
+              options={[
+                ["shirts", "Camisas"],
+                ["retro", "Retrô"],
+                ["selections", "Seleções"],
+              ]}
+              onChange={(value) =>
+                setBulkPriceGroup(value as ProductPriceGroup)
+              }
+            />
+            <AdminTextField
+              label="Novo preço"
+              value={bulkPriceInput}
+              onChange={(value) =>
+                setBulkPriceInput(formatProductPriceInput(value))
+              }
+              placeholder="R$ 189,90"
+            />
+            <button
+              type="button"
+              onClick={requestBulkPriceUpdate}
+              className="inline-flex h-12 cursor-pointer items-center justify-center !gap-2 self-end rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+            >
+              <CircleDollarSign size={18} />
+              APLICAR PREÇO
+            </button>
+          </div>
+        </div>
+
+        <div className="!mt-4 grid grid-cols-1 !gap-3 text-sm text-zinc-600 md:grid-cols-3">
+          {(Object.keys(productPriceGroupLabels) as ProductPriceGroup[]).map(
+            (group) => {
+              const count = allProducts.filter((product) =>
+                matchesProductPriceGroup(product, group)
+              ).length;
+
+              return (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => setBulkPriceGroup(group)}
+                  className={`cursor-pointer rounded-lg border !p-3 text-left transition-all duration-200 ${
+                    bulkPriceGroup === group
+                      ? "border-black bg-zinc-950 text-white"
+                      : "border-zinc-200 bg-zinc-50 hover:border-black"
+                  }`}
+                >
+                  <span className="block text-xs font-bold uppercase">
+                    {productPriceGroupLabels[group]}
+                  </span>
+                  <strong className="!mt-1 block text-lg">{count}</strong>
+                  <span className="text-xs opacity-75">produtos afetados</span>
+                </button>
+              );
+            }
+          )}
+        </div>
+      </div>
 
       <div className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
         <div className="flex flex-col !gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -2349,7 +2527,80 @@ const ProductsPanel = ({
           )}
         </div>
       </div>
+
+      {pendingBulkPriceUpdate && (
+        <BulkPriceConfirmModal
+          update={pendingBulkPriceUpdate}
+          isUpdating={isUpdatingBulkPrice}
+          onCancel={() => setPendingBulkPriceUpdate(null)}
+          onConfirm={confirmBulkPriceUpdate}
+        />
+      )}
     </section>
+  );
+};
+
+const BulkPriceConfirmModal = ({
+  update,
+  isUpdating,
+  onCancel,
+  onConfirm,
+}: {
+  update: PendingBulkPriceUpdate;
+  isUpdating: boolean;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 !p-4">
+      <section className="w-full max-w-md rounded-xl border border-zinc-200 bg-white !p-5 shadow-2xl">
+        <div className="flex items-start !gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-950">
+            <CircleDollarSign size={20} />
+          </span>
+          <div>
+            <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
+              Alterar preços
+            </h2>
+            <p className="!mt-2 text-sm leading-relaxed text-zinc-600">
+              Tem certeza que deseja alterar{" "}
+              <strong className="text-zinc-950">{update.count}</strong>{" "}
+              produtos do grupo{" "}
+              <strong className="text-zinc-950">
+                {productPriceGroupLabels[update.group]}
+              </strong>{" "}
+              para{" "}
+              <strong className="text-zinc-950">{update.price}</strong>?
+            </p>
+          </div>
+        </div>
+
+        <div className="!mt-5 rounded-lg bg-zinc-50 !p-3 text-xs text-zinc-600">
+          Essa ação atualiza o valor exibido na loja, carrinho, checkout e páginas
+          de produto para todos os itens desse grupo.
+        </div>
+
+        <div className="!mt-6 flex flex-col-reverse !gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isUpdating}
+            className="h-11 cursor-pointer rounded-lg border border-zinc-200 !px-5 text-sm font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            CANCELAR
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isUpdating}
+            className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isUpdating && <RefreshCw size={16} className="animate-spin" />}
+            ALTERAR PREÇOS
+          </button>
+        </div>
+      </section>
+    </div>
   );
 };
 

@@ -25,6 +25,8 @@ type SupabaseProduct = {
 
 const localProductsFile = path.join(process.cwd(), ".data", "products.json");
 
+export type ProductPriceGroup = "shirts" | "retro" | "selections";
+
 const getProductPriceNumber = (price: string | number) => {
   if (typeof price === "number") return price;
 
@@ -120,6 +122,29 @@ const normalizeProduct = (product: Product): Product => {
     details: product.details.map((detail) => detail.trim()).filter(Boolean),
     badge: product.badge?.trim() || undefined,
   };
+};
+
+const isRetroProduct = (product: Product) => {
+  const searchableText = [
+    product.id,
+    product.name,
+    product.category,
+    product.season,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return searchableText.includes("retro");
+};
+
+const matchesPriceGroup = (product: Product, group: ProductPriceGroup) => {
+  if (group === "selections") return product.ownerType === "selection";
+  if (group === "retro") return isRetroProduct(product);
+
+  return (product.ownerType || "team") === "team" && !isRetroProduct(product);
 };
 
 const readLocalProducts = async () => {
@@ -308,4 +333,45 @@ export const toggleProductStatus = async (id: string, active: boolean) => {
   }
 
   return updatedProduct;
+};
+
+export const updateProductPricesByGroup = async ({
+  group,
+  price,
+}: {
+  group: ProductPriceGroup;
+  price: string;
+}) => {
+  const priceNumber = getProductPriceNumber(price);
+
+  if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
+    throw new Error("Informe um preÃƒÂ§o vÃƒÂ¡lido em reais");
+  }
+
+  const products = await listProducts();
+  const matchingProducts = products.filter((product) => {
+    return matchesPriceGroup(product, group);
+  });
+
+  if (matchingProducts.length === 0) {
+    throw new Error("Nenhum produto encontrado para esse grupo");
+  }
+
+  const normalizedPrice = price.trim();
+  const nextProducts = products.map((product) => {
+    return matchesPriceGroup(product, group)
+      ? { ...product, price: normalizedPrice }
+      : product;
+  });
+
+  if (hasSupabaseConfig()) {
+    await upsertSupabaseProducts(nextProducts);
+  } else {
+    await writeLocalProducts(nextProducts);
+  }
+
+  return {
+    products: sortProducts(nextProducts),
+    updatedCount: matchingProducts.length,
+  };
 };
