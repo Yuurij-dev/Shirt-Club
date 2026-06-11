@@ -186,12 +186,15 @@ const listSupabaseProducts = async () => {
 };
 
 const upsertSupabaseProduct = async (product: Product) => {
-  const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/products`, {
-    method: "POST",
-    headers: getSupabaseHeaders(),
-    cache: "no-store",
-    body: JSON.stringify(toSupabaseProduct(product)),
-  });
+  const response = await fetch(
+    `${process.env.SUPABASE_URL}/rest/v1/products?on_conflict=id`,
+    {
+      method: "POST",
+      headers: getSupabaseHeaders(),
+      cache: "no-store",
+      body: JSON.stringify(toSupabaseProduct(product)),
+    }
+  );
 
   if (!response.ok) {
     throw new Error("NÃ£o foi possÃ­vel salvar o produto no Supabase");
@@ -246,6 +249,21 @@ const patchSupabaseProduct = async (product: Product) => {
   }
 };
 
+const deleteSupabaseProduct = async (id: string) => {
+  const response = await fetch(
+    `${process.env.SUPABASE_URL}/rest/v1/products?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "DELETE",
+      headers: getSupabaseHeaders(),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("NÃƒÂ£o foi possÃƒÂ­vel excluir o produto no Supabase");
+  }
+};
+
 export const listProducts = async ({ includeInactive = true } = {}) => {
   const products = sortProducts(
     hasSupabaseConfig() ? await listSupabaseProducts() : await readLocalProducts()
@@ -262,9 +280,11 @@ export const getStoredProductById = async (id: string) => {
   return products.find((product) => product.id === id);
 };
 
-export const upsertProduct = async (product: Product) => {
+export const upsertProduct = async (product: Product, originalId?: string) => {
   const products = await listProducts();
   const payload = normalizeProduct(product);
+  const normalizedOriginalId = originalId?.trim();
+  const lookupId = normalizedOriginalId || payload.id;
 
   if (!payload.id) {
     throw new Error("Informe o ID do produto");
@@ -284,10 +304,18 @@ export const upsertProduct = async (product: Product) => {
     throw new Error("Informe a imagem principal do produto");
   }
 
-  const exists = products.some((currentProduct) => currentProduct.id === payload.id);
+  const exists = products.some((currentProduct) => currentProduct.id === lookupId);
+  const hasIdConflict = products.some((currentProduct) => {
+    return currentProduct.id === payload.id && currentProduct.id !== lookupId;
+  });
+
+  if (hasIdConflict) {
+    throw new Error("JÃ¡ existe outro produto usando esse ID");
+  }
+
   const nextProducts = exists
     ? products.map((currentProduct) =>
-        currentProduct.id === payload.id ? payload : currentProduct
+        currentProduct.id === lookupId ? payload : currentProduct
       )
     : [payload, ...products];
 
@@ -295,6 +323,10 @@ export const upsertProduct = async (product: Product) => {
     if (await isSupabaseProductsEmpty()) {
       await upsertSupabaseProducts(nextProducts);
     } else {
+      if (normalizedOriginalId && normalizedOriginalId !== payload.id) {
+        await deleteSupabaseProduct(normalizedOriginalId);
+      }
+
       await upsertSupabaseProduct(payload);
     }
   } else {
@@ -333,6 +365,34 @@ export const toggleProductStatus = async (id: string, active: boolean) => {
   }
 
   return updatedProduct;
+};
+
+export const deleteProduct = async (id: string) => {
+  const products = await listProducts();
+  const product = products.find((currentProduct) => currentProduct.id === id);
+
+  if (!product) {
+    throw new Error("Produto nÃ£o encontrado");
+  }
+
+  const nextProducts = products.filter((currentProduct) => {
+    return currentProduct.id !== id;
+  });
+
+  if (hasSupabaseConfig()) {
+    if (await isSupabaseProductsEmpty()) {
+      await upsertSupabaseProducts(nextProducts);
+    } else {
+      await deleteSupabaseProduct(id);
+    }
+  } else {
+    await writeLocalProducts(nextProducts);
+  }
+
+  return {
+    product,
+    products: sortProducts(nextProducts),
+  };
 };
 
 export const updateProductPricesByGroup = async ({

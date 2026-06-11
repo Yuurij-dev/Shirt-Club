@@ -11,7 +11,7 @@ import SearchDialog from "./SearchDialog";
 const links = [
   { name: "INÍCIO", href: "/" },
   { name: "TIMES", href: "/times" },
-  { name: "SELEÇÕES", href: "/selecoes" },
+  { name: "Copa do Mundo", href: "/selecoes" },
   { name: "MASCULINO", href: "/masculino" },
   { name: "FEMININO", href: "/feminino" },
   { name: "RETRO", href: "/retro" },

@@ -96,6 +96,42 @@ export const selections: Selection[] = [
     continent: "África",
     image: "/selecoes/nigeria.svg",
   },
+  {
+    name: "Holanda",
+    slug: "holanda",
+    continent: "Europa",
+    image: "/selecoes/holanda.svg",
+  },
+  {
+    name: "Noruega",
+    slug: "noruega",
+    continent: "Europa",
+    image: "/selecoes/noruega.svg",
+  },
+  {
+    name: "Croácia",
+    slug: "croacia",
+    continent: "Europa",
+    image: "/selecoes/croacia.svg",
+  },
+  {
+    name: "Canadá",
+    slug: "canada",
+    continent: "América do Norte",
+    image: "/selecoes/canada.svg",
+  },
+  {
+    name: "Estados Unidos",
+    slug: "estados unidos",
+    continent: "América do Norte",
+    image: "/selecoes/estados-unidos.svg",
+  },
+  {
+    name: "Turquia",
+    slug: "turquia",
+    continent: "Ásia",
+    image: "/selecoes/turquia.svg",
+  },
 ];
 
 export const getSelectionBySlug = (slug: string) => {

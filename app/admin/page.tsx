@@ -210,7 +210,7 @@ const AdminPage = () => {
   const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
   const [isLoadingBanners, setIsLoadingBanners] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [activeSection, setActiveSection] = useState<AdminSection>("orders");
+  const [activeSection, setActiveSection] = useState<AdminSection>("dashboard");
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>("all");
   const [couponFilter, setCouponFilter] = useState<CouponFilter>("all");
@@ -2097,6 +2097,9 @@ const ProductsPanel = ({
   const [pendingBulkPriceUpdate, setPendingBulkPriceUpdate] =
     useState<PendingBulkPriceUpdate | null>(null);
   const [isUpdatingBulkPrice, setIsUpdatingBulkPrice] = useState(false);
+  const [pendingDeleteProduct, setPendingDeleteProduct] =
+    useState<Product | null>(null);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const productFormRef = useRef<HTMLFormElement | null>(null);
 
   const activeProductsCount = allProducts.filter((product) => {
@@ -2163,7 +2166,14 @@ const ProductsPanel = ({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(product),
+        body: JSON.stringify(
+          editingProduct
+            ? {
+                product,
+                originalId: editingProduct.id,
+              }
+            : product
+        ),
       });
       const data = (await response.json()) as { error?: string };
 
@@ -2236,6 +2246,42 @@ const ProductsPanel = ({
       await onRefresh();
     } finally {
       setIsUpdatingBulkPrice(false);
+    }
+  };
+
+  const deleteSelectedProduct = async () => {
+    if (!pendingDeleteProduct) return;
+
+    setIsDeletingProduct(true);
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: pendingDeleteProduct.id,
+        }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        toast.error(data.error || "NÃ£o foi possÃ­vel excluir o produto");
+        return;
+      }
+
+      toast.success("Produto excluÃ­do");
+      setPendingDeleteProduct(null);
+
+      if (editingProduct?.id === pendingDeleteProduct.id) {
+        setEditingProduct(null);
+        setIsCreatingProduct(false);
+      }
+
+      await onRefresh();
+    } finally {
+      setIsDeletingProduct(false);
     }
   };
 
@@ -2520,6 +2566,14 @@ const ProductsPanel = ({
                           ? "Ativar"
                           : "Inativar"}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setPendingDeleteProduct(product)}
+                      className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-red-100 text-red-500 transition-all duration-200 hover:border-red-500"
+                      aria-label="Excluir produto"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -2534,6 +2588,15 @@ const ProductsPanel = ({
           isUpdating={isUpdatingBulkPrice}
           onCancel={() => setPendingBulkPriceUpdate(null)}
           onConfirm={confirmBulkPriceUpdate}
+        />
+      )}
+
+      {pendingDeleteProduct && (
+        <DeleteProductModal
+          product={pendingDeleteProduct}
+          isDeleting={isDeletingProduct}
+          onCancel={() => setPendingDeleteProduct(null)}
+          onConfirm={deleteSelectedProduct}
         />
       )}
     </section>
@@ -2597,6 +2660,66 @@ const BulkPriceConfirmModal = ({
           >
             {isUpdating && <RefreshCw size={16} className="animate-spin" />}
             ALTERAR PREÇOS
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const DeleteProductModal = ({
+  product,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: {
+  product: Product;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 !p-4">
+      <section className="w-full max-w-md rounded-xl border border-zinc-200 bg-white !p-5 shadow-2xl">
+        <div className="flex items-start !gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <Trash2 size={20} />
+          </span>
+          <div>
+            <h2 className="font-[family-name:var(--font-bebas)] text-3xl leading-none text-zinc-950">
+              Excluir produto
+            </h2>
+            <p className="!mt-2 text-sm leading-relaxed text-zinc-600">
+              Tem certeza que deseja excluir{" "}
+              <strong className="text-zinc-950">{product.name}</strong>? Essa
+              aÃ§Ã£o remove o produto do catÃ¡logo e nÃ£o pode ser desfeita.
+            </p>
+          </div>
+        </div>
+
+        <div className="!mt-5 rounded-lg bg-zinc-50 !p-3 text-xs text-zinc-600">
+          Para apenas esconder o produto da loja, use a opÃ§Ã£o inativar.
+          Excluir deve ser usado para cadastros errados ou produtos que nÃ£o
+          devem mais existir no catÃ¡logo.
+        </div>
+
+        <div className="!mt-6 flex flex-col-reverse !gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="h-11 cursor-pointer rounded-lg border border-zinc-200 !px-5 text-sm font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            CANCELAR
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-red-600 !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDeleting && <RefreshCw size={16} className="animate-spin" />}
+            EXCLUIR PRODUTO
           </button>
         </div>
       </section>
