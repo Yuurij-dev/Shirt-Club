@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { BannerPage, StoreBanner } from "@/app/data/banners";
 import BannerImageLayer from "./BannerImageLayer";
+import { SkeletonBlock } from "./Skeleton";
 
 type CategoryBannerCarouselProps = {
   page: BannerPage;
@@ -55,7 +56,9 @@ const CategoryBannerCarousel = ({
   }, [fallbackBanner, page]);
 
   const visibleBanners = useMemo(() => {
-    return banners === null ? [fallbackBanner] : banners;
+    if (banners === null) return [];
+
+    return banners.length > 0 ? banners : [fallbackBanner];
   }, [banners, fallbackBanner]);
 
   const hasMultipleBanners = visibleBanners.length > 1;
@@ -86,6 +89,16 @@ const CategoryBannerCarousel = ({
       return (currentIndex + 1) % visibleBanners.length;
     });
   };
+
+  if (banners === null) {
+    return (
+      <section className="!py-8">
+        <div className="relative !mx-auto aspect-[4/5] w-full max-w-[1180px] overflow-hidden rounded-lg bg-zinc-100 sm:aspect-[32/9]">
+          <SkeletonBlock className="absolute inset-0 h-full w-full rounded-none bg-zinc-100" />
+        </div>
+      </section>
+    );
+  }
 
   if (!activeBanner) return null;
 
