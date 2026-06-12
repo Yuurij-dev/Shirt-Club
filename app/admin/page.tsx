@@ -2326,7 +2326,9 @@ const emptyProductForm: Product = {
 const emptyMascotProductForm: Product = {
   ...emptyProductForm,
   category: "Bonecos de Mascote",
-  season: "Mascote",
+  brand: "",
+  season: "",
+  gender: "unissex",
   price: "R$ 129,90",
   badge: "MASCOTE",
   description:
@@ -2351,15 +2353,22 @@ const productOwnerLabels: Record<NonNullable<Product["ownerType"]>, string> = {
 };
 
 const productImageBasePath = "/products/";
+const mascotImageBasePath = "/products/mascotes/";
 
-const getProductImageInputValue = (value?: string) => {
+const getProductImageInputValue = (
+  value?: string,
+  basePath = productImageBasePath
+) => {
   if (!value) return "";
-  return value.startsWith(productImageBasePath)
-    ? value.slice(productImageBasePath.length)
+  return value.startsWith(basePath)
+    ? value.slice(basePath.length)
     : value;
 };
 
-const normalizeProductImagePath = (value: string) => {
+const normalizeProductImagePath = (
+  value: string,
+  basePath = productImageBasePath
+) => {
   const trimmedValue = value.trim();
 
   if (!trimmedValue) return "";
@@ -2368,7 +2377,7 @@ const normalizeProductImagePath = (value: string) => {
     return trimmedValue;
   }
 
-  return `${productImageBasePath}${trimmedValue}`;
+  return `${basePath}${trimmedValue}`;
 };
 
 const formatProductPriceInput = (value: string) => {
@@ -2865,6 +2874,17 @@ const ProductsPanel = ({
             >
               Retrô {retroProductsCount}
             </button>
+            <button
+              type="button"
+              onClick={() => onOwnerFilterChange("mascote")}
+              className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold ${
+                ownerFilter === "mascote"
+                  ? "bg-black text-white"
+                  : "bg-zinc-50 text-zinc-500"
+              }`}
+            >
+              Mascotes {mascotProductsCount}
+            </button>
             <select
               value={countryFilter}
               onChange={(event) => onCountryFilterChange(event.target.value)}
@@ -3127,24 +3147,33 @@ const DeleteProductModal = ({
 
 const ProductCreateForm = forwardRef<HTMLFormElement, {
   product?: Product | null;
+  type?: "product" | "mascot";
   isSaving: boolean;
   onCancel: () => void;
   onSave: (product: Product) => Promise<void>;
 }>(({
   product,
+  type = "product",
   isSaving,
   onCancel,
   onSave,
 }, ref) => {
-  const [formData, setFormData] = useState<Product>(product || emptyProductForm);
+  const initialProduct =
+    product || (type === "mascot" ? emptyMascotProductForm : emptyProductForm);
+  const isMascotForm =
+    type === "mascot" || Boolean(product && isMascotProduct(product));
+  const imageBasePath = isMascotForm ? mascotImageBasePath : productImageBasePath;
+  const [formData, setFormData] = useState<Product>(initialProduct);
   const [imageInput, setImageInput] = useState(
-    getProductImageInputValue(product?.image)
+    getProductImageInputValue(initialProduct.image, imageBasePath)
   );
   const [imagesInput, setImagesInput] = useState(
-    product?.images?.map(getProductImageInputValue).join("\n") || ""
+    initialProduct.images
+      ?.map((image) => getProductImageInputValue(image, imageBasePath))
+      .join("\n") || ""
   );
   const [detailsInput, setDetailsInput] = useState(
-    product?.details?.join("\n") || ""
+    initialProduct.details?.join("\n") || ""
   );
 
   const updateFormField = <Key extends keyof Product>(
@@ -3164,10 +3193,12 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
       return;
     }
 
-    const image = normalizeProductImagePath(imageInput);
+    const image = normalizeProductImagePath(imageInput, imageBasePath);
     const images = imagesInput
       .split(/\n|,/)
-      .map(normalizeProductImagePath)
+      .map((galleryImage) =>
+        normalizeProductImagePath(galleryImage, imageBasePath)
+      )
       .filter(Boolean);
     const details = detailsInput
       .split("\n")
@@ -3178,6 +3209,8 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
       ...formData,
       id: formData.id.trim(),
       price: formatPrice(priceNumber),
+      brand: isMascotForm ? undefined : formData.brand,
+      season: isMascotForm ? undefined : formData.season,
       image,
       images: images.length > 0 ? images : [image],
       details,
@@ -3194,10 +3227,12 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
       <div className="flex items-start justify-between !gap-4">
         <div>
           <h2 className="font-[family-name:var(--font-bebas)] text-4xl">
-            {product ? "Editar produto" : "Novo produto"}
+            {product ? "Editar produto" : type === "mascot" ? "Novo mascote" : "Novo produto"}
           </h2>
           <p className="text-sm text-zinc-500">
-            Use pastas por time ou seleção. Ex: teams/flamengo/flamengo-home.png.
+            {isMascotForm
+              ? "Use imagens em mascotes. Ex: galo-doido.png."
+              : "Use pastas por time ou selecao. Ex: teams/flamengo/flamengo-home.png."}
           </p>
         </div>
 
@@ -3257,30 +3292,34 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
             updateFormField("ownerType", value as Product["ownerType"])
           }
         />
-        <AdminSelectField
-          label="Linha"
-          value={formData.gender || "masculino"}
-          options={[
-            ["masculino", "Masculino"],
-            ["feminino", "Feminino"],
-            ["unissex", "Unissex"],
-          ]}
-          onChange={(value) =>
-            updateFormField("gender", value as Product["gender"])
-          }
-        />
-        <AdminTextField
-          label="Marca"
-          value={formData.brand || ""}
-          onChange={(value) => updateFormField("brand", value)}
-          placeholder="Adidas"
-        />
-        <AdminTextField
-          label="Temporada"
-          value={formData.season || ""}
-          onChange={(value) => updateFormField("season", value)}
-          placeholder="24/25"
-        />
+        {!isMascotForm && (
+          <>
+            <AdminSelectField
+              label="Linha"
+              value={formData.gender || "masculino"}
+              options={[
+                ["masculino", "Masculino"],
+                ["feminino", "Feminino"],
+                ["unissex", "Unissex"],
+              ]}
+              onChange={(value) =>
+                updateFormField("gender", value as Product["gender"])
+              }
+            />
+            <AdminTextField
+              label="Marca"
+              value={formData.brand || ""}
+              onChange={(value) => updateFormField("brand", value)}
+              placeholder="Adidas"
+            />
+            <AdminTextField
+              label="Temporada"
+              value={formData.season || ""}
+              onChange={(value) => updateFormField("season", value)}
+              placeholder="24/25"
+            />
+          </>
+        )}
         <AdminTextField
           label="Badge"
           value={formData.badge || ""}
@@ -3301,8 +3340,10 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
             label="Imagem principal"
             value={imageInput}
             onChange={setImageInput}
-            prefix={productImageBasePath}
-            placeholder="teams/flamengo/flamengo-home.png"
+            prefix={imageBasePath}
+            placeholder={
+              isMascotForm ? "galo-doido.png" : "teams/flamengo/flamengo-home.png"
+            }
           />
         </div>
         <label className="flex flex-col !gap-2 text-xs font-bold uppercase text-zinc-500 lg:col-span-2">
@@ -3310,7 +3351,11 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
           <textarea
             value={imagesInput}
             onChange={(event) => setImagesInput(event.target.value)}
-            placeholder={"teams/flamengo/frente.png\nteams/flamengo/costas.png"}
+            placeholder={
+              isMascotForm
+                ? "galo-doido-frente.png\ngalo-doido-costas.png"
+                : "teams/flamengo/frente.png\nteams/flamengo/costas.png"
+            }
             className="min-h-24 rounded-lg border border-zinc-200 !p-3 text-sm font-semibold normal-case text-zinc-950 outline-none focus:border-black"
           />
         </label>
