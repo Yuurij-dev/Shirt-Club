@@ -9,6 +9,7 @@ import { upsertCustomerFromUser } from "@/app/lib/customerStore";
 import { validateCoupon } from "@/app/lib/couponStore";
 import { createOrder, getOrderStoreMode } from "@/app/lib/orderStore";
 import { listProducts } from "@/app/lib/productStore";
+import { getStoreSettings } from "@/app/lib/storeSettings";
 import { getPixDiscount } from "@/app/utils/paymentDiscounts";
 import { getPriceNumber } from "@/app/utils/price";
 
@@ -35,6 +36,14 @@ type CheckoutItemInput = {
   quantity?: number;
   size?: string;
   customization?: string;
+  customizationPrice?: number;
+  customizationDetails?: {
+    enabled?: boolean;
+    phrase?: string;
+    name?: string;
+    number?: string;
+    price?: number;
+  } | null;
 };
 
 type CheckoutRequestBody = {
@@ -207,6 +216,26 @@ export const POST = async (request: Request) => {
     }
 
     const activeProducts = await listProducts({ includeInactive: false });
+    const storeSettings = await getStoreSettings();
+    const getCustomizationPrice = (item: CheckoutItemInput) => {
+      const details = item.customizationDetails;
+
+      if (!details?.enabled) {
+        return 0;
+      }
+
+      const phrasePrice = details.phrase?.trim()
+        ? storeSettings.customizationPricing.phrase
+        : 0;
+      const namePrice = details.name?.trim()
+        ? storeSettings.customizationPricing.name
+        : 0;
+      const numberPrice =
+        onlyDigits(details.number).slice(0, 3).length *
+        storeSettings.customizationPricing.numberDigit;
+
+      return phrasePrice + namePrice + numberPrice;
+    };
     const orderItems = items.map((item) => {
       const product = activeProducts.find((currentProduct) => {
         return currentProduct.id === item.productId;
@@ -217,13 +246,23 @@ export const POST = async (request: Request) => {
       }
 
       const quantity = Math.max(1, Number(item.quantity || 1));
+      const customizationPrice = item.customizationDetails
+        ? getCustomizationPrice(item)
+        : Math.max(0, Number(item.customizationPrice || 0));
 
       return {
         id: product.id,
         title: product.name,
-        unitPrice: getPriceNumber(product.price),
+        unitPrice: getPriceNumber(product.price) + customizationPrice,
         quantity,
         size: item.size || "M",
+        customizationPrice,
+        customizationDetails: item.customizationDetails
+          ? {
+              ...item.customizationDetails,
+              price: customizationPrice,
+            }
+          : null,
         customization: item.customization || "Sem personalização",
       };
     });

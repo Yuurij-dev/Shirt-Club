@@ -70,7 +70,7 @@ const CartContent = () => {
 
             {items.map((item) => (
               <CartProductRow
-                key={`${item.product.id}-${item.size}`}
+                key={`${item.product.id}-${item.size}-${item.customization || ""}`}
                 item={item}
               />
             ))}

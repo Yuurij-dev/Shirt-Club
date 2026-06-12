@@ -425,6 +425,8 @@ const CustomerDataForm = ({
             quantity: item.quantity,
             size: item.size,
             customization: item.customization,
+            customizationPrice: item.customizationPrice || 0,
+            customizationDetails: item.customizationDetails || null,
           })),
         }),
       });

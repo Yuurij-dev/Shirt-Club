@@ -20,6 +20,8 @@ type CustomerOrder = {
     title?: string;
     quantity?: number;
     size?: string;
+    customization?: string;
+    customizationPrice?: number;
   }>;
 };
 
@@ -561,6 +563,17 @@ const AccountPage = () => {
                           <p key={`${order.id}-${index}`}>
                             {item.quantity || 1}x {item.title || "Produto"} - Tam.{" "}
                             {item.size || "M"}
+                            {item.customization &&
+                              item.customization !== "Sem personalização" && (
+                                <span className="block text-xs text-zinc-500">
+                                  Personalização: {item.customization}
+                                </span>
+                              )}
+                            {(item.customizationPrice || 0) > 0 && (
+                              <span className="block text-xs font-bold text-emerald-700">
+                                Adicional: {formatPrice(item.customizationPrice || 0)}
+                              </span>
+                            )}
                           </p>
                         ))}
                       </div>

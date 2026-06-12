@@ -18,6 +18,14 @@ export type CartItem = {
   quantity: number;
   size: string;
   customization?: string;
+  customizationPrice?: number;
+  customizationDetails?: {
+    enabled: boolean;
+    phrase?: string;
+    name?: string;
+    number?: string;
+    price: number;
+  };
 };
 
 type AddItemInput = {
@@ -25,6 +33,8 @@ type AddItemInput = {
   quantity?: number;
   size?: string;
   customization?: string;
+  customizationPrice?: number;
+  customizationDetails?: CartItem["customizationDetails"];
   silent?: boolean;
 };
 
@@ -36,8 +46,13 @@ type CartContextType = {
   discount: number;
   total: number;
   addItem: (item: AddItemInput) => void;
-  removeItem: (productId: string, size: string) => void;
-  updateQuantity: (productId: string, size: string, quantity: number) => void;
+  removeItem: (productId: string, size: string, customization?: string) => void;
+  updateQuantity: (
+    productId: string,
+    size: string,
+    quantity: number,
+    customization?: string
+  ) => void;
   applyCoupon: (code: string) => Promise<CouponApplyResult>;
   removeCoupon: () => void;
   clearCart: () => void;
@@ -65,6 +80,16 @@ type CouponValidationResponse = {
   discount?: number;
   total?: number;
   error?: string;
+};
+
+const defaultCustomization = "Sem personalização";
+
+const getCustomizationKey = (customization?: string) => {
+  return customization || defaultCustomization;
+};
+
+export const getCartItemUnitPrice = (item: CartItem) => {
+  return getPriceNumber(item.product.price) + (item.customizationPrice || 0);
 };
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
@@ -138,7 +163,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
           return (
             item.product.id === localItem.product.id &&
             item.size === localItem.size &&
-            item.customization === localItem.customization
+            getCustomizationKey(item.customization) ===
+              getCustomizationKey(localItem.customization)
           );
         });
 
@@ -235,11 +261,18 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     quantity = 1,
     size = "M",
     customization = "Sem personalização",
+    customizationPrice = 0,
+    customizationDetails,
     silent = false,
   }: AddItemInput) => {
+    const nextCustomization = getCustomizationKey(customization);
+
     setItems((currentItems) => {
       const itemAlreadyInCart = currentItems.some(
-        (item) => item.product.id === product.id && item.size === size
+        (item) =>
+          item.product.id === product.id &&
+          item.size === size &&
+          getCustomizationKey(item.customization) === nextCustomization
       );
 
       if (!itemAlreadyInCart) {
@@ -249,20 +282,28 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
             product,
             quantity,
             size,
-            customization,
+            customization: nextCustomization,
+            customizationPrice,
+            customizationDetails,
           },
         ];
       }
 
       return currentItems.map((item) => {
-        if (item.product.id !== product.id || item.size !== size) {
+        if (
+          item.product.id !== product.id ||
+          item.size !== size ||
+          getCustomizationKey(item.customization) !== nextCustomization
+        ) {
           return item;
         }
 
         return {
           ...item,
           quantity: item.quantity + quantity,
-          customization,
+          customization: nextCustomization,
+          customizationPrice,
+          customizationDetails,
         };
       });
     });
@@ -272,25 +313,45 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const removeItem = (productId: string, size: string) => {
+  const removeItem = (
+    productId: string,
+    size: string,
+    customization = defaultCustomization
+  ) => {
+    const customizationKey = getCustomizationKey(customization);
+
     setItems((currentItems) =>
       currentItems.filter(
-        (item) => item.product.id !== productId || item.size !== size
+        (item) =>
+          item.product.id !== productId ||
+          item.size !== size ||
+          getCustomizationKey(item.customization) !== customizationKey
       )
     );
 
     toast.info("Produto removido do carrinho");
   };
 
-  const updateQuantity = (productId: string, size: string, quantity: number) => {
+  const updateQuantity = (
+    productId: string,
+    size: string,
+    quantity: number,
+    customization = defaultCustomization
+  ) => {
     if (quantity <= 0) {
-      removeItem(productId, size);
+      removeItem(productId, size, customization);
       return;
     }
 
+    const customizationKey = getCustomizationKey(customization);
+
     setItems((currentItems) =>
       currentItems.map((item) => {
-        if (item.product.id !== productId || item.size !== size) {
+        if (
+          item.product.id !== productId ||
+          item.size !== size ||
+          getCustomizationKey(item.customization) !== customizationKey
+        ) {
           return item;
         }
 
@@ -318,7 +379,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const subtotal = useMemo(() => {
     return items.reduce(
-      (total, item) => total + getPriceNumber(item.product.price) * item.quantity,
+      (total, item) => total + getCartItemUnitPrice(item) * item.quantity,
       0
     );
   }, [items]);

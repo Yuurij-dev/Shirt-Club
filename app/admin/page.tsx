@@ -47,6 +47,10 @@ import {
 } from "../data/banners";
 import { Coupon, CouponType, getCouponStatus } from "../data/coupons";
 import { isMascotProduct, products, type Product } from "../data/products";
+import {
+  defaultStoreSettings,
+  type StoreSettings,
+} from "../data/storeSettings";
 import type { ProductPriceGroup } from "../lib/productStore";
 import { formatPrice, getPriceNumber } from "../utils/price";
 
@@ -69,6 +73,15 @@ type AdminOrder = {
     title?: string;
     quantity?: number;
     size?: string;
+    customization?: string;
+    customizationPrice?: number;
+    customizationDetails?: {
+      enabled?: boolean;
+      phrase?: string;
+      name?: string;
+      number?: string;
+      price?: number;
+    } | null;
   }>;
   status: "unpaid" | "paid";
   deliveryStatus:
@@ -924,13 +937,22 @@ const AdminPage = () => {
               />
             )}
 
+            {activeSection === "settings" && (
+              <SettingsPanel
+                products={productCatalog}
+                isLoadingProducts={isLoadingProducts}
+                onRefreshProducts={fetchProducts}
+              />
+            )}
+
             {activeSection !== "orders" &&
               activeSection !== "dashboard" &&
               activeSection !== "deliveries" &&
               activeSection !== "coupons" &&
               activeSection !== "banners" &&
               activeSection !== "products" &&
-              activeSection !== "clients" && (
+              activeSection !== "clients" &&
+              activeSection !== "settings" && (
               <ComingSoonPanel section={activeSection} />
             )}
           </div>
@@ -1928,6 +1950,17 @@ const OrderDetailPanel = ({
                 <span className="block text-xs text-zinc-500">
                   Tamanho: {item.size || "M"}
                 </span>
+                {item.customization &&
+                  item.customization !== "Sem personalização" && (
+                    <span className="block text-xs text-zinc-500">
+                      Personalização: {item.customization}
+                    </span>
+                  )}
+                {(item.customizationPrice || 0) > 0 && (
+                  <span className="block text-xs font-bold text-emerald-700">
+                    Adicional: {formatPrice(item.customizationPrice || 0)}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -1988,6 +2021,17 @@ const OrderCard = ({
           {order.items.map((item, index) => (
             <li key={index} className="text-sm text-zinc-700">
               {item.quantity || 1}x {item.title} - Tam. {item.size || "M"}
+              {item.customization &&
+                item.customization !== "Sem personalização" && (
+                  <span className="block text-xs text-zinc-500">
+                    Personalização: {item.customization}
+                  </span>
+                )}
+              {(item.customizationPrice || 0) > 0 && (
+                <span className="block text-xs font-bold text-emerald-700">
+                  Adicional: {formatPrice(item.customizationPrice || 0)}
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -2387,6 +2431,12 @@ const formatProductPriceInput = (value: string) => {
   return formatPrice(cents);
 };
 
+const getCustomizationPriceInputs = (settings: StoreSettings) => ({
+  phrase: formatPrice(settings.customizationPricing.phrase),
+  name: formatPrice(settings.customizationPricing.name),
+  numberDigit: formatPrice(settings.customizationPricing.numberDigit),
+});
+
 const productPriceGroupLabels: Record<ProductPriceGroup, string> = {
   shirts: "Camisas",
   retro: "Retrô",
@@ -2447,12 +2497,6 @@ const ProductsPanel = ({
   );
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isChangingStatus, setIsChangingStatus] = useState<string | null>(null);
-  const [bulkPriceGroup, setBulkPriceGroup] =
-    useState<ProductPriceGroup>("shirts");
-  const [bulkPriceInput, setBulkPriceInput] = useState("");
-  const [pendingBulkPriceUpdate, setPendingBulkPriceUpdate] =
-    useState<PendingBulkPriceUpdate | null>(null);
-  const [isUpdatingBulkPrice, setIsUpdatingBulkPrice] = useState(false);
   const [pendingDeleteProduct, setPendingDeleteProduct] =
     useState<Product | null>(null);
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
@@ -2481,9 +2525,6 @@ const ProductsPanel = ({
   }).length;
   const mascotProductsCount = allProducts.filter((product) => {
     return isMascotProduct(product);
-  }).length;
-  const bulkPriceTargetCount = allProducts.filter((product) => {
-    return matchesProductPriceGroup(product, bulkPriceGroup);
   }).length;
 
   const handleEditProduct = (product: Product) => {
@@ -2562,64 +2603,6 @@ const ProductsPanel = ({
     }
   };
 
-  const requestBulkPriceUpdate = () => {
-    const priceNumber = getPriceNumber(bulkPriceInput);
-
-    if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
-      toast.error("Informe um preço válido em reais");
-      return;
-    }
-
-    if (bulkPriceTargetCount === 0) {
-      toast.error("Nenhum produto encontrado para esse grupo");
-      return;
-    }
-
-    setPendingBulkPriceUpdate({
-      group: bulkPriceGroup,
-      price: formatPrice(priceNumber),
-      count: bulkPriceTargetCount,
-    });
-  };
-
-  const confirmBulkPriceUpdate = async () => {
-    if (!pendingBulkPriceUpdate) return;
-
-    setIsUpdatingBulkPrice(true);
-
-    try {
-      const response = await fetch("/api/admin/products", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "bulk-price",
-          group: pendingBulkPriceUpdate.group,
-          price: pendingBulkPriceUpdate.price,
-        }),
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        updatedCount?: number;
-      };
-
-      if (!response.ok) {
-        toast.error(data.error || "Não foi possível atualizar os preços");
-        return;
-      }
-
-      toast.success(
-        `${data.updatedCount || pendingBulkPriceUpdate.count} produtos atualizados`
-      );
-      setBulkPriceInput("");
-      setPendingBulkPriceUpdate(null);
-      await onRefresh();
-    } finally {
-      setIsUpdatingBulkPrice(false);
-    }
-  };
-
   const deleteSelectedProduct = async () => {
     if (!pendingDeleteProduct) return;
 
@@ -2638,11 +2621,11 @@ const ProductsPanel = ({
       const data = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        toast.error(data.error || "NÃ£o foi possÃ­vel excluir o produto");
+        toast.error(data.error || "Não foi possível excluir o produto");
         return;
       }
 
-      toast.success("Produto excluÃ­do");
+      toast.success("Produto excluído");
       setPendingDeleteProduct(null);
 
       if (editingProduct?.id === pendingDeleteProduct.id) {
@@ -2753,79 +2736,6 @@ const ProductsPanel = ({
           onSave={saveProduct}
         />
       )}
-
-      <div className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
-        <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
-              Preços em massa
-            </h2>
-            <p className="text-sm text-zinc-500">
-              Atualize o preço de camisas, retrôs ou seleções sem editar produto por produto.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 !gap-3 sm:grid-cols-[220px_180px_auto]">
-            <AdminSelectField
-              label="Grupo"
-              value={bulkPriceGroup}
-              options={[
-                ["shirts", "Camisas"],
-                ["retro", "Retrô"],
-                ["selections", "Seleções"],
-              ]}
-              onChange={(value) =>
-                setBulkPriceGroup(value as ProductPriceGroup)
-              }
-            />
-            <AdminTextField
-              label="Novo preço"
-              value={bulkPriceInput}
-              onChange={(value) =>
-                setBulkPriceInput(formatProductPriceInput(value))
-              }
-              placeholder="R$ 189,90"
-            />
-            <button
-              type="button"
-              onClick={requestBulkPriceUpdate}
-              className="inline-flex h-12 cursor-pointer items-center justify-center !gap-2 self-end rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
-            >
-              <CircleDollarSign size={18} />
-              APLICAR PREÇO
-            </button>
-          </div>
-        </div>
-
-        <div className="!mt-4 grid grid-cols-1 !gap-3 text-sm text-zinc-600 md:grid-cols-3">
-          {(Object.keys(productPriceGroupLabels) as ProductPriceGroup[]).map(
-            (group) => {
-              const count = allProducts.filter((product) =>
-                matchesProductPriceGroup(product, group)
-              ).length;
-
-              return (
-                <button
-                  key={group}
-                  type="button"
-                  onClick={() => setBulkPriceGroup(group)}
-                  className={`cursor-pointer rounded-lg border !p-3 text-left transition-all duration-200 ${
-                    bulkPriceGroup === group
-                      ? "border-black bg-zinc-950 text-white"
-                      : "border-zinc-200 bg-zinc-50 hover:border-black"
-                  }`}
-                >
-                  <span className="block text-xs font-bold uppercase">
-                    {productPriceGroupLabels[group]}
-                  </span>
-                  <strong className="!mt-1 block text-lg">{count}</strong>
-                  <span className="text-xs opacity-75">produtos afetados</span>
-                </button>
-              );
-            }
-          )}
-        </div>
-      </div>
 
       <div className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
         <div className="flex flex-col !gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -3000,21 +2910,371 @@ const ProductsPanel = ({
         </div>
       </div>
 
-      {pendingBulkPriceUpdate && (
-        <BulkPriceConfirmModal
-          update={pendingBulkPriceUpdate}
-          isUpdating={isUpdatingBulkPrice}
-          onCancel={() => setPendingBulkPriceUpdate(null)}
-          onConfirm={confirmBulkPriceUpdate}
-        />
-      )}
-
       {pendingDeleteProduct && (
         <DeleteProductModal
           product={pendingDeleteProduct}
           isDeleting={isDeletingProduct}
           onCancel={() => setPendingDeleteProduct(null)}
           onConfirm={deleteSelectedProduct}
+        />
+      )}
+    </section>
+  );
+};
+
+const SettingsPanel = ({
+  products: allProducts,
+  isLoadingProducts,
+  onRefreshProducts,
+}: {
+  products: Product[];
+  isLoadingProducts: boolean;
+  onRefreshProducts: () => Promise<void>;
+}) => {
+  const [bulkPriceGroup, setBulkPriceGroup] =
+    useState<ProductPriceGroup>("shirts");
+  const [bulkPriceInput, setBulkPriceInput] = useState("");
+  const [pendingBulkPriceUpdate, setPendingBulkPriceUpdate] =
+    useState<PendingBulkPriceUpdate | null>(null);
+  const [isUpdatingBulkPrice, setIsUpdatingBulkPrice] = useState(false);
+  const [customizationPriceInputs, setCustomizationPriceInputs] = useState(() =>
+    getCustomizationPriceInputs(defaultStoreSettings)
+  );
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      setIsLoadingSettings(true);
+
+      try {
+        const response = await fetch("/api/admin/settings", {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as {
+          settings?: StoreSettings;
+          error?: string;
+        };
+
+        if (!response.ok || !data.settings) {
+          toast.error(data.error || "Não foi possível carregar as configurações");
+          return;
+        }
+
+        setCustomizationPriceInputs(getCustomizationPriceInputs(data.settings));
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    void loadSettings();
+  }, []);
+
+  const bulkPriceTargetCount = allProducts.filter((product) => {
+    return matchesProductPriceGroup(product, bulkPriceGroup);
+  }).length;
+
+  const activeProductsCount = allProducts.filter((product) => {
+    return product.active !== false;
+  }).length;
+
+  const updateCustomizationPriceInput = (
+    field: keyof StoreSettings["customizationPricing"],
+    value: string
+  ) => {
+    setCustomizationPriceInputs((currentInputs) => ({
+      ...currentInputs,
+      [field]: formatProductPriceInput(value),
+    }));
+  };
+
+  const saveCustomizationSettings = async () => {
+    const nextPricing = {
+      phrase: getPriceNumber(customizationPriceInputs.phrase),
+      name: getPriceNumber(customizationPriceInputs.name),
+      numberDigit: getPriceNumber(customizationPriceInputs.numberDigit),
+    };
+
+    if (
+      !Number.isFinite(nextPricing.phrase) ||
+      !Number.isFinite(nextPricing.name) ||
+      !Number.isFinite(nextPricing.numberDigit) ||
+      nextPricing.phrase < 0 ||
+      nextPricing.name < 0 ||
+      nextPricing.numberDigit < 0
+    ) {
+      toast.error("Informe valores válidos para personalização");
+      return;
+    }
+
+    setIsSavingSettings(true);
+
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customizationPricing: nextPricing,
+        }),
+      });
+      const data = (await response.json()) as {
+        settings?: StoreSettings;
+        error?: string;
+      };
+
+      if (!response.ok || !data.settings) {
+        toast.error(data.error || "Não foi possível salvar as configurações");
+        return;
+      }
+
+      setCustomizationPriceInputs(getCustomizationPriceInputs(data.settings));
+      toast.success("Valores de personalização atualizados");
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const requestBulkPriceUpdate = () => {
+    const priceNumber = getPriceNumber(bulkPriceInput);
+
+    if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
+      toast.error("Informe um preço válido em reais");
+      return;
+    }
+
+    if (bulkPriceTargetCount === 0) {
+      toast.error("Nenhum produto encontrado para esse grupo");
+      return;
+    }
+
+    setPendingBulkPriceUpdate({
+      group: bulkPriceGroup,
+      price: formatPrice(priceNumber),
+      count: bulkPriceTargetCount,
+    });
+  };
+
+  const confirmBulkPriceUpdate = async () => {
+    if (!pendingBulkPriceUpdate) return;
+
+    setIsUpdatingBulkPrice(true);
+
+    try {
+      const response = await fetch("/api/admin/products", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "bulk-price",
+          group: pendingBulkPriceUpdate.group,
+          price: pendingBulkPriceUpdate.price,
+        }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        updatedCount?: number;
+      };
+
+      if (!response.ok) {
+        toast.error(data.error || "Não foi possível atualizar os preços");
+        return;
+      }
+
+      toast.success(
+        `${data.updatedCount || pendingBulkPriceUpdate.count} produtos atualizados`
+      );
+      setBulkPriceInput("");
+      setPendingBulkPriceUpdate(null);
+      await onRefreshProducts();
+    } finally {
+      setIsUpdatingBulkPrice(false);
+    }
+  };
+
+  return (
+    <section className="flex flex-col !gap-5">
+      <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="font-[family-name:var(--font-bebas)] text-5xl text-zinc-950">
+            Configurações
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Centralize os ajustes comerciais e regras gerais da loja.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRefreshProducts}
+          disabled={isLoadingProducts}
+          className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold transition-all duration-200 hover:border-black disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw
+            size={17}
+            className={isLoadingProducts ? "animate-spin" : ""}
+          />
+          ATUALIZAR PRODUTOS
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 !gap-3 md:grid-cols-3">
+        <MetricCard
+          title="Produtos cadastrados"
+          value={String(allProducts.length)}
+          helper="Base atual da loja"
+          icon={Package}
+        />
+        <MetricCard
+          title="Produtos ativos"
+          value={String(activeProductsCount)}
+          helper="Disponíveis para compra"
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <MetricCard
+          title="Grupo selecionado"
+          value={String(bulkPriceTargetCount)}
+          helper={`${productPriceGroupLabels[bulkPriceGroup]} afetados`}
+          icon={CircleDollarSign}
+        />
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+        <div className="flex flex-col !gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
+              Controle de preços
+            </h2>
+            <p className="text-sm text-zinc-500">
+              Atualize o preço de camisas, retrôs ou seleções sem editar produto por produto.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 !gap-3 sm:grid-cols-[220px_180px_auto]">
+            <AdminSelectField
+              label="Grupo"
+              value={bulkPriceGroup}
+              options={[
+                ["shirts", "Camisas"],
+                ["retro", "Retrô"],
+                ["selections", "Seleções"],
+              ]}
+              onChange={(value) =>
+                setBulkPriceGroup(value as ProductPriceGroup)
+              }
+            />
+            <AdminTextField
+              label="Novo preço"
+              value={bulkPriceInput}
+              onChange={(value) =>
+                setBulkPriceInput(formatProductPriceInput(value))
+              }
+              placeholder="R$ 189,90"
+            />
+            <button
+              type="button"
+              onClick={requestBulkPriceUpdate}
+              className="inline-flex h-12 cursor-pointer items-center justify-center !gap-2 self-end rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+            >
+              <CircleDollarSign size={18} />
+              APLICAR PREÇO
+            </button>
+          </div>
+        </div>
+
+        <div className="!mt-4 grid grid-cols-1 !gap-3 text-sm text-zinc-600 md:grid-cols-3">
+          {(Object.keys(productPriceGroupLabels) as ProductPriceGroup[]).map(
+            (group) => {
+              const count = allProducts.filter((product) =>
+                matchesProductPriceGroup(product, group)
+              ).length;
+
+              return (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => setBulkPriceGroup(group)}
+                  className={`cursor-pointer rounded-lg border !p-3 text-left transition-all duration-200 ${
+                    bulkPriceGroup === group
+                      ? "border-black bg-zinc-950 text-white"
+                      : "border-zinc-200 bg-zinc-50 hover:border-black"
+                  }`}
+                >
+                  <span className="block text-xs font-bold uppercase">
+                    {productPriceGroupLabels[group]}
+                  </span>
+                  <strong className="!mt-1 block text-lg">{count}</strong>
+                  <span className="text-xs opacity-75">produtos afetados</span>
+                </button>
+              );
+            }
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white !p-5 shadow-sm">
+        <div className="flex flex-col !gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950">
+              Personalização
+            </h2>
+            <p className="max-w-2xl text-sm text-zinc-500">
+              Controle os adicionais cobrados por frase, nome e número na página do produto.
+            </p>
+            <p className="!mt-2 text-xs font-semibold text-zinc-500">
+              O número é cobrado por dígito. Com o valor atual, 3 dígitos custam{" "}
+              {formatPrice(
+                getPriceNumber(customizationPriceInputs.numberDigit) * 3
+              )}
+              .
+            </p>
+          </div>
+
+          <div className="grid w-full grid-cols-1 !gap-3 lg:max-w-3xl sm:grid-cols-3">
+            <AdminTextField
+              label="Frase"
+              value={customizationPriceInputs.phrase}
+              onChange={(value) =>
+                updateCustomizationPriceInput("phrase", value)
+              }
+              placeholder="R$ 45,00"
+            />
+            <AdminTextField
+              label="Nome"
+              value={customizationPriceInputs.name}
+              onChange={(value) => updateCustomizationPriceInput("name", value)}
+              placeholder="R$ 15,00"
+            />
+            <AdminTextField
+              label="Número por dígito"
+              value={customizationPriceInputs.numberDigit}
+              onChange={(value) =>
+                updateCustomizationPriceInput("numberDigit", value)
+              }
+              placeholder="R$ 10,00"
+            />
+            <button
+              type="button"
+              onClick={saveCustomizationSettings}
+              disabled={isLoadingSettings || isSavingSettings}
+              className="inline-flex h-12 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-3"
+            >
+              <Settings size={18} />
+              {isSavingSettings ? "SALVANDO..." : "SALVAR PERSONALIZAÇÃO"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {pendingBulkPriceUpdate && (
+        <BulkPriceConfirmModal
+          update={pendingBulkPriceUpdate}
+          isUpdating={isUpdatingBulkPrice}
+          onCancel={() => setPendingBulkPriceUpdate(null)}
+          onConfirm={confirmBulkPriceUpdate}
         />
       )}
     </section>
@@ -3110,15 +3370,15 @@ const DeleteProductModal = ({
             <p className="!mt-2 text-sm leading-relaxed text-zinc-600">
               Tem certeza que deseja excluir{" "}
               <strong className="text-zinc-950">{product.name}</strong>? Essa
-              aÃ§Ã£o remove o produto do catÃ¡logo e nÃ£o pode ser desfeita.
+              ação remove o produto do catálogo e não pode ser desfeita.
             </p>
           </div>
         </div>
 
         <div className="!mt-5 rounded-lg bg-zinc-50 !p-3 text-xs text-zinc-600">
-          Para apenas esconder o produto da loja, use a opÃ§Ã£o inativar.
-          Excluir deve ser usado para cadastros errados ou produtos que nÃ£o
-          devem mais existir no catÃ¡logo.
+          Para apenas esconder o produto da loja, use a opção inativar.
+          Excluir deve ser usado para cadastros errados ou produtos que não
+          devem mais existir no catálogo.
         </div>
 
         <div className="!mt-6 flex flex-col-reverse !gap-3 sm:flex-row sm:justify-end">
@@ -5532,7 +5792,10 @@ const getDashboardDateRange = () => {
 
 const ComingSoonPanel = ({ section }: { section: AdminSection }) => {
   const content: Record<
-    Exclude<AdminSection, "dashboard" | "orders" | "deliveries" | "banners">,
+    Exclude<
+      AdminSection,
+      "dashboard" | "orders" | "deliveries" | "banners" | "settings"
+    >,
     { title: string; description: string; icon: typeof Package }
   > = {
     products: {
@@ -5558,12 +5821,6 @@ const ComingSoonPanel = ({ section }: { section: AdminSection }) => {
       description:
         "Área em desenvolvimento para gerenciar avaliações dos produtos e feedbacks dos clientes.",
       icon: Star,
-    },
-    settings: {
-      title: "Configurações",
-      description:
-        "Espaço reservado para ajustes da loja, integrações, dados comerciais e preferências do checkout.",
-      icon: Settings,
     },
   };
   const current = content[section as keyof typeof content];

@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Heart, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { CartItem } from "@/app/context/CartContext";
-import { useCart } from "@/app/context/CartContext";
+import { getCartItemUnitPrice, useCart } from "@/app/context/CartContext";
 import { useFavorites } from "@/app/context/FavoritesContext";
-import { formatPrice, getPriceNumber } from "@/app/utils/price";
+import { formatPrice } from "@/app/utils/price";
 import QuantityControl from "./QuantityControl";
 
 type CartProductRowProps = {
@@ -18,7 +18,8 @@ const CartProductRow = ({ item }: CartProductRowProps) => {
   const { updateQuantity, removeItem } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
   const [displayedImage, setDisplayedImage] = useState(item.product.image);
-  const itemTotal = getPriceNumber(item.product.price) * item.quantity;
+  const itemUnitPrice = getCartItemUnitPrice(item);
+  const itemTotal = itemUnitPrice * item.quantity;
   const productHref = `/produtos/${item.product.id}`;
 
   const moveToFavorites = () => {
@@ -26,7 +27,7 @@ const CartProductRow = ({ item }: CartProductRowProps) => {
       toggleFavorite(item.product);
     }
 
-    removeItem(item.product.id, item.size);
+    removeItem(item.product.id, item.size, item.customization);
   };
 
   return (
@@ -59,6 +60,9 @@ const CartProductRow = ({ item }: CartProductRowProps) => {
 
           <div className="!mt-3 space-y-1 text-xs text-zinc-600">
             <p>Tamanho: {item.size}</p>
+            {(item.customizationPrice || 0) > 0 && (
+              <p>Adicional: {formatPrice(item.customizationPrice || 0)}</p>
+            )}
             <p>Personalização: {item.customization || "Sem personalização"}</p>
           </div>
 
@@ -77,7 +81,7 @@ const CartProductRow = ({ item }: CartProductRowProps) => {
         <span className="text-xs font-bold uppercase text-zinc-500 md:hidden">
           Preço
         </span>
-        <span className="text-sm font-bold">{formatPrice(item.product.price)}</span>
+        <span className="text-sm font-bold">{formatPrice(itemUnitPrice)}</span>
       </div>
 
       <div className="flex items-center justify-between md:block md:text-center">
@@ -87,10 +91,20 @@ const CartProductRow = ({ item }: CartProductRowProps) => {
         <QuantityControl
           quantity={item.quantity}
           onDecrease={() =>
-            updateQuantity(item.product.id, item.size, item.quantity - 1)
+            updateQuantity(
+              item.product.id,
+              item.size,
+              item.quantity - 1,
+              item.customization
+            )
           }
           onIncrease={() =>
-            updateQuantity(item.product.id, item.size, item.quantity + 1)
+            updateQuantity(
+              item.product.id,
+              item.size,
+              item.quantity + 1,
+              item.customization
+            )
           }
         />
       </div>
@@ -104,7 +118,7 @@ const CartProductRow = ({ item }: CartProductRowProps) => {
 
       <button
         type="button"
-        onClick={() => removeItem(item.product.id, item.size)}
+        onClick={() => removeItem(item.product.id, item.size, item.customization)}
         className="flex h-9 w-9 items-center justify-center justify-self-end rounded-md transition-all duration-200 hover:bg-zinc-100"
         aria-label={`Remover ${item.product.name}`}
       >

@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { PackageCheck, ShieldCheck } from "lucide-react";
 import type { CartItem } from "@/app/context/CartContext";
-import { formatPrice, getPriceNumber } from "@/app/utils/price";
+import { getCartItemUnitPrice } from "@/app/context/CartContext";
+import { formatPrice } from "@/app/utils/price";
 
 type CheckoutOrderSummaryProps = {
   items: CartItem[];
@@ -38,11 +39,11 @@ const CheckoutOrderSummary = ({
 
         <div className="!mt-5 flex flex-col !gap-4">
           {items.map((item) => {
-            const itemTotal = getPriceNumber(item.product.price) * item.quantity;
+            const itemTotal = getCartItemUnitPrice(item) * item.quantity;
 
             return (
               <div
-                key={`${item.product.id}-${item.size}`}
+                key={`${item.product.id}-${item.size}-${item.customization || ""}`}
                 className="flex !gap-3 border-b border-zinc-100 !pb-4 last:border-b-0 last:!pb-0"
               >
                 <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
@@ -65,6 +66,11 @@ const CheckoutOrderSummary = ({
                   <p className="!mt-1 text-xs text-zinc-500">
                     {item.customization || "Sem personalização"}
                   </p>
+                  {(item.customizationPrice || 0) > 0 && (
+                    <p className="!mt-1 text-xs font-medium text-emerald-700">
+                      Adicional: {formatPrice(item.customizationPrice || 0)}
+                    </p>
+                  )}
                   <p className="!mt-2 text-sm font-bold">
                     {formatPrice(itemTotal)}
                   </p>
