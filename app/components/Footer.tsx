@@ -50,7 +50,7 @@ const categoryLinks: FooterLink[] = [
   { label: "Masculino", href: "/masculino" },
   { label: "Feminino", href: "/feminino" },
   { label: "Retro", href: "/retro" },
-  { label: "Personalize", href: "/personalize" },
+  { label: "Mascotes", href: "/mascotes" },
 ];
 
 const helpLinks: FooterLink[] = [

@@ -469,6 +469,19 @@ export const feminineProducts = products.filter((product) => {
   return product.active !== false && getProductGender(product) === "feminino";
 });
 
+export const isMascotProduct = (product: Product) => {
+  const searchableText = `${product.name} ${product.category}`.toLowerCase();
+
+  return (
+    product.active !== false &&
+    (searchableText.includes("mascote") ||
+      searchableText.includes("mascotes") ||
+      searchableText.includes("boneco"))
+  );
+};
+
+export const mascotProducts = products.filter(isMascotProduct);
+
 export const homeProducts = getProductsByIds([
   "camisa-flamengo-home-24-25",
   "camisa-real-madrid-home-24-25",

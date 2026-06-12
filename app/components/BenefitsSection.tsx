@@ -1,7 +1,7 @@
 import {
   Flag,
   Globe2,
-  Paintbrush,
+  Trophy,
   Shirt,
   Sparkles,
   type LucideIcon,
@@ -30,8 +30,8 @@ const benefits: Benefit[] = [
     icon: Shirt,
   },
   {
-    title: "PERSONALIZE",
-    icon: Paintbrush,
+    title: "MASCOTES",
+    icon: Trophy,
   },
 ];
 

@@ -4,7 +4,8 @@ export type BannerPage =
   | "feminino"
   | "retro"
   | "times"
-  | "selecoes";
+  | "selecoes"
+  | "mascotes";
 
 export type BannerPosition = "hero" | "promo";
 
@@ -31,6 +32,7 @@ export const bannerPageLabels: Record<BannerPage, string> = {
   retro: "Retrô",
   times: "Times",
   selecoes: "Seleções",
+  mascotes: "Mascotes",
 };
 
 export const bannerPositionLabels: Record<BannerPosition, string> = {

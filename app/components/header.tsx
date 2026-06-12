@@ -12,11 +12,11 @@ import SearchDialog from "./SearchDialog";
 const links = [
   { name: "INÍCIO", href: "/" },
   { name: "TIMES", href: "/times" },
-  { name: "Copa do Mundo", href: "/selecoes" },
+  { name: "COPA DO MUNDO", href: "/selecoes" },
   { name: "MASCULINO", href: "/masculino" },
   { name: "FEMININO", href: "/feminino" },
   { name: "RETRO", href: "/retro" },
-  { name: "PERSONALIZE", href: "/personalize" },
+  { name: "MASCOTES", href: "/mascotes" },
 ];
 
 const Header = () => {

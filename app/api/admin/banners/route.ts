@@ -18,6 +18,7 @@ const bannerPages: BannerPage[] = [
   "retro",
   "times",
   "selecoes",
+  "mascotes",
 ];
 
 const bannerPositions: BannerPosition[] = ["hero", "promo"];

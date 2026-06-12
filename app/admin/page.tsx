@@ -46,7 +46,7 @@ import {
   StoreBanner,
 } from "../data/banners";
 import { Coupon, CouponType, getCouponStatus } from "../data/coupons";
-import { products, type Product } from "../data/products";
+import { isMascotProduct, products, type Product } from "../data/products";
 import type { ProductPriceGroup } from "../lib/productStore";
 import { formatPrice, getPriceNumber } from "../utils/price";
 
@@ -123,7 +123,12 @@ type DeliveryFilter =
   | "all"
   | AdminOrder["deliveryStatus"];
 type CouponFilter = "all" | "active" | "scheduled" | "expired";
-type ProductOwnerFilter = "all" | "masculino" | "feminino" | "retro";
+type ProductOwnerFilter =
+  | "all"
+  | "masculino"
+  | "feminino"
+  | "retro"
+  | "mascote";
 type DashboardPeriod = 7 | 30 | 90;
 type PendingBulkPriceUpdate = {
   group: ProductPriceGroup;
@@ -616,18 +621,22 @@ const AdminPage = () => {
       const productOwnerType = product.ownerType || "team";
       const productGender = product.gender || "masculino";
       const productIsRetro = isProductRetro(product);
+      const productIsMascot = isMascotProduct(product);
       const matchesCountry =
         productCountryFilter === "all" ||
         product.country === productCountryFilter;
       const matchesOwner =
         productOwnerFilter === "all" ||
-        (productOwnerFilter === "retro" && productIsRetro) ||
+        (productOwnerFilter === "mascote" && productIsMascot) ||
+        (productOwnerFilter === "retro" && productIsRetro && !productIsMascot) ||
         (productOwnerFilter === "masculino" &&
           productGender === "masculino" &&
-          !productIsRetro) ||
+          !productIsRetro &&
+          !productIsMascot) ||
         (productOwnerFilter === "feminino" &&
           productGender === "feminino" &&
-          !productIsRetro);
+          !productIsRetro &&
+          !productIsMascot);
       const searchableText = [
         product.id,
         product.name,
@@ -638,6 +647,7 @@ const AdminPage = () => {
         product.gender,
         productOwnerType,
         productIsRetro ? "retro" : "",
+        productIsMascot ? "mascote" : "",
       ]
         .filter(Boolean)
         .join(" ")
@@ -2313,6 +2323,22 @@ const emptyProductForm: Product = {
   country: "",
 };
 
+const emptyMascotProductForm: Product = {
+  ...emptyProductForm,
+  category: "Bonecos de Mascote",
+  season: "Mascote",
+  price: "R$ 129,90",
+  badge: "MASCOTE",
+  description:
+    "Mascote colecionavel com acabamento premium, ideal para decorar o quarto, presentear ou levar a energia da arquibancada para sua colecao.",
+  details: [
+    "Produto colecionavel",
+    "Acabamento premium",
+    "Visual inspirado no clube ou selecao",
+    "Ideal para decoracao ou presente",
+  ],
+};
+
 const productGenderLabels: Record<NonNullable<Product["gender"]>, string> = {
   masculino: "Masculino",
   feminino: "Feminino",
@@ -2407,6 +2433,9 @@ const ProductsPanel = ({
 }) => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [newProductType, setNewProductType] = useState<"product" | "mascot">(
+    "product"
+  );
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isChangingStatus, setIsChangingStatus] = useState<string | null>(null);
   const [bulkPriceGroup, setBulkPriceGroup] =
@@ -2425,13 +2454,24 @@ const ProductsPanel = ({
   }).length;
   const inactiveProductsCount = allProducts.length - activeProductsCount;
   const masculineProductsCount = allProducts.filter((product) => {
-    return (product.gender || "masculino") === "masculino" && !isProductRetro(product);
+    return (
+      (product.gender || "masculino") === "masculino" &&
+      !isProductRetro(product) &&
+      !isMascotProduct(product)
+    );
   }).length;
   const feminineProductsCount = allProducts.filter((product) => {
-    return product.gender === "feminino" && !isProductRetro(product);
+    return (
+      product.gender === "feminino" &&
+      !isProductRetro(product) &&
+      !isMascotProduct(product)
+    );
   }).length;
   const retroProductsCount = allProducts.filter((product) => {
-    return isProductRetro(product);
+    return isProductRetro(product) && !isMascotProduct(product);
+  }).length;
+  const mascotProductsCount = allProducts.filter((product) => {
+    return isMascotProduct(product);
   }).length;
   const bulkPriceTargetCount = allProducts.filter((product) => {
     return matchesProductPriceGroup(product, bulkPriceGroup);
@@ -2439,6 +2479,7 @@ const ProductsPanel = ({
 
   const handleEditProduct = (product: Product) => {
     setIsCreatingProduct(false);
+    setNewProductType("product");
     setEditingProduct(product);
     window.requestAnimationFrame(() => {
       productFormRef.current?.scrollIntoView({
@@ -2618,23 +2659,47 @@ const ProductsPanel = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setEditingProduct(null);
-            setIsCreatingProduct((current) => !current);
-            window.requestAnimationFrame(() => {
-              productFormRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
+        <div className="flex flex-col !gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => {
+              setEditingProduct(null);
+              setNewProductType("product");
+              setIsCreatingProduct((current) =>
+                newProductType === "product" ? !current : true
+              );
+              window.requestAnimationFrame(() => {
+                productFormRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
               });
-            });
-          }}
-          className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
-        >
-          <Plus size={17} />
-          NOVO PRODUTO
-        </button>
+            }}
+            className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg bg-black !px-4 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+          >
+            <Plus size={17} />
+            NOVO PRODUTO
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEditingProduct(null);
+              setNewProductType("mascot");
+              setIsCreatingProduct(true);
+              window.requestAnimationFrame(() => {
+                productFormRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              });
+            }}
+            className="inline-flex h-11 cursor-pointer items-center justify-center !gap-2 rounded-lg border border-zinc-200 bg-white !px-4 text-sm font-bold text-zinc-950 transition-all duration-200 hover:border-black"
+          >
+            <Plus size={17} />
+            NOVO MASCOTE
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 !gap-3 xl:grid-cols-4">
@@ -2667,9 +2732,10 @@ const ProductsPanel = ({
 
       {(isCreatingProduct || editingProduct) && (
         <ProductCreateForm
-          key={editingProduct?.id || "new-product"}
+          key={editingProduct?.id || `new-${newProductType}`}
           ref={productFormRef}
           product={editingProduct}
+          type={newProductType}
           isSaving={isSavingProduct}
           onCancel={() => {
             setEditingProduct(null);

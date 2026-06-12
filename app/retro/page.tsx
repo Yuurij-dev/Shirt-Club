@@ -62,11 +62,6 @@ const Retro = async () => {
             fallbackBanner={fallbackRetroBanner}
             heading="RETRÔ"
           />
-
-          <div className="!mt-10">
-            <RetroProductsGrid />
-          </div>
-
           <div className="!mt-16">
             <HistoricMoments />
           </div>
@@ -78,6 +73,12 @@ const Retro = async () => {
               <RetroPromoBanner />
             )}
           </div>
+          
+          <div className="!mt-10">
+            <RetroProductsGrid />
+          </div>
+
+
 
           <div className="!mt-16">
             <MostWantedCarousel />
