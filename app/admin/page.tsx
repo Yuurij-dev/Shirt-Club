@@ -123,7 +123,7 @@ type DeliveryFilter =
   | "all"
   | AdminOrder["deliveryStatus"];
 type CouponFilter = "all" | "active" | "scheduled" | "expired";
-type ProductOwnerFilter = "all" | "team" | "selection";
+type ProductOwnerFilter = "all" | "masculino" | "feminino" | "retro";
 type DashboardPeriod = 7 | 30 | 90;
 type PendingBulkPriceUpdate = {
   group: ProductPriceGroup;
@@ -614,11 +614,20 @@ const AdminPage = () => {
 
     return productCatalog.filter((product) => {
       const productOwnerType = product.ownerType || "team";
+      const productGender = product.gender || "masculino";
+      const productIsRetro = isProductRetro(product);
       const matchesCountry =
         productCountryFilter === "all" ||
         product.country === productCountryFilter;
       const matchesOwner =
-        productOwnerFilter === "all" || productOwnerType === productOwnerFilter;
+        productOwnerFilter === "all" ||
+        (productOwnerFilter === "retro" && productIsRetro) ||
+        (productOwnerFilter === "masculino" &&
+          productGender === "masculino" &&
+          !productIsRetro) ||
+        (productOwnerFilter === "feminino" &&
+          productGender === "feminino" &&
+          !productIsRetro);
       const searchableText = [
         product.id,
         product.name,
@@ -628,6 +637,7 @@ const AdminPage = () => {
         product.category,
         product.gender,
         productOwnerType,
+        productIsRetro ? "retro" : "",
       ]
         .filter(Boolean)
         .join(" ")
@@ -2414,11 +2424,14 @@ const ProductsPanel = ({
     return product.active !== false;
   }).length;
   const inactiveProductsCount = allProducts.length - activeProductsCount;
-  const teamProductsCount = allProducts.filter((product) => {
-    return (product.ownerType || "team") === "team";
+  const masculineProductsCount = allProducts.filter((product) => {
+    return (product.gender || "masculino") === "masculino" && !isProductRetro(product);
   }).length;
-  const selectionProductsCount = allProducts.filter((product) => {
-    return product.ownerType === "selection";
+  const feminineProductsCount = allProducts.filter((product) => {
+    return product.gender === "feminino" && !isProductRetro(product);
+  }).length;
+  const retroProductsCount = allProducts.filter((product) => {
+    return isProductRetro(product);
   }).length;
   const bulkPriceTargetCount = allProducts.filter((product) => {
     return matchesProductPriceGroup(product, bulkPriceGroup);
@@ -2755,25 +2768,36 @@ const ProductsPanel = ({
             </button>
             <button
               type="button"
-              onClick={() => onOwnerFilterChange("team")}
+              onClick={() => onOwnerFilterChange("masculino")}
               className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold ${
-                ownerFilter === "team"
+                ownerFilter === "masculino"
                   ? "bg-black text-white"
                   : "bg-zinc-50 text-zinc-500"
               }`}
             >
-              Times {teamProductsCount}
+              Masculino {masculineProductsCount}
             </button>
             <button
               type="button"
-              onClick={() => onOwnerFilterChange("selection")}
+              onClick={() => onOwnerFilterChange("feminino")}
               className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold ${
-                ownerFilter === "selection"
+                ownerFilter === "feminino"
                   ? "bg-black text-white"
                   : "bg-zinc-50 text-zinc-500"
               }`}
             >
-              Seleções {selectionProductsCount}
+              Feminino {feminineProductsCount}
+            </button>
+            <button
+              type="button"
+              onClick={() => onOwnerFilterChange("retro")}
+              className={`h-10 cursor-pointer rounded-lg !px-3 text-sm font-bold ${
+                ownerFilter === "retro"
+                  ? "bg-black text-white"
+                  : "bg-zinc-50 text-zinc-500"
+              }`}
+            >
+              Retrô {retroProductsCount}
             </button>
             <select
               value={countryFilter}
@@ -5455,3 +5479,4 @@ const ComingSoonPanel = ({ section }: { section: AdminSection }) => {
 };
 
 export default AdminPage;
+
