@@ -16,6 +16,10 @@ const Home = async () => {
     page: "home",
     position: "hero",
   });
+  const promoBanners = await listActiveBanners({
+    page: "home",
+    position: "promo",
+  });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -25,7 +29,7 @@ const Home = async () => {
           <BannerCarousel banners={heroBanners} />
           <BenefitsSection />
           <ProductsSection />
-          <PromoBanner />
+          <PromoBanner banners={promoBanners} />
           <TeamsSection />
           <ProductCarouselSection />
           <StoreHighlights />
