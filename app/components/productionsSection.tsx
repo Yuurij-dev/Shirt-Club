@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import ProductCard from "./productCard";
 import { homeSelectionProducts, type Product } from "../data/products";
+import { isRetroProduct } from "../utils/inventory";
 
 const ProductsSection = () => {
   const [products, setProducts] = useState<Product[]>(homeSelectionProducts);
@@ -19,7 +20,10 @@ const ProductsSection = () => {
         const activeProducts = data.products || [];
 
         const selectionProducts = activeProducts
-          .filter((product) => product.ownerType === "selection")
+          .filter(
+            (product) =>
+              product.ownerType === "selection" && !isRetroProduct(product)
+          )
           .slice(0, 5);
 
         setProducts(selectionProducts);

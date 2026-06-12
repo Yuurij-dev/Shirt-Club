@@ -15,6 +15,22 @@ const normalizeOwnerValue = (value?: string) => {
     .replace(/(^-|-$)/g, "");
 };
 
+export const isRetroProduct = (product: Product) => {
+  const searchableText = [
+    product.id,
+    product.name,
+    product.category,
+    product.season,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return searchableText.includes("retro");
+};
+
 export const productMatchesOwner = (
   product: Product,
   owner: ProductOwner,
@@ -23,6 +39,7 @@ export const productMatchesOwner = (
   const productOwnerType = product.ownerType || "team";
 
   if (productOwnerType !== ownerType) return false;
+  if (isRetroProduct(product)) return false;
 
   const ownerKeys = [owner.productTeam, owner.name, owner.slug]
     .map(normalizeOwnerValue)

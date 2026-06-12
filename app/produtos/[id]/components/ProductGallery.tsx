@@ -17,8 +17,8 @@ const ProductGallery = ({ product }: ProductGalleryProps) => {
   const active = isFavorite(product.id);
 
   return (
-    <div className="grid grid-cols-1 !gap-4 md:grid-cols-[92px_1fr]">
-      <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 md:order-2">
+    <div className="flex flex-col !gap-4">
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 lg:aspect-auto lg:h-[720px] xl:h-[780px]">
         <button
           type="button"
           aria-label={
@@ -42,13 +42,13 @@ const ProductGallery = ({ product }: ProductGalleryProps) => {
           alt={product.name}
           fill
           priority
-          sizes="(min-width: 1024px) 50vw, 100vw"
+          sizes="(min-width: 1024px) 58vw, 100vw"
           onError={() => setDisplayedImage("/assets/bg.png")}
           className="object-cover"
         />
       </div>
 
-      <div className="flex justify-center !gap-3 overflow-x-auto md:order-1 md:flex-col md:justify-start md:overflow-visible">
+      <div className="flex justify-center !gap-3 overflow-x-auto !pb-1">
         {product.images.map((image, index) => (
           <button
             key={`${image}-${index}`}
@@ -59,7 +59,7 @@ const ProductGallery = ({ product }: ProductGalleryProps) => {
             }}
             className={`
               relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border bg-zinc-100
-              sm:h-24 sm:w-24 md:w-full
+              sm:h-24 sm:w-24 lg:h-24 lg:w-24
               ${selectedIndex === index ? "border-black" : "border-zinc-200"}
             `}
           >

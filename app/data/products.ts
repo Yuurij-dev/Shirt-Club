@@ -490,9 +490,29 @@ export const homeProducts = getProductsByIds([
   "camisa-corinthians-home-24-25",
 ]);
 
+const isRetroCatalogProduct = (product: Product) => {
+  const searchableText = [
+    product.id,
+    product.name,
+    product.category,
+    product.season,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return searchableText.includes("retro");
+};
+
 export const homeSelectionProducts = products
   .filter((product) => {
-    return product.active !== false && product.ownerType === "selection";
+    return (
+      product.active !== false &&
+      product.ownerType === "selection" &&
+      !isRetroCatalogProduct(product)
+    );
   })
   .slice(0, 5);
 
