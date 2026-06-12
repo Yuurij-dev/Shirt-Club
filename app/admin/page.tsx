@@ -2439,6 +2439,7 @@ const getCustomizationPriceInputs = (settings: StoreSettings) => ({
 
 const productPriceGroupLabels: Record<ProductPriceGroup, string> = {
   shirts: "Camisas",
+  mascots: "Mascotes",
   retro: "Retrô",
   selections: "Seleções",
 };
@@ -2463,10 +2464,19 @@ const matchesProductPriceGroup = (
   product: Product,
   group: ProductPriceGroup
 ) => {
-  if (group === "selections") return product.ownerType === "selection";
-  if (group === "retro") return isProductRetro(product);
+  if (group === "mascots") return isMascotProduct(product);
+  if (group === "selections") {
+    return product.ownerType === "selection" && !isMascotProduct(product);
+  }
+  if (group === "retro") {
+    return isProductRetro(product) && !isMascotProduct(product);
+  }
 
-  return (product.ownerType || "team") === "team" && !isProductRetro(product);
+  return (
+    (product.ownerType || "team") === "team" &&
+    !isProductRetro(product) &&
+    !isMascotProduct(product)
+  );
 };
 
 const ProductsPanel = ({
@@ -3159,6 +3169,7 @@ const SettingsPanel = ({
               value={bulkPriceGroup}
               options={[
                 ["shirts", "Camisas"],
+                ["mascots", "Mascotes"],
                 ["retro", "Retrô"],
                 ["selections", "Seleções"],
               ]}

@@ -26,7 +26,7 @@ type SupabaseProduct = {
 
 const localProductsFile = path.join(process.cwd(), ".data", "products.json");
 
-export type ProductPriceGroup = "shirts" | "retro" | "selections";
+export type ProductPriceGroup = "shirts" | "retro" | "selections" | "mascots";
 
 const getProductPriceNumber = (price: string | number) => {
   if (typeof price === "number") return price;
@@ -141,11 +141,28 @@ const isRetroProduct = (product: Product) => {
   return searchableText.includes("retro");
 };
 
-const matchesPriceGroup = (product: Product, group: ProductPriceGroup) => {
-  if (group === "selections") return product.ownerType === "selection";
-  if (group === "retro") return isRetroProduct(product);
+const isMascotProduct = (product: Product) => {
+  const searchableText = `${product.name} ${product.category}`.toLowerCase();
 
-  return (product.ownerType || "team") === "team" && !isRetroProduct(product);
+  return (
+    searchableText.includes("mascote") ||
+    searchableText.includes("mascotes") ||
+    searchableText.includes("boneco")
+  );
+};
+
+const matchesPriceGroup = (product: Product, group: ProductPriceGroup) => {
+  if (group === "mascots") return isMascotProduct(product);
+  if (group === "selections") {
+    return product.ownerType === "selection" && !isMascotProduct(product);
+  }
+  if (group === "retro") return isRetroProduct(product) && !isMascotProduct(product);
+
+  return (
+    (product.ownerType || "team") === "team" &&
+    !isRetroProduct(product) &&
+    !isMascotProduct(product)
+  );
 };
 
 const readLocalProducts = async () => {
