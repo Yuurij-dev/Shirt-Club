@@ -57,6 +57,7 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
   const [customName, setCustomName] = useState("");
   const [customNumber, setCustomNumber] = useState("");
   const [showCustomizationInfo, setShowCustomizationInfo] = useState(false);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [storeSettings, setStoreSettings] =
     useState<StoreSettings>(defaultStoreSettings);
   const price = getPriceNumber(product.price);
@@ -325,7 +326,11 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
             Tamanho
           </h2>
 
-          <button className="flex items-center !gap-2 text-xs font-medium text-zinc-700">
+          <button
+            type="button"
+            onClick={() => setShowSizeGuide(true)}
+            className="flex cursor-pointer items-center !gap-2 text-xs font-medium text-zinc-700 transition-all duration-200 hover:text-black"
+          >
             <Ruler size={14} />
             Guia de tamanhos
           </button>
@@ -446,6 +451,76 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
           </div>
         </div>
       </div>
+
+      {showSizeGuide && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 !px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="size-guide-title"
+          onClick={() => setShowSizeGuide(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-xl bg-white !p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between !gap-4">
+              <div>
+                <h2
+                  id="size-guide-title"
+                  className="font-[family-name:var(--font-bebas)] text-4xl text-zinc-950"
+                >
+                  Guia de tamanhos
+                </h2>
+                <p className="!mt-1 text-sm text-zinc-500">
+                  Medidas aproximadas da camisa.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSizeGuide(false)}
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-zinc-200 text-xl font-bold text-zinc-700 transition-all duration-200 hover:border-black hover:text-black"
+                aria-label="Fechar guia de tamanhos"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="!mt-5 overflow-hidden rounded-lg border border-zinc-200">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-zinc-50 text-xs font-bold uppercase text-zinc-600">
+                  <tr>
+                    <th className="!px-4 !py-3">Tamanho</th>
+                    <th className="!px-4 !py-3">Altura</th>
+                    <th className="!px-4 !py-3">Largura</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 font-semibold text-zinc-900">
+                  {[
+                    ["P", "68 cm", "48 cm"],
+                    ["M", "70 cm", "50 cm"],
+                    ["G", "72 cm", "52 cm"],
+                    ["GG", "74 cm", "54 cm"],
+                    ["XG", "76 cm", "56 cm"],
+                  ].map(([size, height, width]) => (
+                    <tr key={size}>
+                      <td className="!px-4 !py-3">{size}</td>
+                      <td className="!px-4 !py-3">{height}</td>
+                      <td className="!px-4 !py-3">{width}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="!mt-4 text-sm leading-6 text-zinc-600">
+              As medidas podem variar de 1 a 3 cm. Recomendamos comparar com
+              uma camisa que você já usa.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
