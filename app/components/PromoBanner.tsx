@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import type { StoreBanner } from "../data/banners";
 import BannerImageLayer from "./BannerImageLayer";
+import { SkeletonBlock } from "./Skeleton";
 
 type PromoBannerProps = {
   banners?: StoreBanner[];
@@ -21,36 +23,46 @@ const fallbackPromoBanner: StoreBanner = {
 };
 
 const PromoBanner = ({ banners = [] }: PromoBannerProps) => {
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
   const banner = banners[0] || fallbackPromoBanner;
   const isFallbackBanner = banner.id === fallbackPromoBanner.id;
   const title = banner.title || (isFallbackBanner ? fallbackPromoBanner.title : "");
   const description = banner.description;
   const shouldShowText = Boolean(title || description);
+  const imageUrl =
+    isMobile && banner.mobileImageUrl
+      ? banner.mobileImageUrl
+      : banner.desktopImageUrl;
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 639px)");
+    const handleViewportChange = () => setIsMobile(mediaQuery.matches);
+
+    handleViewportChange();
+    mediaQuery.addEventListener("change", handleViewportChange);
+
+    return () => mediaQuery.removeEventListener("change", handleViewportChange);
+  }, []);
 
   return (
     <section className="container !mx-auto !px-4 !py-8 sm:!px-6 lg:!px-0">
-      <div className="relative h-[230px] w-full overflow-hidden rounded-lg bg-zinc-100 sm:h-[260px] lg:h-[290px]">
-        {banner.mobileImageUrl && (
+      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-white sm:h-[260px] sm:aspect-auto sm:bg-zinc-100 lg:h-[290px]">
+        {isMobile === null ? (
+          <SkeletonBlock className="absolute inset-0 h-full w-full rounded-none bg-zinc-100" />
+        ) : (
           <BannerImageLayer
-            src={banner.mobileImageUrl}
+            src={imageUrl}
             alt={banner.name}
             priority={false}
-            sizes="100vw"
-            className="sm:hidden"
-            imageClassName="object-cover object-center"
+            sizes={isMobile ? "100vw" : "(min-width: 1600px) 1400px, 100vw"}
+            imageClassName={
+              isMobile
+                ? "object-contain object-center"
+                : "object-cover object-[70%_center] md:object-center"
+            }
             fallbackLabel="Banner indisponível"
           />
         )}
-
-        <BannerImageLayer
-          src={banner.desktopImageUrl}
-          alt={banner.name}
-          priority={false}
-          sizes="(min-width: 1600px) 1400px, 100vw"
-          className={banner.mobileImageUrl ? "hidden sm:block" : "block"}
-          imageClassName="object-cover object-[70%_center] md:object-center"
-          fallbackLabel="Banner indisponível"
-        />
 
         {shouldShowText && (
           <div className="pointer-events-none absolute inset-0 flex items-center !pl-5 sm:!pl-10 lg:!pl-20">

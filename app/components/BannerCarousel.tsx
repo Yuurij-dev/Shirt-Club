@@ -71,6 +71,14 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
     >
       {visibleBanners.map((banner, index) => {
         const isActive = index === normalizedActiveIndex;
+        const selectedImageUrl =
+          isMobile && banner.mobileImageUrl
+            ? banner.mobileImageUrl
+            : banner.desktopImageUrl;
+        const selectedRatioKey =
+          isMobile && banner.mobileImageUrl
+            ? `${banner.id}:mobile`
+            : `${banner.id}:desktop`;
 
         return (
           <div
@@ -80,51 +88,22 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
             }`}
             aria-hidden={!isActive}
           >
-            {banner.mobileImageUrl && (
-              <BannerImageLayer
-                src={banner.mobileImageUrl}
-                alt={banner.name}
-                priority={index === 0}
-                sizes="100vw"
-                className="sm:hidden"
-                imageClassName="object-contain object-center"
-                fallbackLabel="Banner indisponivel"
-                onLoad={(image) => {
-                  if (!image.naturalWidth || !image.naturalHeight) return;
-
-                  setBannerRatios((currentRatios) => {
-                    const ratioKey = `${banner.id}:mobile`;
-                    if (currentRatios[ratioKey]) return currentRatios;
-
-                    return {
-                      ...currentRatios,
-                      [ratioKey]: image.naturalWidth / image.naturalHeight,
-                    };
-                  });
-                }}
-              />
-            )}
-
             <BannerImageLayer
-              src={banner.desktopImageUrl}
+              src={selectedImageUrl}
               alt={banner.name}
-              priority={index === 0 && !banner.mobileImageUrl}
-              sizes="(min-width: 1600px) 1600px, 100vw"
-              className={banner.mobileImageUrl ? "hidden sm:block" : "block"}
-              imageClassName={`object-contain object-center ${
-                banner.mobileImageUrl ? "hidden sm:block" : "block"
-              }`}
-              fallbackLabel="Banner indisponivel"
+              priority={index === 0}
+              sizes={isMobile ? "100vw" : "(min-width: 1600px) 1600px, 100vw"}
+              imageClassName="object-contain object-center"
+              fallbackLabel="Banner indisponível"
               onLoad={(image) => {
                 if (!image.naturalWidth || !image.naturalHeight) return;
 
                 setBannerRatios((currentRatios) => {
-                  const ratioKey = `${banner.id}:desktop`;
-                  if (currentRatios[ratioKey]) return currentRatios;
+                  if (currentRatios[selectedRatioKey]) return currentRatios;
 
                   return {
                     ...currentRatios,
-                    [ratioKey]: image.naturalWidth / image.naturalHeight,
+                    [selectedRatioKey]: image.naturalWidth / image.naturalHeight,
                   };
                 });
               }}
@@ -197,11 +176,7 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
     </div>
   );
 
-  return (
-    <section className="flex w-full justify-center">
-      {content}
-    </section>
-  );
+  return <section className="flex w-full justify-center">{content}</section>;
 };
 
 export default BannerCarousel;
