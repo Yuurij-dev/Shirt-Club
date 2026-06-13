@@ -60,6 +60,14 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [storeSettings, setStoreSettings] =
     useState<StoreSettings>(defaultStoreSettings);
+  const availableSizes = sizes.filter((size) => product.stockBySize?.[size] !== false);
+  const hasAvailableSizes = availableSizes.length > 0;
+  const effectiveSelectedSize =
+    product.stockBySize?.[selectedSize] === false
+      ? availableSizes[0] || selectedSize
+      : selectedSize;
+  const isSelectedSizeAvailable =
+    hasAvailableSizes && product.stockBySize?.[effectiveSelectedSize] !== false;
   const price = getPriceNumber(product.price);
   const phrasePrice = storeSettings.customizationPricing.phrase;
   const namePrice = storeSettings.customizationPricing.name;
@@ -113,12 +121,12 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
   }, []);
 
   const handleAddToCart = () => {
-    if (cartButtonState !== "idle") return;
+    if (cartButtonState !== "idle" || !isSelectedSizeAvailable) return;
 
     addItem({
       product,
       quantity,
-      size: selectedSize,
+      size: effectiveSelectedSize,
       customization: customizationSummary,
       customizationPrice,
       customizationDetails,
@@ -132,10 +140,12 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
   };
 
   const handleBuyNow = () => {
+    if (!isSelectedSizeAvailable) return;
+
     addItem({
       product,
       quantity,
-      size: selectedSize,
+      size: effectiveSelectedSize,
       customization: customizationSummary,
       customizationPrice,
       customizationDetails,
@@ -337,24 +347,47 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
         </div>
 
         <div className="!mt-3 flex flex-wrap !gap-3">
-          {sizes.map((size) => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => setSelectedSize(size)}
-              className={`
-                h-11 min-w-14 rounded-md border !px-4 text-sm font-bold transition-all duration-200
-                ${
-                  selectedSize === size
-                    ? "border-black bg-black text-white"
-                    : "border-zinc-200 bg-white text-zinc-950 hover:border-black"
-                }
-              `}
-            >
-              {size}
-            </button>
-          ))}
+          {sizes.map((size) => {
+            const isAvailable = product.stockBySize?.[size] !== false;
+
+            return (
+              <span
+                key={size}
+                className="group relative inline-flex"
+                title={isAvailable ? undefined : "Sem estoque"}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedSize(size)}
+                  disabled={!isAvailable}
+                  className={`
+                    h-11 min-w-14 rounded-md border !px-4 text-sm font-bold transition-all duration-200
+                    ${
+                      effectiveSelectedSize === size && isAvailable
+                        ? "border-black bg-black text-white"
+                        : isAvailable
+                          ? "border-zinc-200 bg-white text-zinc-950 hover:border-black"
+                          : "cursor-not-allowed border-zinc-200 bg-zinc-50 text-zinc-300"
+                    }
+                  `}
+                >
+                  {size}
+                </button>
+
+                {!isAvailable && (
+                  <span className="pointer-events-none absolute left-1/2 top-[calc(100%+8px)] z-20 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-zinc-950 !px-2 !py-1 text-[10px] font-bold uppercase text-white shadow-lg group-hover:block">
+                    Sem estoque
+                  </span>
+                )}
+              </span>
+            );
+          })}
         </div>
+        {!hasAvailableSizes && (
+          <p className="!mt-2 text-xs font-bold text-red-600">
+            Produto sem estoque no momento.
+          </p>
+        )}
       </div>
 
       <div className="!mt-6">
@@ -385,7 +418,8 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
         <button
           type="button"
           onClick={handleAddToCart}
-          className="group relative flex h-14 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800"
+          disabled={!isSelectedSizeAvailable}
+          className="group relative flex h-14 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-black !px-5 text-sm font-bold text-white transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
         >
           <span
             className={`
@@ -419,7 +453,8 @@ const ProductBuyBox = ({ product }: ProductBuyBoxProps) => {
         <button
           type="button"
           onClick={handleBuyNow}
-          className="flex h-14 cursor-pointer items-center justify-center !gap-3 rounded-lg border border-black bg-white !px-5 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50"
+          disabled={!isSelectedSizeAvailable}
+          className="flex h-14 cursor-pointer items-center justify-center !gap-3 rounded-lg border border-black bg-white !px-5 text-sm font-bold text-black transition-all duration-200 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-300"
         >
           <Zap size={20} />
           COMPRAR AGORA

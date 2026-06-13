@@ -13,6 +13,7 @@ create table if not exists public.products (
   badge text,
   gender text not null default 'masculino',
   active boolean not null default true,
+  stock_by_size jsonb,
   owner_type text not null default 'team',
   country text,
   created_at timestamptz not null default now(),
@@ -30,6 +31,9 @@ alter table public.products
 
 alter table public.products
   add column if not exists active boolean not null default true;
+
+alter table public.products
+  add column if not exists stock_by_size jsonb;
 
 alter table public.products
   add column if not exists owner_type text not null default 'team';

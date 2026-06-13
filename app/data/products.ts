@@ -4,6 +4,7 @@
   category: string;
   gender?: "masculino" | "feminino" | "unissex";
   active?: boolean;
+  stockBySize?: Record<string, boolean>;
   ownerType?: "team" | "selection";
   country?: string;
   team: string;

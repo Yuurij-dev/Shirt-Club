@@ -2363,6 +2363,7 @@ const emptyProductForm: Product = {
   badge: "NOVO",
   gender: "masculino",
   active: true,
+  stockBySize: {},
   ownerType: "team",
   country: "",
 };
@@ -2395,6 +2396,8 @@ const productOwnerLabels: Record<NonNullable<Product["ownerType"]>, string> = {
   team: "Time",
   selection: "Seleção",
 };
+
+const productSizes = ["P", "M", "G", "GG", "XG"];
 
 const productImageBasePath = "/products/";
 const mascotImageBasePath = "/products/mascotes/";
@@ -2477,6 +2480,10 @@ const matchesProductPriceGroup = (
     !isProductRetro(product) &&
     !isMascotProduct(product)
   );
+};
+
+const getOutOfStockSizes = (product: Product) => {
+  return productSizes.filter((size) => product.stockBySize?.[size] === false);
 };
 
 const ProductsPanel = ({
@@ -2877,6 +2884,21 @@ const ProductsPanel = ({
                     <p className="!mt-1 break-all text-xs text-zinc-500">
                       {product.image}
                     </p>
+                    {getOutOfStockSizes(product).length > 0 && (
+                      <div className="!mt-2 flex flex-wrap items-center !gap-1.5">
+                        <span className="text-[11px] font-bold uppercase text-zinc-500">
+                          Sem estoque:
+                        </span>
+                        {getOutOfStockSizes(product).map((size) => (
+                          <span
+                            key={size}
+                            className="rounded-full bg-zinc-100 !px-2 !py-0.5 text-[11px] font-bold text-zinc-500"
+                          >
+                            {size}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center !gap-2 lg:justify-end">
@@ -3454,6 +3476,21 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
     setFormData((current) => ({ ...current, [key]: value }));
   };
 
+  const toggleSizeStock = (size: string) => {
+    setFormData((current) => {
+      const currentStock = current.stockBySize || {};
+      const isAvailable = currentStock[size] !== false;
+
+      return {
+        ...current,
+        stockBySize: {
+          ...currentStock,
+          [size]: !isAvailable,
+        },
+      };
+    });
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -3606,6 +3643,42 @@ const ProductCreateForm = forwardRef<HTMLFormElement, {
           />
           Ativo
         </label>
+        {!isMascotForm && (
+          <div className="rounded-lg border border-zinc-200 !p-4 lg:col-span-4">
+            <div className="flex flex-col !gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase text-zinc-500">
+                  Estoque por tamanho
+                </p>
+                <p className="!mt-1 text-xs text-zinc-500">
+                  Clique no tamanho para alternar entre com estoque e sem estoque.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap !gap-2">
+                {productSizes.map((size) => {
+                  const isAvailable = formData.stockBySize?.[size] !== false;
+
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => toggleSizeStock(size)}
+                      className={`h-10 min-w-12 cursor-pointer rounded-full border !px-3 text-sm font-bold transition-all duration-200 ${
+                        isAvailable
+                          ? "border-black bg-black text-white"
+                          : "border-zinc-200 bg-zinc-100 text-zinc-400 line-through"
+                      }`}
+                      title={isAvailable ? "Com estoque" : "Sem estoque"}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="lg:col-span-2">
           <AdminTextField
             label="Imagem principal"

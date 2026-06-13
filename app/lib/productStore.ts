@@ -18,6 +18,7 @@ type SupabaseProduct = {
   badge?: string | null;
   gender?: Product["gender"] | null;
   active: boolean;
+  stock_by_size?: Record<string, boolean> | null;
   owner_type?: Product["ownerType"] | null;
   country?: string | null;
   created_at?: string;
@@ -76,6 +77,7 @@ const toProduct = (product: SupabaseProduct): Product => {
     badge: product.badge || undefined,
     gender: product.gender || "masculino",
     active: product.active,
+    stockBySize: product.stock_by_size || undefined,
     ownerType: product.owner_type || "team",
     country: product.country || undefined,
   });
@@ -97,6 +99,7 @@ const toSupabaseProduct = (product: Product): SupabaseProduct => {
     badge: product.badge ?? null,
     gender: product.gender || "masculino",
     active: product.active !== false,
+    stock_by_size: product.stockBySize ?? null,
     owner_type: product.ownerType || "team",
     country: product.country ?? null,
   };
@@ -117,6 +120,7 @@ const normalizeProduct = (product: Product): Product => {
     country: product.country?.trim() || undefined,
     ownerType: product.ownerType || "team",
     active: product.active !== false,
+    stockBySize: product.stockBySize || undefined,
     image: product.image.trim(),
     images: images.map((image) => image.trim()).filter(Boolean),
     description: product.description.trim(),
